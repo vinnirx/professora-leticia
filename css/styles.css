@@ -717,30 +717,32 @@ main {
   gap: 1.2rem;
 }
 
-.logo img { height: 4.4rem; width: auto; display: block; }
+.logo img { height: 3.6rem; width: auto; display: block; }
 
 .cabecalho .menu {
   margin-left: auto;
   width: auto;
   background: transparent;
-  gap: 0.25rem;
+  gap: 0.15rem;
+  flex-wrap: nowrap;
 }
 
 .cabecalho .menu a {
   color: var(--tinta);
   letter-spacing: 0;
   text-transform: none;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   border-radius: 999px;
-  padding: 0.35rem 0.55rem;
+  padding: 0.3rem 0.4rem;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.28rem;
+  white-space: nowrap;
 }
 
 .cabecalho .menu img {
-  width: 1.85rem;
-  height: 1.85rem;
+  width: 1.55rem;
+  height: 1.55rem;
   display: block;
 }
 
@@ -799,10 +801,9 @@ main { width: min(1120px, calc(100% - 6vw)); }
 
 .hero-logo {
   position: absolute;
-  width: 9rem;
-  right: 0.4rem;
-  top: 0.2rem;
-  border-radius: 1rem;
+  width: 13.5rem;
+  right: 0.2rem;
+  top: 0.4rem;
 }
 
 .hero-foto {
@@ -948,13 +949,13 @@ main { width: min(1120px, calc(100% - 6vw)); }
 .painel-compra { background: #e7f4fb; }
 .painel-sobre {
   display: grid;
-  grid-template-columns: 1fr 8rem;
+  grid-template-columns: 1fr min(16rem, 46%);
   gap: 0.8rem;
   align-items: center;
   background: #fff0f4;
 }
 
-.painel-sobre img { width: 100%; border-radius: 1rem; }
+.painel-sobre img { width: 100%; height: auto; }
 .painel h2 { color: var(--azul-vivo); font-size: 1.5rem; }
 .painel-sobre p { margin: 0.4rem 0 0.9rem; }
 
@@ -965,11 +966,12 @@ main { width: min(1120px, calc(100% - 6vw)); }
   .hero { grid-template-columns: 1fr; }
   .selos, .base, .painel-sobre, .grade { grid-template-columns: 1fr 1fr; }
   .categorias ul { grid-template-columns: repeat(4, 1fr); }
+  .cabecalho .menu { flex-wrap: wrap; justify-content: flex-end; }
 }
 
 @media (max-width: 680px) {
   .cabecalho { flex-wrap: wrap; }
-  .cabecalho .menu { margin-left: 0; }
+  .cabecalho .menu { margin-left: 0; justify-content: flex-start; }
   .hero, .selos, .base, .painel-sobre, .categorias ul, .grade { grid-template-columns: 1fr; }
   .categorias ul { grid-template-columns: repeat(2, 1fr); }
   .hero-arte { min-height: 16rem; }
