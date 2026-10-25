@@ -732,7 +732,16 @@ main {
   text-transform: none;
   font-size: 0.95rem;
   border-radius: 999px;
-  padding: 0.4rem 0.7rem;
+  padding: 0.35rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cabecalho .menu img {
+  width: 1.85rem;
+  height: 1.85rem;
+  display: block;
 }
 
 #jogos,
@@ -891,22 +900,12 @@ main { width: min(1120px, calc(100% - 6vw)); }
 .categorias a { color: inherit; text-decoration: none; }
 
 .cat {
-  display: grid;
-  place-items: center;
-  height: 4.4rem;
-  margin-bottom: 0.4rem;
-  border-radius: 1rem;
-  font-size: 1.3rem;
+  width: 4.6rem;
+  height: 4.6rem;
+  margin: 0 auto 0.35rem;
+  display: block;
+  object-fit: contain;
 }
-
-.cat-lima { background: #e7f6c8; }
-.cat-pessego { background: #ffe3c4; }
-.cat-verde { background: #ddf3ea; }
-.cat-amarelo { background: #fff1c2; }
-.cat-ceu { background: #d9f3fb; }
-.cat-azul { background: #d9e6fb; }
-.cat-menta { background: #e5f6e8; }
-.cat-rosa { background: #ffe0ea; }
 
 .miudo-centro { margin: 0.8rem 0 0; color: #6d7c88; font-size: 0.92rem; }
 
