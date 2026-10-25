@@ -786,51 +786,13 @@ main { width: min(1120px, calc(100% - 6vw)); }
 
 .botao-azul { background: var(--azul-vivo); }
 
-.hero-arte {
-  position: relative;
-  min-height: 18rem;
-  overflow: hidden;
-}
+.hero-arte { min-width: 0; }
 
-.blob {
-  position: absolute;
-  inset: 1rem 0.5rem 2rem 3rem;
-  border-radius: 46% 54% 48% 52%;
-  background: #ffe4ec;
-}
-
-.hero-logo {
-  position: absolute;
-  width: 13.5rem;
-  right: 0.2rem;
-  top: 0.4rem;
-}
-
-.hero-foto {
-  position: absolute;
-  width: 8.2rem;
-  height: 8.2rem;
-  object-fit: cover;
-  object-position: center 18%;
-  border-radius: 50%;
-  border: 5px solid white;
-  left: 1.2rem;
-  bottom: 2.4rem;
-  box-shadow: var(--sombra);
-}
-
-.balao {
-  position: absolute;
-  right: 0.2rem;
-  bottom: 0.2rem;
-  max-width: 11rem;
-  margin: 0;
-  padding: 0.8rem 1rem;
-  border-radius: 1.3rem 1.3rem 0.4rem 1.3rem;
-  background: #ffd5df;
-  color: #d46b86;
-  font-weight: 800;
-  line-height: 1.25;
+.hero-ilustracao {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 1.4rem;
 }
 
 .selos {
@@ -974,5 +936,4 @@ main { width: min(1120px, calc(100% - 6vw)); }
   .cabecalho .menu { margin-left: 0; justify-content: flex-start; }
   .hero, .selos, .base, .painel-sobre, .categorias ul, .grade { grid-template-columns: 1fr; }
   .categorias ul { grid-template-columns: repeat(2, 1fr); }
-  .hero-arte { min-height: 16rem; }
 }
