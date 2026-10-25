@@ -887,7 +887,7 @@ main { width: min(1120px, calc(100% - 6vw)); }
 
 .categorias ul {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 0.7rem;
   margin: 0;
   padding: 0;
