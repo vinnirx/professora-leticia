@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Inclusão no Cotidiano — Letícia Pimentel de Macedo</title>
+    <meta
+      name="description"
+      content="Loja da professora Letícia Pimentel de Macedo. Atividades em PDF de Educação Especial Inclusiva, com pagamento por Pix."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css?v=15" />
+  </head>
+  <body>
+    <a class="skip" href="#atividades">Ir para as atividades</a>
+
+    <div class="faixa">Uma atividade para imprimir e usar hoje · R$ 10 no Pix</div>
+
+    <header class="topo" id="inicio">
+      <a class="marca" href="#inicio">
+        <img src="img/inclusao-no-cotidiano.jpg?v=6" alt="Inclusão no Cotidiano" />
+      </a>
+      <div class="barra">
+        <nav class="menu" aria-label="Seções">
+          <a href="#inicio">Início</a>
+          <a href="#atividades">Atividades</a>
+          <a href="#compra">Como comprar</a>
+          <a href="#sobre">Sobre</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="loja" id="atividades" aria-labelledby="titulo-atividades">
+        <p class="chapeu">A primeira atividade</p>
+        <h2 id="titulo-atividades">Para o dia ficar visível.</h2>
+        <p class="lead-loja">
+          Manhã, escola e noite numa folha só. A criança aponta o que vem agora,
+          e quem está junto não precisa montar a atividade do zero.
+        </p>
+        <ul class="promessas">
+          <li>Imprime em casa</li>
+          <li>Poucas palavras</li>
+          <li>No tempo da criança</li>
+        </ul>
+        <div class="grade" id="grade"></div>
+      </section>
+
+      <section class="como" id="compra" aria-labelledby="titulo-compra">
+        <h2 id="titulo-compra">Como ela chega até você</h2>
+        <p>
+          Você escolhe, gera um Pix só seu e me manda o comprovante com o código do pedido.
+          Eu confirmo e envio o código para imprimir a folha.
+        </p>
+        <ol class="passos">
+          <li>
+            <strong>Escolha com calma</strong>
+            <span>O valor está logo abaixo da atividade.</span>
+          </li>
+          <li>
+            <strong>Pague com Pix</strong>
+            <span>O QR sai com um código que eu vejo no banco.</span>
+          </li>
+          <li>
+            <strong>Receba o código</strong>
+            <span>Com ele, a folha destrava e você imprime.</span>
+          </li>
+        </ol>
+      </section>
+
+      <section class="boas-vindas" id="sobre" aria-labelledby="titulo-sobre">
+        <img
+          class="retrato"
+          src="img/leticia.jpg"
+          alt="Letícia Pimentel de Macedo, de óculos e camiseta branca, apoiada em uma mureta."
+        />
+        <div>
+          <p class="chapeu">Bem-vinda</p>
+          <h1 id="titulo-sobre">Oi! Eu sou a Letícia.</h1>
+          <p>
+            Sou professora de Educação Especial Inclusiva e futura psicopedagoga.
+            Apaixonada por livros, pela educação e pelas possibilidades que cada estudante carrega consigo.
+          </p>
+          <p>
+            Sou licenciada em História e pós-graduada em Educação Especial Inclusiva.
+            Estou finalizando a pós-graduação em Psicopedagogia Institucional e Clínica
+            e a segunda licenciatura, em Pedagogia.
+          </p>
+          <p>
+            Educar, para mim, vai além de ensinar conteúdos: é reconhecer potencialidades,
+            respeitar individualidades e abrir caminhos reais de aprendizagem.
+            A inclusão começa quando a gente enxerga o que cada estudante é capaz de aprender, construir e conquistar.
+          </p>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="rodape">
+      <div>
+        <p class="rodape-marca">Inclusão no Cotidiano</p>
+        <p>Letícia Pimentel de Macedo</p>
+      </div>
+      <div>
+        <p class="rodape-titulo">Na loja</p>
+        <a href="#atividades">Atividades</a>
+        <a href="#compra">Como comprar</a>
+        <a href="#sobre">Sobre</a>
+      </div>
+      <div>
+        <p class="rodape-titulo">Pix</p>
+        <p>leticiapimenteldemacedo@gmail.com</p>
+      </div>
+    </footer>
+
+    <dialog class="pix" id="pix">
+      <div class="pix-painel">
+        <button class="fechar" type="button" aria-label="Fechar">×</button>
+        <p class="chapeu" id="pix-kicker">Pix</p>
+        <h2 id="pix-titulo"></h2>
+        <p class="preco-grande" id="pix-preco"></p>
+        <p id="pix-resumo"></p>
+        <ul id="pix-inclui"></ul>
+        <form id="pix-pedido" class="pedido">
+          <label>
+            Seu nome
+            <input name="nome" autocomplete="name" required />
+          </label>
+          <label>
+            Seu e-mail
+            <input name="email" type="email" autocomplete="email" required />
+          </label>
+          <button class="botao" type="submit">Gerar QR do Pix</button>
+        </form>
+        <div id="pix-resultado" hidden>
+          <div class="qr-caixa" id="pix-imagem"></div>
+          <p class="miudo">Código deste pedido</p>
+          <p class="codigo-pedido" id="pix-codigo"></p>
+          <p class="miudo" id="pix-pessoa"></p>
+          <label class="cola-rotulo">
+            Pix copia e cola
+            <textarea id="pix-cola" readonly rows="4"></textarea>
+          </label>
+          <div class="pix-acoes">
+            <button class="botao" id="copiar" type="button">Copiar código Pix</button>
+            <a class="botao botao-secundario" id="whatsapp" href="#" hidden>Enviar comprovante</a>
+          </div>
+        </div>
+        <p class="miudo" id="pix-aviso" role="status"></p>
+      </div>
+    </dialog>
+
+    <script src="js/loja.js?v=14"></script>
+    <script src="js/pacote.js?v=14"></script>
+    <script src="js/pix.js?v=14"></script>
+    <script src="js/main.js?v=14"></script>
+  </body>
+</html>
