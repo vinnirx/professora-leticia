@@ -730,9 +730,17 @@ main {
   color: var(--tinta);
   letter-spacing: 0;
   text-transform: none;
-  font-size: 0.98rem;
+  font-size: 0.95rem;
   border-radius: 999px;
-  padding: 0.45rem 0.85rem;
+  padding: 0.4rem 0.7rem;
+}
+
+#jogos,
+#dicas,
+#gratuitos,
+#atividades,
+#sobre {
+  scroll-margin-top: 1rem;
 }
 
 .cabecalho .menu a:hover { background: #eef6ea; color: var(--verde); }
