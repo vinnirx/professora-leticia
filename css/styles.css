@@ -254,6 +254,14 @@ main {
 
 .publico p:last-child { margin-top: 0.5rem; }
 
+.entrada-nota {
+  margin: 1rem 0 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
 .publico-para {
   margin-bottom: 0.35rem;
   font-size: 0.78rem;

@@ -11,9 +11,9 @@ const loja = {
     {
       id: "rotina",
       titulo: "Rotina em imagens",
-      uso: "Casa e sala",
-      resumo: "Três momentos do dia, lado a lado. A criança vê a manhã, a escola e a noite, e aponta o que está acontecendo agora.",
-      inclui: ["Folha para imprimir", "Manhã, escola e noite", "Um círculo para marcar o momento"],
+      uso: "Com um adulto por perto",
+      resumo: "Manhã, escola e noite, um de cada vez. A criança aponta o momento, e quem está junto espera com ela.",
+      inclui: ["Folha para imprimir", "Um momento de cada vez", "Um círculo para marcar junto"],
       preco: 10,
       download: "rotina-em-imagens.pdf",
     },

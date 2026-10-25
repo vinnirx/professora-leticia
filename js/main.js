@@ -45,7 +45,7 @@ function cartao(atividade) {
         ${atividade.inclui.map((item) => `<li>${item}</li>`).join("")}
       </ul>
       <p class="preco">${dinheiro(atividade.preco)}</p>
-      <button class="botao comprar" type="button">Quero imprimir essa folha</button>
+      <button class="botao comprar" type="button">Quero essa folha para a criança</button>
       <details class="liberar">
         <summary>Já recebi o código</summary>
         <form>
