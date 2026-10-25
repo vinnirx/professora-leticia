@@ -11,121 +11,100 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=17" />
+    <link rel="stylesheet" href="css/styles.css?v=18" />
   </head>
   <body>
     <a class="skip" href="#atividades">Ir para as atividades</a>
 
-    <div class="faixa">Para crianças com deficiência · uma folha para quem acompanha de perto</div>
-
-    <header class="topo" id="inicio">
-      <a class="marca" href="#inicio">
+    <header class="cabecalho" id="inicio">
+      <a class="logo" href="#inicio">
         <img src="img/inclusao-no-cotidiano.jpg?v=6" alt="Inclusão no Cotidiano" />
       </a>
-      <div class="barra">
-        <nav class="menu" aria-label="Seções">
-          <a href="#para-quem">Para quem</a>
-          <a href="#atividades">A folha</a>
-          <a href="#compra">Como comprar</a>
-          <a href="#sobre">Sobre</a>
-        </nav>
-      </div>
+      <nav class="menu" aria-label="Seções">
+        <a href="#inicio">Início</a>
+        <a href="#sobre">Sobre</a>
+        <a href="#atividades">Materiais</a>
+        <a href="#compra">Como comprar</a>
+      </nav>
     </header>
 
     <main>
-      <section class="entrada" id="para-quem" aria-labelledby="titulo-entrada">
-        <div class="entrada-topo">
-          <div>
-            <p class="chapeu">Educação especial, no cotidiano</p>
-            <h1 id="titulo-entrada">A criança com deficiência precisa ver o dia devagar.</h1>
-            <p class="entrada-lead">
-              Eu fiz esta folha para a mãe e para a professora que ficam perto.
-              Um momento de cada vez, com poucas palavras, no tempo dela.
-            </p>
-          </div>
-          <a class="entrada-rosto" href="#sobre">
-            <img src="img/leticia.jpg" alt="Letícia Pimentel de Macedo, de óculos e camiseta branca." />
-            <span>Oi, eu sou a Letícia</span>
-          </a>
+      <section class="hero" id="para-quem" aria-labelledby="titulo-entrada">
+        <div class="hero-texto">
+          <h1 id="titulo-entrada">
+            <span class="cor-azul">Recursos que</span>
+            <span class="cor-coral">acompanham</span>
+            <span class="cor-verde">a criança</span>
+          </h1>
+          <p>
+            Materiais para a mãe e a professora que ficam perto de uma criança com deficiência.
+            Um momento de cada vez, na casa e na sala.
+          </p>
+          <a class="botao botao-hero" href="#atividades">Conheça a folha</a>
         </div>
-        <div class="publicos">
-          <article class="publico publico-casa">
-            <p class="publico-para">Se você é mãe</p>
-            <h2>A sua atenção fica na criança.</h2>
-            <p>A manhã e a noite já estão na folha. Você aponta, espera e fica junto. Não precisa inventar o material enquanto ela espera.</p>
-          </article>
-          <article class="publico publico-sala">
-            <p class="publico-para">Se você é professora</p>
-            <h2>O olhar volta para o estudante.</h2>
-            <p>Três momentos e um círculo. A folha segura a rotina para você acompanhar quem precisa de mais tempo.</p>
-          </article>
+        <div class="hero-arte" aria-hidden="true">
+          <span class="blob"></span>
+          <img class="hero-logo" src="img/inclusao-no-cotidiano.jpg?v=6" alt="" />
+          <img class="hero-foto" src="img/leticia.jpg" alt="" />
+          <p class="balao">Educação inclusiva todos os dias</p>
         </div>
-        <p class="entrada-nota">A mesma folha. Mais tempo. Mais presença.</p>
+      </section>
+
+      <ul class="selos">
+        <li><span class="selo-icone selo-pdf">PDF</span><strong>Materiais em PDF</strong><span>Imprime e usa hoje.</span></li>
+        <li><span class="selo-icone selo-tempo">1</span><strong>Um momento</strong><span>No tempo da criança.</span></li>
+        <li><span class="selo-icone selo-pix">Pix</span><strong>Pix com código</strong><span>A Letícia vê quem pagou.</span></li>
+        <li><span class="selo-icone selo-coracao">♥</span><strong>Mais atenção</strong><span>Para quem precisa de presença.</span></li>
+      </ul>
+
+      <section class="categorias" aria-labelledby="titulo-categorias">
+        <div class="secao-cabeca">
+          <h2 id="titulo-categorias">Categorias</h2>
+          <a href="#atividades">Ver a folha disponível</a>
+        </div>
+        <ul>
+          <li><span class="cat cat-lima">Aa</span>Atividades</li>
+          <li><span class="cat cat-pessego">■</span>Jogos</li>
+          <li><span class="cat cat-verde">✎</span>Planos</li>
+          <li><a href="#atividades"><span class="cat cat-amarelo">☀</span>Rotina escolar</a></li>
+          <li><span class="cat cat-ceu">✦</span>Dicas</li>
+          <li><span class="cat cat-azul">⌂</span>Sala de aula</li>
+          <li><span class="cat cat-menta">▣</span>Recursos</li>
+          <li><span class="cat cat-rosa">♡</span>Avaliações</li>
+        </ul>
+        <p class="miudo-centro">A primeira folha disponível é a Rotina em imagens. As outras áreas chegam com a Letícia.</p>
       </section>
 
       <section class="loja" id="atividades" aria-labelledby="titulo-atividades">
-        <p class="chapeu">Feita para esse cuidado</p>
-        <h2 id="titulo-atividades">Rotina em imagens, um momento de cada vez.</h2>
-        <p class="lead-loja">
-          Manhã, escola e noite. A criança aponta o que vem agora, com um adulto por perto.
-        </p>
-        <ul class="promessas">
-          <li>Um momento de cada vez</li>
-          <li>Poucas palavras</li>
-          <li>No tempo da criança</li>
-        </ul>
+        <div class="secao-cabeca">
+          <h2 id="titulo-atividades">Materiais em destaque</h2>
+        </div>
         <div class="grade" id="grade"></div>
       </section>
 
-      <section class="como" id="compra" aria-labelledby="titulo-compra">
-        <h2 id="titulo-compra">Como ela chega até você</h2>
-        <p>
-          Você escolhe, gera um Pix só seu e me manda o comprovante com o código do pedido.
-          Eu confirmo e envio o código para imprimir a folha.
-        </p>
-        <ol class="passos">
-          <li>
-            <strong>Escolha com calma</strong>
-            <span>O valor está logo abaixo da atividade.</span>
-          </li>
-          <li>
-            <strong>Pague com Pix</strong>
-            <span>O QR sai com um código que eu vejo no banco.</span>
-          </li>
-          <li>
-            <strong>Receba o código</strong>
-            <span>Com ele, a folha destrava e você imprime.</span>
-          </li>
-        </ol>
-      </section>
-
-      <section class="boas-vindas" id="sobre" aria-labelledby="titulo-sobre">
-        <img
-          class="retrato"
-          src="img/leticia.jpg"
-          alt="Letícia Pimentel de Macedo, de óculos e camiseta branca, apoiada em uma mureta."
-        />
-        <div>
-          <p class="chapeu">Bem-vinda</p>
-          <h2 id="titulo-sobre">Oi! Eu sou a Letícia.</h2>
-          <p>
-            Sou professora de Educação Especial Inclusiva e futura psicopedagoga.
-            Apaixonada por livros, pela educação e pelas possibilidades que cada estudante carrega consigo.
-          </p>
-          <p>
-            Sou licenciada em História e pós-graduada em Educação Especial Inclusiva.
-            Estou finalizando a pós-graduação em Psicopedagogia Institucional e Clínica
-            e a segunda licenciatura, em Pedagogia.
-          </p>
-          <p>
-            Educar, para mim, vai além de ensinar conteúdos: é reconhecer potencialidades,
-            respeitar individualidades e abrir caminhos reais de aprendizagem.
-            A inclusão começa quando a gente enxerga o que cada estudante é capaz de aprender, construir e conquistar.
-          </p>
-        </div>
+      <section class="base" id="compra">
+        <article class="painel painel-compra" aria-labelledby="titulo-compra">
+          <h2 id="titulo-compra">Como a folha chega</h2>
+          <ol class="passos">
+            <li><strong>Escolha a folha</strong><span>O valor está no card, R$ 10.</span></li>
+            <li><strong>Pague no Pix</strong><span>O QR sai com um código que eu vejo no banco.</span></li>
+            <li><strong>Receba o código</strong><span>Com ele, a folha destrava e você imprime.</span></li>
+          </ol>
+        </article>
+        <article class="painel painel-sobre" id="sobre" aria-labelledby="titulo-sobre">
+          <div>
+            <h2 id="titulo-sobre">Sobre a Letícia</h2>
+            <p>
+              Sou professora de Educação Especial Inclusiva e futura psicopedagoga.
+              Fiz esta folha para a criança que precisa de mais tempo, e para o adulto que fica perto.
+            </p>
+            <a class="botao botao-azul" href="#atividades">Ver a folha</a>
+          </div>
+          <img src="img/inclusao-no-cotidiano.jpg?v=6" alt="Marca Inclusão no Cotidiano" />
+        </article>
       </section>
 
     </main>
@@ -137,8 +116,8 @@
       </div>
       <div>
         <p class="rodape-titulo">Na loja</p>
-        <a href="#para-quem">Para quem</a>
-        <a href="#atividades">A folha</a>
+        <a href="#inicio">Início</a>
+        <a href="#atividades">Materiais</a>
         <a href="#compra">Como comprar</a>
         <a href="#sobre">Sobre</a>
       </div>
@@ -185,9 +164,9 @@
       </div>
     </dialog>
 
-    <script src="js/loja.js?v=17"></script>
-    <script src="js/pacote.js?v=17"></script>
-    <script src="js/pix.js?v=17"></script>
-    <script src="js/main.js?v=17"></script>
+    <script src="js/loja.js?v=18"></script>
+    <script src="js/pacote.js?v=18"></script>
+    <script src="js/pix.js?v=18"></script>
+    <script src="js/main.js?v=18"></script>
   </body>
 </html>
