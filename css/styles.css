@@ -587,25 +587,42 @@ main {
 .botao:disabled { cursor: not-allowed; opacity: 0.55; }
 
 .rodape {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr 1.4fr;
-  gap: 1.2rem;
-  width: min(1080px, calc(100% - 8vw));
-  margin: 0 auto;
-  padding: 1.6rem 0 2.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem 1.4rem;
+  width: min(1120px, calc(100% - 6vw));
+  margin: 2.4rem auto 0;
+  padding: 1.15rem 0 2rem;
   border-top: 4px solid var(--verde-claro);
 }
 
-.rodape a { display: block; text-decoration: none; padding: 0.15rem 0; }
+.rodape-marca {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-right: auto;
+}
+
+.rodape-marca img { height: 2.7rem; width: auto; display: block; }
+
+.rodape-marca p { margin: 0; color: #6d7c88; font-size: 0.9rem; }
+
+.rodape-marca p:first-child {
+  color: var(--tinta);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.rodape-links { display: flex; flex-wrap: wrap; gap: 0.35rem 0.85rem; }
+
+.rodape a { text-decoration: none; font-weight: 700; font-size: 0.92rem; }
 
 .rodape a:hover { color: var(--coral-escuro); }
 
-.rodape-marca, .rodape-titulo {
-  font-weight: 700;
-  margin-bottom: 0.35rem;
-}
+.rodape-pix { margin: 0; color: #6d7c88; font-size: 0.9rem; }
 
-.rodape-marca { font-family: var(--serif); font-size: 1.35rem; }
+.rodape-pix span { margin-right: 0.35rem; color: var(--tinta); font-weight: 800; }
 
 .pix {
   width: min(34rem, calc(100% - 2rem));
@@ -889,18 +906,17 @@ main {
 
 .card .comprar { border-style: solid; }
 
-.base { margin-top: 2rem; }
+.base { margin-top: 2.2rem; }
 
-.painel {
-  padding: 1.2rem;
-  border-radius: 1.3rem;
-}
-
-.painel-compra { background: #e7f4fb; }
-.painel h2 { color: var(--azul-vivo); font-size: 1.5rem; }
+.base h2 { color: var(--azul-vivo); font-size: 1.5rem; margin-bottom: 0.85rem; }
 
 .base .passos { grid-template-columns: repeat(3, 1fr); }
-.base .passos li { background: transparent; padding: 0.35rem 0; }
+
+.base .passos li {
+  background: white;
+  box-shadow: var(--sombra);
+  padding: 1rem 1rem 1.15rem;
+}
 
 @media (max-width: 980px) {
   .grade { grid-template-columns: 1fr 1fr; }
@@ -916,4 +932,5 @@ main {
   .hero { min-height: 0; }
   .hero-ilustracao { order: -1; height: 16rem; }
   .hero-texto { padding: 1.3rem 1.1rem 1.5rem; }
+  .rodape-marca, .rodape-pix { width: 100%; margin-right: 0; }
 }
