@@ -759,15 +759,14 @@ main {
 main { width: min(1120px, calc(100% - 6vw)); }
 
 .hero {
+  position: relative;
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: 1rem;
   align-items: center;
-  padding: 1.4rem 1.2rem 1rem;
+  min-height: 24rem;
+  padding: 1.5rem;
+  overflow: hidden;
   border-radius: 1.8rem;
-  background:
-    radial-gradient(circle at 88% 30%, #ffe7ef 0 9rem, transparent 9.2rem),
-    linear-gradient(180deg, #fff, #f3fbff);
+  background: #fff4ea;
 }
 
 .hero h1 span { display: block; }
@@ -775,7 +774,16 @@ main { width: min(1120px, calc(100% - 6vw)); }
 .cor-coral { color: #ef8b78; }
 .cor-verde { color: var(--verde-vivo); }
 
-.hero-texto p { max-width: 34rem; margin-bottom: 1.1rem; font-size: 1.08rem; }
+.hero-texto {
+  position: relative;
+  z-index: 1;
+  width: min(28rem, 100%);
+  padding: 1.15rem 1.25rem 1.25rem;
+  border-radius: 1.2rem;
+  background: rgb(255 252 250 / 92%);
+}
+
+.hero-texto p { max-width: none; margin-bottom: 1.1rem; font-size: 1.08rem; }
 
 .botao-hero, .botao-azul {
   display: inline-flex;
@@ -786,13 +794,13 @@ main { width: min(1120px, calc(100% - 6vw)); }
 
 .botao-azul { background: var(--azul-vivo); }
 
-.hero-arte { min-width: 0; }
-
 .hero-ilustracao {
-  display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
-  border-radius: 1.4rem;
+  height: 100%;
+  object-fit: cover;
+  object-position: 68% center;
 }
 
 .selos {
@@ -936,4 +944,6 @@ main { width: min(1120px, calc(100% - 6vw)); }
   .cabecalho .menu { margin-left: 0; justify-content: flex-start; }
   .hero, .selos, .base, .painel-sobre, .categorias ul, .grade { grid-template-columns: 1fr; }
   .categorias ul { grid-template-columns: repeat(2, 1fr); }
+  .hero { min-height: 32rem; align-items: end; padding: 0.8rem; }
+  .hero-ilustracao { object-position: center; }
 }
