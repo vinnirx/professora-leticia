@@ -763,7 +763,7 @@ main {
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(18rem, 0.9fr) 1.25fr;
+  grid-template-columns: minmax(22rem, 1.15fr) 1fr;
   align-items: stretch;
   width: 100%;
   min-height: 22rem;
@@ -773,7 +773,7 @@ main {
 }
 
 .hero h1 {
-  font-size: clamp(2rem, 3.5vw, 3.15rem);
+  font-size: clamp(1.75rem, 2.5vw, 2.35rem);
   margin-bottom: 0.55rem;
 }
 
