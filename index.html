@@ -14,7 +14,8 @@
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=28" />
+    <link rel="stylesheet" href="css/styles.css?v=29" />
+    <link rel="stylesheet" href="css/historia.css?v=2" />
   </head>
   <body>
     <a class="skip" href="#atividades">Ir para as atividades</a>
@@ -29,7 +30,7 @@
         <a href="#jogos"><img src="img/icones/jogos.png?v=1" alt="" />Jogos</a>
         <a href="#gratuitos"><img src="img/icones/gratuitos.png?v=1" alt="" />Gratuitos</a>
         <a href="#dicas"><img src="img/icones/dicas.png?v=1" alt="" />Dicas</a>
-        <a class="abre-historia" href="#sobre"><img src="img/icones/inclusao.png?v=1" alt="" />Sobre mim</a>
+        <a class="abre-historia" href="#historia"><img src="img/icones/inclusao.png?v=1" alt="" />Sobre mim</a>
       </nav>
     </header>
 
@@ -45,7 +46,7 @@
           </p>
           <div class="hero-acoes">
             <a class="botao botao-hero" href="#atividades">Explorar Materiais</a>
-            <a class="botao botao-secundario abre-historia" href="#sobre">Sobre mim</a>
+            <a class="botao botao-secundario abre-historia" href="#historia">Sobre mim</a>
           </div>
         </div>
         <img
@@ -56,13 +57,6 @@
     </section>
 
     <main>
-      <ul class="selos">
-        <li><span class="selo-icone selo-pdf">PDF</span><strong>Materiais em PDF</strong><span>Imprime e usa hoje.</span></li>
-        <li><span class="selo-icone selo-tempo">1</span><strong>Um momento</strong><span>No tempo da criança.</span></li>
-        <li><span class="selo-icone selo-pix">Pix</span><strong>Pix com código</strong><span>A Letícia vê quem pagou.</span></li>
-        <li><span class="selo-icone selo-coracao">♥</span><strong>Mais atenção</strong><span>Para quem precisa de presença.</span></li>
-      </ul>
-
       <section class="categorias" aria-labelledby="titulo-categorias">
         <div class="secao-cabeca">
           <h2 id="titulo-categorias">Categorias</h2>
@@ -95,14 +89,6 @@
             <li><strong>Receba o código</strong><span>Com ele, a folha destrava e você imprime.</span></li>
           </ol>
         </article>
-        <article class="painel painel-sobre" id="sobre" aria-labelledby="titulo-sobre">
-          <div>
-            <h2 id="titulo-sobre">Sobre mim</h2>
-            <p>Olá! Seja muito bem-vindo(a) ao meu cantinho. Sou a professora Letícia.</p>
-            <button class="botao botao-azul abre-historia" type="button">Ler a história</button>
-          </div>
-          <img src="img/leticia.jpg?v=1" alt="Professora Letícia Pimentel de Macedo" />
-        </article>
       </section>
 
     </main>
@@ -119,7 +105,7 @@
         <a href="#jogos">Jogos</a>
         <a href="#gratuitos">Gratuitos</a>
         <a href="#dicas">Dicas</a>
-        <a class="abre-historia" href="#sobre">Sobre mim</a>
+        <a class="abre-historia" href="#historia">Sobre mim</a>
       </div>
       <div>
         <p class="rodape-titulo">Pix</p>
@@ -128,16 +114,12 @@
     </footer>
 
     <dialog class="historia" id="historia" aria-labelledby="titulo-historia">
-      <div class="historia-painel">
-        <button class="fechar" type="button" aria-label="Fechar">×</button>
-        <div class="historia-topo">
-          <img src="img/leticia.jpg?v=1" alt="Professora Letícia Pimentel de Macedo" />
-          <div>
-            <p class="faixa-hero">Sobre mim</p>
-            <h2 id="titulo-historia">Inclusão no Cotidiano 💗</h2>
-          </div>
-        </div>
+      <button class="fechar" type="button" aria-label="Fechar">×</button>
+      <article class="historia-painel">
+        <img class="historia-foto" src="img/leticia.jpg?v=1" alt="Professora Letícia Pimentel de Macedo" />
         <div class="historia-texto">
+          <p class="faixa-hero">Sobre mim</p>
+          <h2 id="titulo-historia">Inclusão no Cotidiano 💗</h2>
           <p>Olá! Seja muito bem-vindo(a) ao meu cantinho! 🌷</p>
           <p>Meu nome é Letícia, sou professora de Educação Especial, apaixonada pela educação e pelas inúmeras possibilidades que ela proporciona na vida de cada estudante.</p>
           <p>Sou licenciada em História e pós-graduada em Educação Especial Inclusiva. Atualmente, estou finalizando minha segunda licenciatura em Pedagogia e minha pós-graduação em Psicopedagogia Institucional e Clínica, buscando ampliar meus conhecimentos e aprimorar minha prática pedagógica.</p>
@@ -158,7 +140,7 @@
           <p>Seja muito bem-vindo(a) a este espaço de aprendizagem, partilha e inclusão!</p>
           <p class="assinatura">Com carinho,<br />Professora Letícia 💗</p>
         </div>
-      </div>
+      </article>
     </dialog>
 
     <dialog class="pix" id="pix">
@@ -201,6 +183,7 @@
     <script src="js/loja.js?v=20"></script>
     <script src="js/pacote.js?v=20"></script>
     <script src="js/pix.js?v=20"></script>
-    <script src="js/main.js?v=21"></script>
+    <script src="js/main.js?v=22"></script>
+    <script src="js/historia.js?v=1"></script>
   </body>
 </html>

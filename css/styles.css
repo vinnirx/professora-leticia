@@ -749,8 +749,7 @@ main {
 #jogos,
 #dicas,
 #gratuitos,
-#atividades,
-#sobre {
+#atividades {
   scroll-margin-top: 1rem;
 }
 
@@ -814,14 +813,12 @@ main {
   color: #d87462;
 }
 
-.botao-hero, .botao-azul {
+.botao-hero {
   display: inline-flex;
   align-items: center;
   width: auto;
   border-style: solid;
 }
-
-.botao-azul { background: var(--azul-vivo); }
 
 .hero-ilustracao {
   width: 100%;
@@ -831,47 +828,7 @@ main {
   object-position: center;
 }
 
-.selos {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.7rem;
-  margin: 1rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.selos li {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: 0.7rem;
-  align-items: center;
-  padding: 0.75rem;
-  border-radius: 1rem;
-  background: white;
-  box-shadow: var(--sombra);
-}
-
-.selos strong, .selos span:last-child { display: block; }
-.selos span:last-child { color: #6d7c88; font-size: 0.88rem; }
-
-.selo-icone {
-  grid-row: span 2;
-  width: 2.6rem;
-  height: 2.6rem;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  font-size: 0.72rem;
-  font-weight: 800;
-  background: #ffe8ea;
-  color: #e07a8a;
-}
-
-.selo-tempo { background: #e7f6fb; color: #5f87d8; }
-.selo-pix { background: #fff4d6; color: #c48a22; }
-.selo-coracao { background: #eef6ea; color: #6d8a48; font-size: 1.1rem; }
-
-.categorias { margin-top: 2rem; }
+.categorias { margin-top: 0.4rem; }
 
 .secao-cabeca {
   display: flex;
@@ -932,12 +889,7 @@ main {
 
 .card .comprar { border-style: solid; }
 
-.base {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.9rem;
-  margin-top: 2rem;
-}
+.base { margin-top: 2rem; }
 
 .painel {
   padding: 1.2rem;
@@ -945,29 +897,13 @@ main {
 }
 
 .painel-compra { background: #e7f4fb; }
-.painel-sobre {
-  display: grid;
-  grid-template-columns: 1fr min(16rem, 46%);
-  gap: 0.8rem;
-  align-items: center;
-  background: #fff0f4;
-}
-
-.painel-sobre img {
-  width: 100%;
-  height: 16rem;
-  object-fit: cover;
-  object-position: center 18%;
-  border-radius: 1rem;
-}
 .painel h2 { color: var(--azul-vivo); font-size: 1.5rem; }
-.painel-sobre p { margin: 0.4rem 0 0.9rem; }
 
-.passos { grid-template-columns: 1fr; }
-.passos li { background: transparent; padding: 0.35rem 0; }
+.base .passos { grid-template-columns: repeat(3, 1fr); }
+.base .passos li { background: transparent; padding: 0.35rem 0; }
 
 @media (max-width: 980px) {
-  .selos, .base, .painel-sobre, .grade { grid-template-columns: 1fr 1fr; }
+  .grade { grid-template-columns: 1fr 1fr; }
   .categorias ul { grid-template-columns: repeat(4, 1fr); }
   .cabecalho .menu { flex-wrap: wrap; justify-content: flex-end; }
 }
@@ -975,71 +911,9 @@ main {
 @media (max-width: 680px) {
   .cabecalho { flex-wrap: wrap; }
   .cabecalho .menu { margin-left: 0; justify-content: flex-start; }
-  .hero, .selos, .base, .painel-sobre, .categorias ul, .grade { grid-template-columns: 1fr; }
+  .hero, .categorias ul, .grade, .base .passos { grid-template-columns: 1fr; }
   .categorias ul { grid-template-columns: repeat(2, 1fr); }
   .hero { min-height: 0; }
   .hero-ilustracao { order: -1; height: 16rem; }
   .hero-texto { padding: 1.3rem 1.1rem 1.5rem; }
-}
-
-.historia {
-  width: min(46rem, calc(100% - 2rem));
-  max-height: calc(100vh - 2rem);
-  overflow: auto;
-  border: 0;
-  border-radius: 1.4rem;
-  padding: 0;
-  background: transparent;
-}
-
-.historia::backdrop { background: rgb(62 81 100 / 48%); }
-
-.historia-painel {
-  position: relative;
-  padding: 1.4rem 1.4rem 1.6rem;
-  border-radius: 1.4rem;
-  background: var(--folha);
-  box-shadow: var(--sombra);
-}
-
-.historia-topo {
-  display: grid;
-  grid-template-columns: 9.2rem 1fr;
-  gap: 1rem;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-right: 2.2rem;
-}
-
-.historia-topo img {
-  width: 9.2rem;
-  height: 11.2rem;
-  object-fit: cover;
-  object-position: center 16%;
-  border-radius: 1.15rem;
-}
-
-.historia h2 {
-  margin: 0.35rem 0 0;
-  color: var(--azul-vivo);
-  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
-}
-
-.historia-texto p { margin: 0 0 0.8rem; }
-
-.historia h3 {
-  margin: 1.15rem 0 0.45rem;
-  color: #e07a8a;
-  font-size: 1.2rem;
-}
-
-.assinatura { font-weight: 800; color: #d87462; }
-
-@media (max-width: 680px) {
-  .historia-topo {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    text-align: center;
-    padding-right: 0;
-  }
 }

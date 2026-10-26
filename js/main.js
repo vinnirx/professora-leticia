@@ -201,18 +201,4 @@ function abrirPix(atividade) {
 
 document.querySelector("#pix .fechar").addEventListener("click", () => dialogo.close());
 
-const historia = document.querySelector("#historia");
-
-document.querySelectorAll(".abre-historia").forEach((origem) => {
-  origem.addEventListener("click", (evento) => {
-    evento.preventDefault();
-    historia.showModal();
-  });
-});
-
-historia.querySelector(".fechar").addEventListener("click", () => historia.close());
-historia.addEventListener("click", (evento) => {
-  if (evento.target === historia) historia.close();
-});
-
 loja.atividades.forEach((atividade) => grade.append(cartao(atividade)));
