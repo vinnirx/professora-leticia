@@ -756,16 +756,20 @@ main {
 
 .cabecalho .menu a:hover { background: #eef6ea; color: var(--verde); }
 
-main { width: min(1120px, calc(100% - 6vw)); }
+main {
+  width: min(1120px, calc(100% - 6vw));
+  margin-top: 1.4rem;
+}
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(17rem, 0.92fr) 1.2fr;
+  grid-template-columns: minmax(18rem, 0.9fr) 1.25fr;
   align-items: stretch;
-  min-height: 19rem;
+  width: 100%;
+  min-height: 22rem;
   overflow: hidden;
-  border-radius: 1.6rem;
-  background: linear-gradient(90deg, #fffaf7 0%, #fff3ea 55%, #fff7f2 100%);
+  border-radius: 0;
+  background: linear-gradient(90deg, #fffaf7 0%, #fff3ea 48%, #fff7f2 100%);
 }
 
 .hero h1 {
@@ -796,7 +800,7 @@ main { width: min(1120px, calc(100% - 6vw)); }
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 1.5rem 0.8rem 1.5rem 1.8rem;
+  padding: 2rem 1.2rem 2rem max(1.5rem, calc((100vw - 1120px) / 2));
 }
 
 .hero-texto p { max-width: 32rem; margin-bottom: 1rem; font-size: 1.02rem; }
@@ -968,6 +972,6 @@ main { width: min(1120px, calc(100% - 6vw)); }
   .hero, .selos, .base, .painel-sobre, .categorias ul, .grade { grid-template-columns: 1fr; }
   .categorias ul { grid-template-columns: repeat(2, 1fr); }
   .hero { min-height: 0; }
-  .hero-ilustracao { order: -1; height: 14rem; }
-  .hero-texto { padding: 1.2rem; }
+  .hero-ilustracao { order: -1; height: 16rem; }
+  .hero-texto { padding: 1.3rem 1.1rem 1.5rem; }
 }
