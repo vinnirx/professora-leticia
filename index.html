@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=27" />
+    <link rel="stylesheet" href="css/styles.css?v=28" />
   </head>
   <body>
     <a class="skip" href="#atividades">Ir para as atividades</a>
@@ -29,7 +29,7 @@
         <a href="#jogos"><img src="img/icones/jogos.png?v=1" alt="" />Jogos</a>
         <a href="#gratuitos"><img src="img/icones/gratuitos.png?v=1" alt="" />Gratuitos</a>
         <a href="#dicas"><img src="img/icones/dicas.png?v=1" alt="" />Dicas</a>
-        <a href="#sobre"><img src="img/icones/inclusao.png?v=1" alt="" />Sobre mim</a>
+        <a class="abre-historia" href="#sobre"><img src="img/icones/inclusao.png?v=1" alt="" />Sobre mim</a>
       </nav>
     </header>
 
@@ -45,7 +45,7 @@
           </p>
           <div class="hero-acoes">
             <a class="botao botao-hero" href="#atividades">Explorar Materiais</a>
-            <a class="botao botao-secundario" href="#sobre">Sobre mim</a>
+            <a class="botao botao-secundario abre-historia" href="#sobre">Sobre mim</a>
           </div>
         </div>
         <img
@@ -98,13 +98,10 @@
         <article class="painel painel-sobre" id="sobre" aria-labelledby="titulo-sobre">
           <div>
             <h2 id="titulo-sobre">Sobre mim</h2>
-            <p>
-              Sou professora de Educação Especial Inclusiva e futura psicopedagoga.
-              Fiz esta folha para a criança que precisa de mais tempo, e para o adulto que fica perto.
-            </p>
-            <a class="botao botao-azul" href="#atividades">Ver a folha</a>
+            <p>Olá! Seja muito bem-vindo(a) ao meu cantinho. Sou a professora Letícia.</p>
+            <button class="botao botao-azul abre-historia" type="button">Ler a história</button>
           </div>
-          <img src="img/logo-inclusao.png?v=1" alt="Marca Inclusão no Cotidiano" />
+          <img src="img/leticia.jpg?v=1" alt="Professora Letícia Pimentel de Macedo" />
         </article>
       </section>
 
@@ -122,13 +119,47 @@
         <a href="#jogos">Jogos</a>
         <a href="#gratuitos">Gratuitos</a>
         <a href="#dicas">Dicas</a>
-        <a href="#sobre">Sobre mim</a>
+        <a class="abre-historia" href="#sobre">Sobre mim</a>
       </div>
       <div>
         <p class="rodape-titulo">Pix</p>
         <p>leticiapimenteldemacedo@gmail.com</p>
       </div>
     </footer>
+
+    <dialog class="historia" id="historia" aria-labelledby="titulo-historia">
+      <div class="historia-painel">
+        <button class="fechar" type="button" aria-label="Fechar">×</button>
+        <div class="historia-topo">
+          <img src="img/leticia.jpg?v=1" alt="Professora Letícia Pimentel de Macedo" />
+          <div>
+            <p class="faixa-hero">Sobre mim</p>
+            <h2 id="titulo-historia">Inclusão no Cotidiano 💗</h2>
+          </div>
+        </div>
+        <div class="historia-texto">
+          <p>Olá! Seja muito bem-vindo(a) ao meu cantinho! 🌷</p>
+          <p>Meu nome é Letícia, sou professora de Educação Especial, apaixonada pela educação e pelas inúmeras possibilidades que ela proporciona na vida de cada estudante.</p>
+          <p>Sou licenciada em História e pós-graduada em Educação Especial Inclusiva. Atualmente, estou finalizando minha segunda licenciatura em Pedagogia e minha pós-graduação em Psicopedagogia Institucional e Clínica, buscando ampliar meus conhecimentos e aprimorar minha prática pedagógica.</p>
+          <p>Minha formação e minhas experiências no ambiente escolar fortalecem diariamente meu compromisso com uma educação que respeite as diferenças, valorize as potencialidades e reconheça que cada estudante possui seu próprio ritmo e maneira de aprender.</p>
+          <p>Atualmente, atuo na rede estadual de ensino de São Paulo, no Atendimento Educacional Especializado (AEE) e no Ensino Colaborativo (AEE Expandido), com foco na acessibilidade curricular e no desenvolvimento de práticas pedagógicas inclusivas que considerem as singularidades, necessidades e potencialidades de cada estudante.</p>
+          <p>Em minha prática profissional, realizo os Estudos de Caso e a elaboração do Plano de Atendimento Educacional Especializado (PAEE), acompanho a implementação do Plano Educacional Individualizado (PEI) e desenvolvo recursos, adaptações e estratégias pedagógicas que favorecem a participação, a aprendizagem e a autonomia dos estudantes.</p>
+          <p>Esse trabalho acontece de maneira colaborativa, em parceria com professores, equipe gestora, equipe multidisciplinar e famílias, buscando construir caminhos que garantam melhores condições de acesso, permanência, participação e aprendizagem no ambiente escolar.</p>
+          <h3>Como nasceu o Inclusão no Cotidiano? 🌈</h3>
+          <p>O Inclusão no Cotidiano nasceu do desejo de compartilhar minhas experiências, descobertas e aprendizados como professora de Educação Especial, mostrando um pouquinho da realidade vivenciada no ambiente escolar.</p>
+          <p>O projeto foi criado para ser um espaço de troca de conhecimentos, inspiração e compartilhamento de práticas pedagógicas, reunindo atividades adaptadas, jogos pedagógicos, materiais gratuitos, dicas, estratégias e experiências reais do cotidiano escolar.</p>
+          <p>Cada recurso é desenvolvido com intencionalidade pedagógica, considerando diferentes necessidades de aprendizagem e buscando proporcionar experiências mais acessíveis, lúdicas e significativas.</p>
+          <p>Mais do que disponibilizar materiais, meu objetivo é contribuir com outros educadores, compartilhar possibilidades de intervenção e demonstrar que pequenas adaptações podem fazer uma grande diferença na participação e no desenvolvimento dos estudantes.</p>
+          <p>Acredito que a Educação Especial vai muito além da adaptação de atividades. Ela envolve acolher, compreender, planejar, respeitar as individualidades e reconhecer cada conquista, independentemente de seu tamanho.</p>
+          <h3>Meu propósito 💕</h3>
+          <p>Quero que este espaço seja uma fonte de inspiração e apoio para professores, famílias e todos aqueles que acreditam em uma educação mais inclusiva.</p>
+          <p>Porque incluir não é fazer o mesmo para todos, mas oferecer a cada estudante as oportunidades e os recursos de que necessita para aprender, participar e desenvolver suas potencialidades.</p>
+          <p>É essa essência que dá vida ao Inclusão no Cotidiano: a certeza de que a inclusão é construída diariamente, nas pequenas ações, nas experiências compartilhadas e nas possibilidades que criamos juntos.</p>
+          <p>Seja muito bem-vindo(a) a este espaço de aprendizagem, partilha e inclusão!</p>
+          <p class="assinatura">Com carinho,<br />Professora Letícia 💗</p>
+        </div>
+      </div>
+    </dialog>
 
     <dialog class="pix" id="pix">
       <div class="pix-painel">
@@ -170,6 +201,6 @@
     <script src="js/loja.js?v=20"></script>
     <script src="js/pacote.js?v=20"></script>
     <script src="js/pix.js?v=20"></script>
-    <script src="js/main.js?v=20"></script>
+    <script src="js/main.js?v=21"></script>
   </body>
 </html>
