@@ -13,7 +13,7 @@ const loja = {
       titulo: "Rotina em imagens",
       uso: "Com um adulto por perto",
       resumo: "Manhã, escola e noite, um de cada vez. A criança aponta o momento, e quem está junto espera com ela.",
-      inclui: ["Folha para imprimir", "Um momento de cada vez", "Um círculo para marcar junto"],
+      inclui: ["Atividade para imprimir", "Um momento de cada vez", "Um círculo para marcar junto"],
       preco: 10,
       download: "rotina-em-imagens.pdf",
     },

@@ -20,7 +20,7 @@ function cartao(atividade) {
   artigo.className = "card";
   artigo.innerHTML = `
     <div class="amostra" aria-hidden="true">
-      <p>A folha que você imprime</p>
+      <p>A atividade que você imprime</p>
       <div class="momentos">
         <figure class="momento">
           <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="12" fill="#f3d56a"/><g stroke="#ef8b78" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M14 14l6 6M44 44l6 6M50 14l-6 6M20 44l-6 6"/></g></svg>
@@ -45,7 +45,7 @@ function cartao(atividade) {
         ${atividade.inclui.map((item) => `<li>${item}</li>`).join("")}
       </ul>
       <p class="preco">${dinheiro(atividade.preco)}</p>
-      <button class="botao comprar" type="button">Quero essa folha</button>
+      <button class="botao comprar" type="button">Quero essa atividade</button>
       <details class="liberar">
         <summary>Já recebi o código</summary>
         <form>
@@ -53,7 +53,7 @@ function cartao(atividade) {
             Código da Letícia
             <input name="codigo" autocomplete="off" spellcheck="false" />
           </label>
-          <button class="botao" type="submit">Abrir minha folha</button>
+          <button class="botao" type="submit">Abrir minha atividade</button>
           <p class="aviso" role="status"></p>
         </form>
       </details>
