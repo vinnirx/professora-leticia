@@ -18,3 +18,5 @@ historia.querySelector(".fechar").addEventListener("click", fecharHistoria);
 historia.addEventListener("close", () => {
   historia.scrollTop = 0;
 });
+
+if (location.hash === "#historia") historia.showModal();

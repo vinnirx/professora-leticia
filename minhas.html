@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Minha conta — Inclusão no Cotidiano</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css?v=32" />
+    <link rel="stylesheet" href="css/conta.css?v=1" />
+  </head>
+  <body data-pagina="minhas">
+    <header class="cabecalho">
+      <a class="logo" href="index.html">
+        <img src="img/logo-inclusao.png?v=1" alt="Inclusão no Cotidiano" />
+      </a>
+      <nav class="menu" aria-label="Seções">
+        <a href="index.html"><img src="img/icones/simbolo.png?v=1" alt="" />Início</a>
+        <a href="index.html#atividades"><img src="img/icones/atividades.png?v=1" alt="" />Atividades</a>
+        <a href="index.html#jogos"><img src="img/icones/jogos.png?v=1" alt="" />Jogos</a>
+        <a href="index.html#gratuitos"><img src="img/icones/gratuitos.png?v=1" alt="" />Gratuitos</a>
+        <a href="index.html#dicas"><img src="img/icones/dicas.png?v=1" alt="" />Dicas</a>
+        <a href="index.html#historia"><img src="img/icones/inclusao.png?v=1" alt="" />Sobre mim</a>
+        <a data-conta href="minhas.html">Minha conta</a>
+        <a class="so-admin" href="admin.html">Painel</a>
+      </nav>
+    </header>
+
+    <main class="conta">
+      <div class="conta-topo">
+        <h1 id="saudacao">Minha conta</h1>
+        <button class="botao botao-secundario" id="sair" type="button" hidden>Sair</button>
+      </div>
+      <p id="conta-vazia" hidden></p>
+      <div class="lista-conta" id="lista-pedidos"></div>
+      <p><a class="so-admin" href="admin.html">Abrir o painel da loja</a></p>
+    </main>
+
+    <script type="module" src="js/sessao.js?v=2"></script>
+    <script type="module" src="js/conta.js?v=3"></script>
+  </body>
+</html>

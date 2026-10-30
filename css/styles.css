@@ -778,6 +778,25 @@ main {
 
 .cabecalho .menu a:hover { background: #eef6ea; color: var(--verde); }
 
+.cabecalho .menu a[data-conta] {
+  margin-left: 0.35rem;
+  padding: 0.35rem 0.8rem;
+  background: var(--coral);
+  color: white;
+}
+
+.cabecalho .menu a[data-conta]:hover {
+  background: var(--coral-escuro);
+  color: white;
+}
+
+.cabecalho .menu a.so-admin,
+.rodape a.so-admin { display: none; }
+
+.cabecalho .menu a.so-admin.visivel { display: inline-flex; }
+
+.rodape a.so-admin.visivel { display: inline; }
+
 main {
   width: min(1120px, calc(100% - 6vw));
   margin-top: 1.4rem;
@@ -885,8 +904,6 @@ main {
   display: block;
   object-fit: contain;
 }
-
-.miudo-centro { margin: 0.8rem 0 0; color: #6d7c88; font-size: 0.92rem; }
 
 .grade { grid-template-columns: repeat(4, 1fr); }
 

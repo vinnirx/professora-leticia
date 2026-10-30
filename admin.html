@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Painel — Inclusão no Cotidiano</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css?v=32" />
+    <link rel="stylesheet" href="css/conta.css?v=1" />
+  </head>
+  <body data-pagina="admin">
+    <header class="cabecalho">
+      <a class="logo" href="index.html">
+        <img src="img/logo-inclusao.png?v=1" alt="Inclusão no Cotidiano" />
+      </a>
+      <nav class="menu" aria-label="Seções">
+        <a href="index.html"><img src="img/icones/simbolo.png?v=1" alt="" />Início</a>
+        <a href="index.html#atividades"><img src="img/icones/atividades.png?v=1" alt="" />Atividades</a>
+        <a href="index.html#jogos"><img src="img/icones/jogos.png?v=1" alt="" />Jogos</a>
+        <a href="index.html#gratuitos"><img src="img/icones/gratuitos.png?v=1" alt="" />Gratuitos</a>
+        <a href="index.html#dicas"><img src="img/icones/dicas.png?v=1" alt="" />Dicas</a>
+        <a href="index.html#historia"><img src="img/icones/inclusao.png?v=1" alt="" />Sobre mim</a>
+        <a data-conta href="minhas.html">Minha conta</a>
+        <a class="so-admin visivel" href="admin.html">Painel</a>
+      </nav>
+    </header>
+
+    <main class="conta">
+      <div class="conta-topo">
+        <h1>Painel da loja</h1>
+        <button class="botao botao-secundario" id="sair" type="button" hidden>Sair</button>
+      </div>
+      <p id="admin-bloqueio" hidden></p>
+      <p class="aviso-conta" id="admin-status" role="status"></p>
+      <div id="admin-corpo" hidden>
+        <div class="admin-grade">
+          <section class="admin-bloco" aria-labelledby="titulo-contas">
+            <h2 id="titulo-contas">Contas</h2>
+            <div class="lista-conta" id="lista-contas"></div>
+          </section>
+          <section class="admin-bloco" aria-labelledby="titulo-pedidos">
+            <h2 id="titulo-pedidos">Pedidos</h2>
+            <div class="lista-conta" id="lista-admin"></div>
+          </section>
+        </div>
+        <section class="admin-bloco" aria-labelledby="titulo-pdf">
+          <h2 id="titulo-pdf">PDF da atividade de adição</h2>
+          <p>Este arquivo fica numa área fechada. Só quem teve o Pix confirmado consegue baixar.</p>
+          <form id="enviar-pdf">
+            <label>
+              Arquivo PDF
+              <input name="pdf" type="file" accept="application/pdf" required />
+            </label>
+            <button class="botao" type="submit">Guardar PDF</button>
+            <p class="aviso-conta" id="pdf-status" role="status"></p>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="js/sessao.js?v=2"></script>
+    <script type="module" src="js/conta.js?v=3"></script>
+  </body>
+</html>

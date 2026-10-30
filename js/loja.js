@@ -9,13 +9,13 @@ const loja = {
   whatsapp: "",
   atividades: [
     {
-      id: "rotina",
-      titulo: "Rotina em imagens",
-      uso: "Com um adulto por perto",
-      resumo: "Manhã, escola e noite, um de cada vez. A criança aponta o momento, e quem está junto espera com ela.",
-      inclui: ["Atividade para imprimir", "Um momento de cada vez", "Um círculo para marcar junto"],
+      id: "adicao",
+      titulo: "Situações-problema de adição com apoio visual",
+      uso: "AEE e sala regular",
+      resumo: "Situações do cotidiano para somar com resultado até 20. As ilustrações ajudam a contar, e cada questão traz alternativas e espaço para resolver.",
+      inclui: ["4 páginas para imprimir", "Contagem com ilustrações", "Múltipla escolha e espaço para resolver"],
       preco: 10,
-      download: "rotina-em-imagens.pdf",
+      download: "situacoes-problema-adicao.pdf",
     },
   ],
 };

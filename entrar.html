@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Entrar — Inclusão no Cotidiano</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css?v=32" />
+    <link rel="stylesheet" href="css/conta.css?v=1" />
+  </head>
+  <body data-pagina="entrar">
+    <header class="cabecalho">
+      <a class="logo" href="index.html">
+        <img src="img/logo-inclusao.png?v=1" alt="Inclusão no Cotidiano" />
+      </a>
+      <nav class="menu" aria-label="Seções">
+        <a href="index.html"><img src="img/icones/simbolo.png?v=1" alt="" />Início</a>
+        <a href="index.html#atividades"><img src="img/icones/atividades.png?v=1" alt="" />Atividades</a>
+        <a href="index.html#jogos"><img src="img/icones/jogos.png?v=1" alt="" />Jogos</a>
+        <a href="index.html#gratuitos"><img src="img/icones/gratuitos.png?v=1" alt="" />Gratuitos</a>
+        <a href="index.html#dicas"><img src="img/icones/dicas.png?v=1" alt="" />Dicas</a>
+        <a href="index.html#historia"><img src="img/icones/inclusao.png?v=1" alt="" />Sobre mim</a>
+        <a data-conta href="entrar.html">Entrar</a>
+        <a class="so-admin" href="admin.html">Painel</a>
+      </nav>
+    </header>
+
+    <main class="acesso">
+      <section class="acesso-cartao" id="painel-entrar" aria-labelledby="titulo-entrar">
+        <p class="faixa-hero">Sua conta</p>
+        <h1 id="titulo-entrar">Entrar</h1>
+        <p>Se você já comprou, entre para baixar de novo. Se ainda não tem conta, crie a sua.</p>
+        <form id="form-entrar">
+          <label>
+            E-mail
+            <input name="email" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Senha
+            <input name="senha" type="password" autocomplete="current-password" required />
+          </label>
+          <button class="botao" type="submit">Entrar</button>
+          <p class="aviso-conta" role="status"></p>
+        </form>
+        <button class="troca" id="mostrar-criar" type="button">Criar uma conta</button>
+      </section>
+
+      <section class="acesso-cartao" id="painel-criar" hidden aria-labelledby="titulo-criar">
+        <p class="faixa-hero">Sua conta</p>
+        <h1 id="titulo-criar">Criar conta</h1>
+        <p>Nome, e-mail e uma senha. A atividade paga fica guardada aqui.</p>
+        <form id="form-criar">
+          <label>
+            Nome
+            <input name="nome" type="text" autocomplete="name" required />
+          </label>
+          <label>
+            E-mail
+            <input name="email" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Senha
+            <input name="senha" type="password" autocomplete="new-password" minlength="6" required />
+          </label>
+          <button class="botao" type="submit">Criar conta</button>
+          <p class="aviso-conta" role="status"></p>
+        </form>
+        <button class="troca" id="mostrar-entrar" type="button">Já tenho conta</button>
+      </section>
+    </main>
+
+    <script type="module" src="js/sessao.js?v=2"></script>
+    <script type="module" src="js/conta.js?v=3"></script>
+  </body>
+</html>

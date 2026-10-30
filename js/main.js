@@ -23,19 +23,19 @@ function cartao(atividade) {
       <p>A atividade que você imprime</p>
       <div class="momentos">
         <figure class="momento">
-          <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="12" fill="#f3d56a"/><g stroke="#ef8b78" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M14 14l6 6M44 44l6 6M50 14l-6 6M20 44l-6 6"/></g></svg>
-          <figcaption>Manhã</figcaption>
+          <svg viewBox="0 0 64 64"><circle cx="16" cy="22" r="6" fill="#ef8b78"/><circle cx="32" cy="22" r="6" fill="#f3d56a"/><circle cx="48" cy="22" r="6" fill="#8ec8dc"/><circle cx="24" cy="42" r="6" fill="#a8c96a"/><circle cx="40" cy="42" r="6" fill="#f3a56a"/></svg>
+          <figcaption>Contar</figcaption>
         </figure>
         <figure class="momento">
-          <svg viewBox="0 0 64 64"><path d="M8 30 32 10l24 20v24H8Z" fill="#8ec8dc"/><rect x="26" y="34" width="12" height="20" rx="1" fill="#fffdfb"/><circle cx="32" cy="28" r="3.5" fill="#ef8b78"/></svg>
-          <figcaption>Escola</figcaption>
+          <svg viewBox="0 0 64 64"><path d="M30 14h4v36h-4zM14 30h36v4H14z" fill="#5f87d8"/></svg>
+          <figcaption>Somar</figcaption>
         </figure>
         <figure class="momento">
-          <svg viewBox="0 0 64 64"><circle cx="30" cy="32" r="14" fill="#f3d56a"/><circle cx="38" cy="28" r="12" fill="#fff8ee"/><circle cx="16" cy="16" r="1.4" fill="#6f94ae"/><circle cx="48" cy="18" r="1.2" fill="#6f94ae"/><circle cx="50" cy="40" r="1.3" fill="#ef8b78"/></svg>
-          <figcaption>Noite</figcaption>
+          <svg viewBox="0 0 64 64"><text x="32" y="42" text-anchor="middle" font-size="26" font-family="Nunito, sans-serif" font-weight="800" fill="#6d8a48">20</text></svg>
+          <figcaption>Até 20</figcaption>
         </figure>
       </div>
-      <p class="amostra-fala">O que vem agora?</p>
+      <p class="amostra-fala">Quantos tem ao todo?</p>
     </div>
     <div class="oferta">
       <p class="chapeu">${atividade.uso}</p>
@@ -77,6 +77,7 @@ async function destravar(atividade, artigo) {
 
   aviso.textContent = "Conferindo o código…";
   try {
+    await carregarPacote();
     const pdf = await abrirPacote(lerPacote(atividade.id), codigo);
     const url = URL.createObjectURL(new Blob([pdf], { type: "application/pdf" }));
     const link = document.createElement("a");
@@ -90,6 +91,20 @@ async function destravar(atividade, artigo) {
   } catch {
     aviso.textContent = "Esse código não abre o PDF. Ele chega depois que a Letícia confirma o Pix.";
   }
+}
+
+function carregarPacote() {
+  if (window.pacotes) return Promise.resolve();
+  if (!carregarPacote.pendente) {
+    carregarPacote.pendente = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "js/pacote.js?v=22";
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("arquivo"));
+      document.body.append(script);
+    });
+  }
+  return carregarPacote.pendente;
 }
 
 function lerPacote(id) {
@@ -128,12 +143,26 @@ async function abrirPacote(pacote, codigo) {
 
 let pixAtual = "";
 
-function abrirPix(atividade) {
+async function abrirPix(atividade) {
+  const lojaConta = window.contaPronta ? await window.contaPronta : null;
+  const ligada = Boolean(lojaConta?.configurada);
+  let sessao = null;
+  if (ligada) {
+    sessao = await lojaConta.sessao();
+    if (!sessao) {
+      sessionStorage.setItem("depois", "index.html#atividades");
+      location.href = "entrar.html?depois=index.html%23atividades";
+      return;
+    }
+  }
+
   const pedido = document.querySelector("#pix-pedido");
   const resultado = document.querySelector("#pix-resultado");
   const aviso = document.querySelector("#pix-aviso");
   const copiar = document.querySelector("#copiar");
   const whatsapp = document.querySelector("#whatsapp");
+  const nomeInput = pedido.querySelector('[name="nome"]');
+  const emailInput = pedido.querySelector('[name="email"]');
 
   document.querySelector("#pix-titulo").textContent = atividade.titulo;
   document.querySelector("#pix-preco").textContent = dinheiro(atividade.preco);
@@ -142,6 +171,15 @@ function abrirPix(atividade) {
   document.querySelector("#pix-inclui").hidden = false;
   document.querySelector("#pix-inclui").innerHTML = atividade.inclui.map((item) => `<li>${item}</li>`).join("");
   pedido.reset();
+  nomeInput.readOnly = false;
+  emailInput.readOnly = false;
+  if (sessao) {
+    const perfil = await lojaConta.perfil();
+    nomeInput.value = perfil?.nome || "";
+    emailInput.value = sessao.user.email || "";
+    nomeInput.readOnly = true;
+    emailInput.readOnly = true;
+  }
   pedido.hidden = !loja.pixChave;
   resultado.hidden = true;
   pixAtual = "";
@@ -151,13 +189,20 @@ function abrirPix(atividade) {
     ? "O QR leva um código deste pedido. A Letícia vê esse código no banco dela. Esta página não recebe aviso do pagamento."
     : "A chave Pix ainda não foi cadastrada. Quando a Letícia passar a chave, o QR aparece aqui.";
 
-  pedido.onsubmit = (evento) => {
+  pedido.onsubmit = async (evento) => {
     evento.preventDefault();
     if (!loja.pixChave) return;
     const dados = new FormData(pedido);
     const nome = String(dados.get("nome") || "").trim();
     const email = String(dados.get("email") || "").trim();
     const txid = identificadorPix();
+    if (ligada) {
+      const gravado = await lojaConta.registrarPedido(atividade.id, txid);
+      if (!gravado.ok) {
+        aviso.textContent = gravado.mensagem;
+        return;
+      }
+    }
     pixAtual = montarPix({
       chave: loja.pixChave,
       nome: loja.pixNome,
@@ -173,7 +218,9 @@ function abrirPix(atividade) {
     document.querySelector("#pix-inclui").hidden = true;
     pedido.hidden = true;
     resultado.hidden = false;
-    aviso.textContent = "Pague os R$ 10 e envie o comprovante com este código. A folha só abre depois que a Letícia confirmar e mandar o código de impressão.";
+    aviso.textContent = ligada
+      ? "Pague os R$ 10 e envie o comprovante com este código. Quando a Letícia confirmar o Pix, a atividade aparece em Minha conta."
+      : "Pague os R$ 10 e envie o comprovante com este código. A folha só abre depois que a Letícia confirmar e mandar o código de impressão.";
     if (loja.whatsapp) {
       const texto = encodeURIComponent(
         `Olá, Letícia. Segue o comprovante do Pix da atividade ${atividade.titulo} (${dinheiro(atividade.preco)}). Código do pedido: ${txid}. Meu e-mail: ${email}.`,
@@ -188,7 +235,9 @@ function abrirPix(atividade) {
     const campo = document.querySelector("#pix-cola");
     try {
       await navigator.clipboard.writeText(pixAtual);
-      aviso.textContent = "Pix copiado. Cole no aplicativo do banco. A folha continua travada até a Letícia confirmar.";
+      aviso.textContent = ligada
+        ? "Pix copiado. Cole no aplicativo do banco. A atividade entra na sua conta quando a Letícia confirmar."
+        : "Pix copiado. Cole no aplicativo do banco. A folha continua travada até a Letícia confirmar.";
     } catch {
       campo.focus();
       campo.select();
