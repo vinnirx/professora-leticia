@@ -42,7 +42,7 @@ create table if not exists public.pedidos (
 );
 
 insert into public.atividades (id, titulo, preco, arquivo)
-values ('adicao', 'Situações-problema de adição com apoio visual', 10, 'situacoes-problema-adicao.pdf')
+values ('adicao', 'Situações-problema de adição com apoio visual — resultados até 20', 10, 'situacoes-problema-adicao.pdf')
 on conflict (id) do update
 set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
 
@@ -283,3 +283,68 @@ $$;
 
 revoke all on function public.criar_atividade(text, text, text, text, numeric, text, text, text) from public, anon;
 grant execute on function public.criar_atividade(text, text, text, text, numeric, text, text, text) to authenticated;
+
+alter table public.pedidos drop constraint if exists pedidos_txid_key;
+create unique index if not exists pedidos_txid_atividade_unico on public.pedidos (txid, atividade_id);
+
+create or replace function public.criar_pedidos(atividades text[], codigo text)
+returns setof public.pedidos
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  item public.atividades;
+  pedido_codigo text := trim(codigo);
+begin
+  if auth.uid() is null then
+    raise exception 'Entre na conta para comprar.';
+  end if;
+  if pedido_codigo is null or length(pedido_codigo) < 8 then
+    raise exception 'Código do pedido inválido.';
+  end if;
+  if atividades is null or cardinality(atividades) < 1 then
+    raise exception 'O carrinho está vazio.';
+  end if;
+  if (select count(distinct id) from public.atividades where id = any(atividades))
+     <> (select count(distinct id) from unnest(atividades) as pedido(id)) then
+    raise exception 'Atividade indisponível.';
+  end if;
+  for item in
+    select * from public.atividades where id = any(atividades)
+  loop
+    insert into public.pedidos (usuario_id, atividade_id, titulo, valor, txid)
+    values (auth.uid(), item.id, item.titulo, item.preco, pedido_codigo);
+  end loop;
+  return query
+    select * from public.pedidos
+    where usuario_id = auth.uid() and txid = pedido_codigo;
+end;
+$$;
+
+create or replace function public.confirmar_pix(pedido uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  alvo public.pedidos;
+begin
+  if not public.sou_admin() then
+    raise exception 'Sem permissão.';
+  end if;
+  select * into alvo from public.pedidos where id = pedido;
+  if not found then
+    raise exception 'Pedido não encontrado.';
+  end if;
+  update public.pedidos
+  set status = 'pago'
+  where txid = alvo.txid
+    and usuario_id = alvo.usuario_id
+    and status = 'aguardando';
+end;
+$$;
+
+revoke all on function public.criar_pedidos(text[], text) from public, anon;
+grant execute on function public.criar_pedidos(text[], text) to authenticated;

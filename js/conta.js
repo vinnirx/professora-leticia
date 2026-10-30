@@ -175,6 +175,7 @@ function blocoConta(conta) {
 function blocoPedido(pedido, loja, status) {
   const artigo = document.createElement("article");
   artigo.className = "item-conta";
+  artigo.dataset.txid = pedido.txid;
   const pessoa = pedido.perfis || {};
   const titulo = document.createElement("h3");
   titulo.textContent = pedido.titulo;
@@ -198,7 +199,11 @@ function blocoPedido(pedido, loja, status) {
         botao.disabled = false;
         return;
       }
-      botao.replaceWith(Object.assign(document.createElement("p"), { textContent: "Pix confirmado. O download já está na conta dela." }));
+      const avisoPago = () => Object.assign(document.createElement("p"), { textContent: "Pix confirmado. O download já está na conta dela." });
+      document.querySelectorAll(`.item-conta[data-txid="${CSS.escape(pedido.txid)}"]`).forEach((bloco) => {
+        const acao = bloco.querySelector("button");
+        if (acao) acao.replaceWith(avisoPago());
+      });
     });
     artigo.append(botao);
   }

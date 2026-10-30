@@ -13,6 +13,7 @@ function traduzir(erro) {
 function destinoSeguro(valor) {
   if (destinos.has(valor)) return valor;
   if (/^atividade\.html\?id=[a-z0-9-]{1,48}$/.test(valor || "")) return valor;
+  if (valor === "index.html?carrinho=1") return valor;
   return "minhas.html";
 }
 
@@ -100,6 +101,11 @@ async function iniciar() {
     },
     async registrarPedido(atividadeId, txid) {
       const { error } = await cliente.rpc("criar_pedido", { atividade: atividadeId, txid });
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      return { ok: true };
+    },
+    async registrarPedidos(ids, txid) {
+      const { error } = await cliente.rpc("criar_pedidos", { atividades: ids, codigo: txid });
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true };
     },

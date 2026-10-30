@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=39" />
+    <link rel="stylesheet" href="css/styles.css?v=72" />
     <link rel="stylesheet" href="css/historia.css?v=2" />
   </head>
   <body>
@@ -33,7 +33,13 @@
         <a class="abre-historia" href="#historia"><img src="img/icones/inclusao.png?v=1" alt="" />Sobre mim</a>
         <a data-conta href="entrar.html">Entrar</a>
         <a class="so-admin" href="admin.html">Painel</a>
+        <button class="carrinho-abre" id="abre-carrinho" type="button"><span class="carrinho-icone"><img src="img/icones/carrinho.svg?v=2" alt="" /><span id="carrinho-qtd" hidden></span></span>Carrinho</button>
       </nav>
+      <label class="busca">
+        <span class="busca-rotulo">Buscar atividade</span>
+        <input id="busca-atividade" type="search" placeholder="O que você procura hoje?" autocomplete="off" aria-controls="sugestoes" aria-autocomplete="list" />
+        <ul id="sugestoes" class="sugestoes" hidden></ul>
+      </label>
     </header>
 
     <section class="hero" id="para-quem" aria-labelledby="titulo-entrada">
@@ -62,10 +68,29 @@
       <section class="categorias" aria-labelledby="titulo-categorias">
         <div class="secao-cabeca">
           <h2 id="titulo-categorias">Categorias</h2>
-          <a href="atividade.html">Ver a atividade disponível</a>
         </div>
         <ul>
-          <li><a href="#atividades"><img class="cat" src="img/icones/atividades.png?v=1" alt="" />Atividades</a></li>
+          <li class="categoria-atividades">
+            <button class="abre-areas" type="button" aria-expanded="false" aria-controls="areas-atividade" aria-haspopup="true">
+              <img class="cat" src="img/icones/atividades.png?v=1" alt="" />Atividades
+            </button>
+            <div class="areas" id="areas-atividade" hidden>
+              <div class="lista-areas" role="group" aria-label="Áreas das atividades">
+                <button type="button" data-area="Alfabetização" aria-pressed="false" aria-haspopup="true">Alfabetização</button>
+                <button type="button" data-area="Português" aria-pressed="false" aria-haspopup="true">Português</button>
+                <button type="button" data-area="Matemática" aria-pressed="false" aria-haspopup="true">Matemática</button>
+                <button type="button" data-area="História" aria-pressed="false" aria-haspopup="true">História</button>
+                <button type="button" data-area="Geografia" aria-pressed="false" aria-haspopup="true">Geografia</button>
+                <button type="button" data-area="Ciências" aria-pressed="false" aria-haspopup="true">Ciências</button>
+              </div>
+              <div class="subareas-coluna" id="subareas-coluna" hidden>
+                <div class="subareas" id="subareas-atividade">
+                  <div role="group" aria-label="Temas da área"></div>
+                </div>
+                <button class="subareas-mais" type="button" hidden aria-label="Há mais temas abaixo">↓</button>
+              </div>
+            </div>
+          </li>
           <li id="jogos"><img class="cat" src="img/icones/jogos.png?v=1" alt="" />Jogos</li>
           <li><a href="#atividades"><img class="cat" src="img/icones/rotina.png?v=1" alt="" />Rotina escolar</a></li>
           <li id="dicas"><img class="cat" src="img/icones/dicas.png?v=1" alt="" />Dicas</li>
@@ -78,6 +103,11 @@
         <div class="secao-cabeca">
           <h2 id="titulo-atividades">Materiais em destaque</h2>
         </div>
+        <div id="busca-vazia" hidden>
+          <p id="busca-vazia-texto">Nenhuma atividade com esse nome.</p>
+          <img src="img/em-breve.jpg?v=1" alt="Em Breve" hidden />
+        </div>
+        <button id="voltar-destaque" class="voltar-destaque" type="button" hidden>Ver a atividade em destaque</button>
         <div class="grade" id="grade"></div>
       </section>
 
@@ -126,6 +156,21 @@
       </article>
     </dialog>
 
+    <dialog class="carrinho" id="carrinho">
+      <div class="carrinho-painel">
+        <button class="fechar" type="button" aria-label="Fechar">×</button>
+        <h2>Carrinho</h2>
+        <p id="carrinho-vazio">Seu carrinho está vazio.</p>
+        <ul id="carrinho-lista" hidden></ul>
+        <p class="preco" id="carrinho-total" hidden></p>
+        <p class="miudo">O Pix sai com o total das atividades que ficarem aqui.</p>
+        <div class="carrinho-acoes">
+          <button class="botao" id="carrinho-finalizar" type="button">Finalizar compra</button>
+          <button class="botao botao-secundario" id="carrinho-limpar" type="button">Limpar carrinho</button>
+        </div>
+      </div>
+    </dialog>
+
     <dialog class="pix" id="pix">
       <div class="pix-painel">
         <button class="fechar" type="button" aria-label="Fechar">×</button>
@@ -163,10 +208,10 @@
       </div>
     </dialog>
 
-    <script src="js/loja.js?v=25"></script>
+    <script src="js/loja.js?v=33"></script>
     <script src="js/pix.js?v=20"></script>
-    <script src="js/main.js?v=33"></script>
+    <script src="js/main.js?v=54"></script>
     <script src="js/historia.js?v=2"></script>
-    <script type="module" src="js/sessao.js?v=6"></script>
+    <script type="module" src="js/sessao.js?v=7"></script>
   </body>
 </html>
