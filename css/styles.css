@@ -763,7 +763,7 @@ main {
 #carrinho-qtd[hidden] { display: none !important; }
 
 .carrinho {
-  width: min(32rem, calc(100% - 2rem));
+  width: min(36rem, calc(100% - 2rem));
   max-height: calc(100vh - 2rem);
   overflow: auto;
   border: 0;
@@ -813,7 +813,22 @@ main {
   cursor: pointer;
 }
 
-.carrinho-acoes { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
+.carrinho-acoes {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.carrinho-acoes .botao {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.7rem 0.4rem;
+  font-size: clamp(0.74rem, 2.1vw, 0.92rem);
+  line-height: 1.15;
+  white-space: nowrap;
+}
 
 .carrinho [hidden] { display: none !important; }
 

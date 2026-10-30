@@ -197,8 +197,20 @@ if (dialogo) {
 document.addEventListener("DOMContentLoaded", () => {
   prepararCarrinho();
   prepararAreas();
+  prepararInicio();
   montarLoja();
 });
+
+function prepararInicio() {
+  document.querySelectorAll('a[href="#inicio"]').forEach((link) => {
+    link.addEventListener("click", () => {
+      const campo = document.querySelector("#busca-atividade");
+      if (!campo?.value) return;
+      campo.value = "";
+      mostrarCatalogo();
+    });
+  });
+}
 
 let areaEscolhida = "";
 let temaEscolhido = "";
