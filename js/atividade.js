@@ -3,7 +3,11 @@ function linhasDaPagina(texto) {
 }
 
 function preencherFicha(atividade) {
-  document.querySelector("#ficha-uso").textContent = atividade.uso || "AEE e sala regular";
+  const uso = document.querySelector("#ficha-uso");
+  if (uso) {
+    uso.textContent = atividade.uso || "";
+    uso.hidden = !atividade.uso;
+  }
   document.querySelector("#ficha-titulo").textContent = atividade.titulo;
   document.title = `${atividade.titulo} — Inclusão no Cotidiano`;
   document.querySelectorAll("[data-preco]").forEach((elemento) => {

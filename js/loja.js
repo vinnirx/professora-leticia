@@ -10,7 +10,7 @@ const loja = {
     {
       id: "adicao",
       titulo: "Situações-problema de adição com apoio visual — resultados até 20",
-      uso: "AEE e sala regular",
+      uso: "",
       area: "Matemática",
       temas: ["Situações-Problema"],
       resumo: "Situações do cotidiano para somar com resultado até 20. As ilustrações ajudam a contar, e cada questão traz alternativas e espaço para resolver.",
@@ -33,7 +33,7 @@ const loja = {
     {
       id: "adicao-50",
       titulo: "Situações-problema de adição com apoio visual — resultados até 50",
-      uso: "AEE e sala regular",
+      uso: "",
       area: "Matemática",
       temas: ["Situações-Problema"],
       resumo: "12 situações do cotidiano para somar com resultado até 50. As ilustrações ajudam a contar, e cada questão traz alternativas e espaço para resolver.",

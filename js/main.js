@@ -33,7 +33,7 @@ function paraCartao(item) {
   return {
     id: item.id,
     titulo: item.titulo,
-    uso: item.uso || "AEE e sala regular",
+    uso: item.uso || "",
     resumo: item.resumo || "",
     inclui: Array.isArray(item.inclui) ? item.inclui : linhas(item.inclui),
     preco: Number(item.preco),
@@ -56,7 +56,7 @@ function cartao(atividade) {
       <img src="${escapar(atividade.capa)}" alt="${escapar(atividade.capaAlt)}" />
     </div>
     <div class="oferta">
-      <p class="chapeu">${escapar(atividade.uso)}</p>
+      ${atividade.uso ? `<p class="chapeu">${escapar(atividade.uso)}</p>` : ""}
       <h3><a href="${atividade.pagina}">${escapar(atividade.titulo)}</a></h3>
       <p class="resumo">${escapar(atividade.resumo)}</p>
       <ul class="inclui">
