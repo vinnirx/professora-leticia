@@ -1,6 +1,5 @@
 // Troque o WhatsApp quando a Letícia passar o número que recebe o comprovante.
-// O código que destrava o PDF não fica aqui. Ele está em codigo-da-leticia.txt,
-// e esse arquivo não deve ser publicado com o site.
+// A senha das contas não fica neste arquivo.
 const loja = {
   pixChave: "leticiapimenteldemacedo@gmail.com",
   pixNome: "Letícia Pimentel de Macedo",
@@ -16,7 +15,7 @@ const loja = {
       inclui: ["4 páginas para imprimir", "Contagem com ilustrações", "Múltipla escolha e espaço para resolver"],
       preco: 10,
       download: "situacoes-problema-adicao.pdf",
-      pagina: "atividade.html",
+      pagina: "atividade.html?id=adicao",
     },
   ],
 };

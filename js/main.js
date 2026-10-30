@@ -15,129 +15,56 @@ function dinheiro(valor) {
   return moeda.format(valor);
 }
 
+function escapar(texto) {
+  return String(texto ?? "").replace(/[&<>"']/g, (caractere) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[caractere]);
+}
+
+function linhas(texto) {
+  return String(texto || "").split(/\n+/).map((item) => item.trim()).filter(Boolean);
+}
+
+function paraCartao(item) {
+  return {
+    id: item.id,
+    titulo: item.titulo,
+    uso: item.uso || "AEE e sala regular",
+    resumo: item.resumo || "",
+    inclui: Array.isArray(item.inclui) ? item.inclui : linhas(item.inclui),
+    preco: Number(item.preco),
+    download: item.arquivo || item.download,
+    pagina: `atividade.html?id=${encodeURIComponent(item.id)}`,
+    explicacao: item.explicacao || "",
+    habilidades: Array.isArray(item.habilidades) ? item.habilidades : linhas(item.habilidades),
+  };
+}
+
 function cartao(atividade) {
   const artigo = document.createElement("article");
   artigo.className = "card";
   artigo.innerHTML = `
-    <div class="amostra" aria-hidden="true">
-      <p>A atividade que você imprime</p>
-      <div class="momentos">
-        <figure class="momento">
-          <svg viewBox="0 0 64 64"><circle cx="16" cy="22" r="6" fill="#ef8b78"/><circle cx="32" cy="22" r="6" fill="#f3d56a"/><circle cx="48" cy="22" r="6" fill="#8ec8dc"/><circle cx="24" cy="42" r="6" fill="#a8c96a"/><circle cx="40" cy="42" r="6" fill="#f3a56a"/></svg>
-          <figcaption>Contar</figcaption>
-        </figure>
-        <figure class="momento">
-          <svg viewBox="0 0 64 64"><path d="M30 14h4v36h-4zM14 30h36v4H14z" fill="#5f87d8"/></svg>
-          <figcaption>Somar</figcaption>
-        </figure>
-        <figure class="momento">
-          <svg viewBox="0 0 64 64"><text x="32" y="42" text-anchor="middle" font-size="26" font-family="Nunito, sans-serif" font-weight="800" fill="#6d8a48">20</text></svg>
-          <figcaption>Até 20</figcaption>
-        </figure>
-      </div>
-      <p class="amostra-fala">Quantos tem ao todo?</p>
+    <div class="amostra amostra-capa">
+      <img src="img/capa-adicao.png?v=2" alt="Folhas da atividade com lápis, morangos, flores, bolas e passarinhos." />
     </div>
     <div class="oferta">
-      <p class="chapeu">${atividade.uso}</p>
-      <h3><a href="${atividade.pagina}">${atividade.titulo}</a></h3>
-      <p class="resumo">${atividade.resumo}</p>
+      <p class="chapeu">${escapar(atividade.uso)}</p>
+      <h3><a href="${atividade.pagina}">${escapar(atividade.titulo)}</a></h3>
+      <p class="resumo">${escapar(atividade.resumo)}</p>
       <ul class="inclui">
-        ${atividade.inclui.map((item) => `<li>${item}</li>`).join("")}
+        ${(atividade.inclui || []).map((item) => `<li>${escapar(item)}</li>`).join("")}
       </ul>
       <p class="preco">${dinheiro(atividade.preco)}</p>
       <a class="botao comprar" href="${atividade.pagina}">Quero essa atividade</a>
-      <details class="liberar">
-        <summary>Já recebi o código</summary>
-        <form>
-          <label>
-            Código da Letícia
-            <input name="codigo" autocomplete="off" spellcheck="false" />
-          </label>
-          <button class="botao" type="submit">Abrir minha atividade</button>
-          <p class="aviso" role="status"></p>
-        </form>
-      </details>
     </div>
   `;
-  artigo.querySelector(".liberar form").addEventListener("submit", (evento) => {
-    evento.preventDefault();
-    destravar(atividade, artigo);
-  });
+  if (atividade.id !== "adicao") artigo.querySelector(".amostra")?.remove();
+  if (!(atividade.inclui || []).length) artigo.querySelector(".inclui")?.remove();
   return artigo;
-}
-
-async function destravar(atividade, artigo) {
-  const aviso = artigo.querySelector(".aviso");
-  const codigo = artigo.querySelector("input").value.trim().toUpperCase();
-  if (!codigo) {
-    aviso.textContent = "Digite o código que a Letícia enviar depois do Pix.";
-    return;
-  }
-
-  aviso.textContent = "Conferindo o código…";
-  try {
-    await carregarPacote();
-    const pdf = await abrirPacote(lerPacote(atividade.id), codigo);
-    const url = URL.createObjectURL(new Blob([pdf], { type: "application/pdf" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = atividade.download;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-    aviso.textContent = "PDF destravado. O download começou.";
-  } catch {
-    aviso.textContent = "Esse código não abre o PDF. Ele chega depois que a Letícia confirma o Pix.";
-  }
-}
-
-function carregarPacote() {
-  if (window.pacotes) return Promise.resolve();
-  if (!carregarPacote.pendente) {
-    carregarPacote.pendente = new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = "js/pacote.js?v=22";
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error("arquivo"));
-      document.body.append(script);
-    });
-  }
-  return carregarPacote.pendente;
-}
-
-function lerPacote(id) {
-  const base = pacotes[id];
-  if (!base) throw new Error("arquivo");
-  const binario = atob(base);
-  const bytes = new Uint8Array(binario.length);
-  for (let i = 0; i < binario.length; i += 1) bytes[i] = binario.charCodeAt(i);
-  return bytes;
-}
-
-async function abrirPacote(pacote, codigo) {
-  const salt = pacote.slice(0, 16);
-  const iv = pacote.slice(16, 28);
-  const fechado = pacote.slice(28);
-  const material = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(codigo),
-    "PBKDF2",
-    false,
-    ["deriveKey"],
-  );
-  const chave = await crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: 120000, hash: "SHA-256" },
-    material,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["decrypt"],
-  );
-  const aberto = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, chave, fechado);
-  const pdf = new Uint8Array(aberto);
-  const cabeca = String.fromCharCode(...pdf.slice(0, 5));
-  if (cabeca !== "%PDF-") throw new Error("pdf");
-  return pdf;
 }
 
 let pixAtual = "";
@@ -149,7 +76,9 @@ async function abrirPix(atividade) {
   if (ligada) {
     sessao = await lojaConta.sessao();
     if (!sessao) {
-      const volta = /atividade\.html$/.test(location.pathname) ? "atividade.html" : "index.html#atividades";
+      const volta = /atividade\.html$/.test(location.pathname)
+        ? `atividade.html${location.search}`
+        : "index.html#atividades";
       sessionStorage.setItem("depois", volta);
       location.href = `entrar.html?depois=${encodeURIComponent(volta)}`;
       return;
@@ -218,9 +147,7 @@ async function abrirPix(atividade) {
     document.querySelector("#pix-inclui").hidden = true;
     pedido.hidden = true;
     resultado.hidden = false;
-    aviso.textContent = ligada
-      ? "Pague os R$ 10 e envie o comprovante com este código. Quando a Letícia confirmar o Pix, a atividade aparece em Minha conta."
-      : "Pague os R$ 10 e envie o comprovante com este código. A folha só abre depois que a Letícia confirmar e mandar o código de impressão.";
+    aviso.textContent = "Pague os R$ 10 e envie o comprovante com este código. Quando a Letícia confirmar o Pix, o download aparece em Minha conta.";
     if (loja.whatsapp) {
       const texto = encodeURIComponent(
         `Olá, Letícia. Segue o comprovante do Pix da atividade ${atividade.titulo} (${dinheiro(atividade.preco)}). Código do pedido: ${txid}. Meu e-mail: ${email}.`,
@@ -235,9 +162,7 @@ async function abrirPix(atividade) {
     const campo = document.querySelector("#pix-cola");
     try {
       await navigator.clipboard.writeText(pixAtual);
-      aviso.textContent = ligada
-        ? "Pix copiado. Cole no aplicativo do banco. A atividade entra na sua conta quando a Letícia confirmar."
-        : "Pix copiado. Cole no aplicativo do banco. A folha continua travada até a Letícia confirmar.";
+      aviso.textContent = "Pix copiado. Cole no aplicativo do banco. O download entra em Minha conta quando a Letícia confirmar.";
     } catch {
       campo.focus();
       campo.select();
@@ -252,42 +177,23 @@ if (dialogo) {
   document.querySelector("#pix .fechar").addEventListener("click", () => dialogo.close());
 }
 
-if (grade) {
-  loja.atividades.forEach((atividade) => grade.append(cartao(atividade)));
-}
+document.addEventListener("DOMContentLoaded", montarLoja);
 
-async function mostrarBaixarAdmin() {
-  const lojaConta = window.contaPronta ? await window.contaPronta : null;
-  if (!lojaConta?.configurada) return;
-  const sessao = await lojaConta.sessao();
-  if (!sessao) return;
-  const perfil = await lojaConta.perfil();
-  if (perfil?.papel !== "admin") return;
-  document.querySelectorAll("#grade .card").forEach((artigo, indice) => {
-    const atividade = loja.atividades[indice];
-    if (!atividade) return;
-    const botao = document.createElement("button");
-    botao.className = "botao botao-secundario baixar-admin";
-    botao.type = "button";
-    botao.textContent = "Baixar atividade";
-    const estado = document.createElement("p");
-    estado.className = "aviso";
-    estado.setAttribute("role", "status");
-    botao.addEventListener("click", async () => {
-      botao.disabled = true;
+async function montarLoja() {
+  if (!grade) return;
+  let lista = loja.atividades.map(paraCartao);
+  if (window.contaPronta) {
+    const conta = await window.contaPronta;
+    if (conta?.configurada) {
       try {
-        await lojaConta.baixar(atividade.id);
-        estado.textContent = "O download começou.";
+        const remotas = await conta.atividades();
+        if (remotas.length) lista = remotas.map(paraCartao);
       } catch {
-        estado.textContent = "O PDF ainda não foi guardado na área segura. Envie o arquivo no painel.";
+        lista = loja.atividades.map(paraCartao);
       }
-      botao.disabled = false;
-    });
-    const oferta = artigo.querySelector(".oferta");
-    const liberar = oferta.querySelector(".liberar");
-    oferta.insertBefore(botao, liberar);
-    oferta.insertBefore(estado, liberar);
-  });
+    }
+  }
+  grade.replaceChildren();
+  lista.forEach((atividade) => grade.append(cartao(atividade)));
 }
 
-if (grade) mostrarBaixarAdmin();

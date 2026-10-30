@@ -12,7 +12,7 @@ create table if not exists public.administradores (
 
 insert into public.administradores (email)
 values
-  ('leticiapimenteldemace@gmail.com'),
+  ('leticiapimenteldemacedo@gmail.com'),
   ('vinnirx@gmail.com')
 on conflict (email) do nothing;
 
@@ -202,3 +202,84 @@ create policy "admin substitui atividade"
 on storage.objects for update
 to authenticated
 using (bucket_id = 'atividades' and public.sou_admin());
+
+alter table public.atividades add column if not exists resumo text not null default '';
+alter table public.atividades add column if not exists explicacao text not null default '';
+alter table public.atividades add column if not exists uso text not null default 'AEE e sala regular';
+alter table public.atividades add column if not exists inclui text not null default '';
+alter table public.atividades add column if not exists habilidades text not null default '';
+
+update public.atividades
+set
+  uso = 'AEE e sala regular',
+  resumo = 'Situações do cotidiano para somar com resultado até 20. As ilustrações ajudam a contar, e cada questão traz alternativas e espaço para resolver.',
+  inclui = E'4 páginas para imprimir\nContagem com ilustrações\nMúltipla escolha e espaço para resolver',
+  explicacao = E'Esta atividade foi desenvolvida para estimular o raciocínio lógico-matemático, a interpretação de enunciados e a resolução de situações-problema envolvendo a operação de adição.\nPor meio de situações contextualizadas no cotidiano, os estudantes são convidados a realizar cálculos de adição com resultados até 20, utilizando ilustrações coloridas como apoio para a contagem e a compreensão das quantidades.\nO material apresenta questões de múltipla escolha, representações visuais das operações e espaços destinados à resolução, favorecendo a utilização de diferentes estratégias matemáticas.\nA proposta pode ser desenvolvida tanto no Atendimento Educacional Especializado (AEE) quanto nas turmas do ensino regular, contribuindo para a promoção da acessibilidade curricular e a construção de aprendizagens significativas, considerando as singularidades, as potencialidades e os diferentes ritmos de aprendizagem dos estudantes.',
+  habilidades = E'Desenvolver a contagem e a relação entre números e quantidades.\nCompreender o conceito de adição por meio de situações contextualizadas.\nEstimular a leitura, a compreensão e a interpretação de situações-problema.\nAmpliar o raciocínio lógico-matemático e a construção do pensamento matemático.\nFavorecer a atenção, a concentração e a organização das informações.\nExplorar diferentes estratégias de cálculo e resolução de problemas.\nIncentivar a autonomia e a confiança na realização das atividades matemáticas.'
+where id = 'adicao' and explicacao = '';
+
+insert into public.administradores (email)
+values ('leticiapimenteldemacedo@gmail.com')
+on conflict (email) do nothing;
+
+delete from public.administradores
+where email = 'leticiapimenteldemace@gmail.com';
+
+create or replace function public.criar_atividade(
+  atividade_id text,
+  atividade_titulo text,
+  atividade_resumo text,
+  atividade_explicacao text,
+  atividade_preco numeric,
+  atividade_uso text,
+  atividade_inclui text,
+  atividade_habilidades text
+)
+returns public.atividades
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  novo public.atividades;
+begin
+  if not public.sou_admin() then
+    raise exception 'Sem permissão.';
+  end if;
+  if atividade_id is null or atividade_id !~ '^[a-z0-9-]{1,48}$' then
+    raise exception 'Diga qual é a atividade.';
+  end if;
+  if length(trim(atividade_titulo)) < 3 then
+    raise exception 'Diga qual é a atividade.';
+  end if;
+  if length(trim(atividade_resumo)) < 10 then
+    raise exception 'Escreva uma descrição breve.';
+  end if;
+  if length(trim(atividade_explicacao)) < 20 then
+    raise exception 'Explique o que a pessoa pode esperar.';
+  end if;
+  if atividade_preco is null or atividade_preco <= 0 then
+    raise exception 'O valor precisa ser maior que zero.';
+  end if;
+  insert into public.atividades (id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades)
+  values (
+    atividade_id,
+    trim(atividade_titulo),
+    atividade_preco,
+    atividade_id || '.pdf',
+    trim(atividade_resumo),
+    trim(atividade_explicacao),
+    coalesce(nullif(trim(atividade_uso), ''), 'AEE e sala regular'),
+    coalesce(atividade_inclui, ''),
+    coalesce(atividade_habilidades, '')
+  )
+  returning * into novo;
+  return novo;
+exception
+  when unique_violation then
+    raise exception 'Já existe uma atividade com esse nome.';
+end;
+$$;
+
+revoke all on function public.criar_atividade(text, text, text, text, numeric, text, text, text) from public, anon;
+grant execute on function public.criar_atividade(text, text, text, text, numeric, text, text, text) to authenticated;

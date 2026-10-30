@@ -528,54 +528,6 @@ main {
 
 .card .comprar { width: 100%; margin-top: 0.2rem; }
 
-.card .baixar-admin { width: 100%; margin-top: 0.55rem; }
-
-.liberar {
-  margin-top: 0.85rem;
-}
-
-.liberar summary {
-  cursor: pointer;
-  color: var(--azul);
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-
-.liberar form {
-  display: grid;
-  gap: 0.55rem;
-  margin-top: 0.7rem;
-}
-
-.liberar .aviso { color: #5c6b78; font-size: 0.92rem; }
-
-.liberar label {
-  display: grid;
-  gap: 0.3rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.liberar input {
-  border: 1.5px solid var(--azul);
-  border-radius: 0.7rem;
-  padding: 0.7rem 0.8rem;
-  color: var(--tinta);
-  font: inherit;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: none;
-}
-
-.liberar .botao {
-  background: var(--verde);
-  border-color: white;
-}
-
-.liberar .botao:hover { background: #5d7540; }
-
 .botao:hover { background: var(--coral-escuro); }
 
 .botao-secundario {
@@ -921,6 +873,18 @@ main {
 
 .amostra { min-height: 0; padding: 0.7rem; }
 
+.amostra-capa {
+  padding: 0;
+  overflow: hidden;
+  background: white;
+}
+
+.amostra-capa img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 .momentos { gap: 0.35rem; }
 .momento { padding: 0.4rem 0.2rem; }
 .momento svg { width: 2.4rem; height: 2.4rem; }
@@ -985,6 +949,10 @@ main {
   margin: 0;
   padding-left: 1.15rem;
 }
+
+.ficha-habilidades[hidden],
+#ficha-habilidades-titulo[hidden],
+#ficha-amostra[hidden] { display: none; }
 
 .ficha-amostra { margin-top: 1.15rem; min-height: 0; }
 

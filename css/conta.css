@@ -50,7 +50,8 @@
 }
 
 .acesso-cartao input,
-.admin-bloco input {
+.admin-bloco input,
+.admin-bloco textarea {
   width: 100%;
   border: 1.5px solid var(--azul);
   border-radius: 0.7rem;
@@ -125,6 +126,27 @@
   color: var(--azul-vivo);
   font-size: 1.35rem;
 }
+
+.admin-bloco textarea { min-height: 6rem; resize: vertical; }
+
+.admin-bloco + .admin-bloco,
+.admin-bloco + .admin-grade { margin-top: 1rem; }
+
+.lucro-total {
+  margin: 0 0 0.8rem;
+  color: var(--verde);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.item-conta .acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.item-conta .acoes a { font-weight: 800; color: var(--azul-vivo); }
 
 .conta a.so-admin { display: none; }
 

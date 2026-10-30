@@ -6,12 +6,14 @@ function traduzir(erro) {
   if (/already registered|already been registered/i.test(texto)) return "Já existe uma conta com este e-mail.";
   if (/email not confirmed/i.test(texto)) return "Confirme o e-mail antes de entrar. Veja a caixa de entrada.";
   if (/password/i.test(texto)) return "A senha precisa de 8 caracteres ou mais.";
-  if (/Entre na conta|Sem permissão|indisponível|inválido/i.test(texto)) return texto;
+  if (/Entre na conta|Sem permissão|indisponível|inválido/i.test(texto) || /[áàâãéêíóôõúç]/i.test(texto)) return texto;
   return "Não foi possível agora. Tente de novo.";
 }
 
 function destinoSeguro(valor) {
-  return destinos.has(valor) ? valor : "minhas.html";
+  if (destinos.has(valor)) return valor;
+  if (/^atividade\.html\?id=[a-z0-9-]{1,48}$/.test(valor || "")) return valor;
+  return "minhas.html";
 }
 
 async function carregarConfig() {
@@ -114,9 +116,35 @@ async function iniciar() {
       return data?.arquivo || "";
     },
     async atividades() {
-      const { data, error } = await cliente.from("atividades").select("id, titulo").order("titulo");
+      const { data, error } = await cliente
+        .from("atividades")
+        .select("id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades")
+        .order("titulo");
       if (error) throw error;
       return data || [];
+    },
+    async atividade(id) {
+      const { data, error } = await cliente
+        .from("atividades")
+        .select("id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    async criarAtividade(dados) {
+      const { data, error } = await cliente.rpc("criar_atividade", {
+        atividade_id: dados.id,
+        atividade_titulo: dados.titulo,
+        atividade_resumo: dados.resumo,
+        atividade_explicacao: dados.explicacao,
+        atividade_preco: dados.preco,
+        atividade_uso: dados.uso,
+        atividade_inclui: dados.inclui,
+        atividade_habilidades: dados.habilidades,
+      });
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      return { ok: true, atividade: data };
     },
     async baixar(atividadeId) {
       const arquivo = await api.arquivoDa(atividadeId);
@@ -145,8 +173,8 @@ async function iniciar() {
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true };
     },
-    async enviarPdf(arquivo) {
-      const { error } = await cliente.storage.from("atividades").upload("adicao/situacoes-problema-adicao.pdf", arquivo, {
+    async enviarPdf(atividadeId, arquivo, nome) {
+      const { error } = await cliente.storage.from("atividades").upload(`${atividadeId}/${nome}`, arquivo, {
         upsert: true,
         contentType: "application/pdf",
       });

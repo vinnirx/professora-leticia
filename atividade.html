@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=35" />
+    <link rel="stylesheet" href="css/styles.css?v=38" />
   </head>
   <body>
     <header class="cabecalho">
@@ -32,38 +32,23 @@
 
     <main class="ficha">
       <a class="ficha-volta" href="index.html#atividades">Voltar às atividades</a>
-      <p class="chapeu">AEE e sala regular</p>
-      <h1>Situações-problema de adição com apoio visual</h1>
+      <p class="chapeu" id="ficha-uso">AEE e sala regular</p>
+      <h1 id="ficha-titulo">Situações-problema de adição com apoio visual</h1>
       <p class="preco" data-preco>R$ 10,00</p>
 
-      <div class="amostra ficha-amostra" aria-hidden="true">
-        <p>A atividade que você imprime</p>
-        <div class="momentos">
-          <figure class="momento">
-            <svg viewBox="0 0 64 64"><circle cx="16" cy="22" r="6" fill="#ef8b78"/><circle cx="32" cy="22" r="6" fill="#f3d56a"/><circle cx="48" cy="22" r="6" fill="#8ec8dc"/><circle cx="24" cy="42" r="6" fill="#a8c96a"/><circle cx="40" cy="42" r="6" fill="#f3a56a"/></svg>
-            <figcaption>Contar</figcaption>
-          </figure>
-          <figure class="momento">
-            <svg viewBox="0 0 64 64"><path d="M30 14h4v36h-4zM14 30h36v4H14z" fill="#5f87d8"/></svg>
-            <figcaption>Somar</figcaption>
-          </figure>
-          <figure class="momento">
-            <svg viewBox="0 0 64 64"><text x="32" y="42" text-anchor="middle" font-size="26" font-family="Nunito, sans-serif" font-weight="800" fill="#6d8a48">20</text></svg>
-            <figcaption>Até 20</figcaption>
-          </figure>
-        </div>
-        <p class="amostra-fala">Quantos tem ao todo?</p>
+      <div class="amostra amostra-capa ficha-amostra" id="ficha-amostra">
+        <img src="img/capa-adicao.png?v=2" alt="Folhas da atividade com lápis, morangos, flores, bolas e passarinhos." />
       </div>
 
-      <div class="ficha-texto">
+      <div class="ficha-texto" id="ficha-texto">
         <p>Esta atividade foi desenvolvida para estimular o raciocínio lógico-matemático, a interpretação de enunciados e a resolução de situações-problema envolvendo a operação de adição.</p>
         <p>Por meio de situações contextualizadas no cotidiano, os estudantes são convidados a realizar cálculos de adição com resultados até 20, utilizando ilustrações coloridas como apoio para a contagem e a compreensão das quantidades.</p>
         <p>O material apresenta questões de múltipla escolha, representações visuais das operações e espaços destinados à resolução, favorecendo a utilização de diferentes estratégias matemáticas.</p>
         <p>A proposta pode ser desenvolvida tanto no Atendimento Educacional Especializado (AEE) quanto nas turmas do ensino regular, contribuindo para a promoção da acessibilidade curricular e a construção de aprendizagens significativas, considerando as singularidades, as potencialidades e os diferentes ritmos de aprendizagem dos estudantes.</p>
       </div>
 
-      <h2>Habilidades desenvolvidas</h2>
-      <ul class="ficha-habilidades">
+      <h2 id="ficha-habilidades-titulo">Habilidades desenvolvidas</h2>
+      <ul class="ficha-habilidades" id="ficha-habilidades">
         <li>Desenvolver a contagem e a relação entre números e quantidades.</li>
         <li>Compreender o conceito de adição por meio de situações contextualizadas.</li>
         <li>Estimular a leitura, a compreensão e a interpretação de situações-problema.</li>
@@ -76,7 +61,7 @@
       <section class="ficha-compra" aria-label="Comprar a atividade">
         <div>
           <p class="preco" data-preco>R$ 10,00</p>
-          <p class="miudo">4 páginas para imprimir.</p>
+          <p class="miudo" id="ficha-extra">4 páginas para imprimir.</p>
         </div>
         <button class="botao" id="comprar" type="button">Comprar</button>
       </section>
@@ -140,10 +125,10 @@
       </div>
     </dialog>
 
-    <script src="js/loja.js?v=23"></script>
+    <script src="js/loja.js?v=25"></script>
     <script src="js/pix.js?v=20"></script>
-    <script src="js/main.js?v=28"></script>
-    <script src="js/atividade.js?v=1"></script>
-    <script type="module" src="js/sessao.js?v=5"></script>
+    <script src="js/main.js?v=32"></script>
+    <script type="module" src="js/sessao.js?v=6"></script>
+    <script src="js/atividade.js?v=2"></script>
   </body>
 </html>
