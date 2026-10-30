@@ -550,6 +550,16 @@ function abrirCarrinho() {
   if (caixa && !caixa.open) caixa.showModal();
 }
 
+function continuarComprando() {
+  document.querySelector("#carrinho")?.close();
+  const catalogo = document.querySelector("#atividades");
+  if (catalogo) {
+    catalogo.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  location.href = "index.html#atividades";
+}
+
 function finalizarCarrinho() {
   const itens = lerCarrinho();
   if (!itens.length) return;
@@ -570,6 +580,7 @@ function prepararCarrinho() {
     document.querySelector("#carrinho")?.close();
   });
   document.querySelector("#carrinho-finalizar")?.addEventListener("click", finalizarCarrinho);
+  document.querySelector("#carrinho-continuar")?.addEventListener("click", continuarComprando);
   document.querySelector("#carrinho-limpar")?.addEventListener("click", limparCarrinho);
   pintarCarrinho();
   if (new URLSearchParams(location.search).get("carrinho") === "1") abrirCarrinho();
