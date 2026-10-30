@@ -108,6 +108,11 @@ async function iniciar() {
       const { data } = await cliente.from("atividades").select("arquivo").eq("id", atividadeId).maybeSingle();
       return data?.arquivo || "";
     },
+    async atividades() {
+      const { data, error } = await cliente.from("atividades").select("id, titulo").order("titulo");
+      if (error) throw error;
+      return data || [];
+    },
     async baixar(atividadeId) {
       const arquivo = await api.arquivoDa(atividadeId);
       if (!arquivo) throw new Error("arquivo");

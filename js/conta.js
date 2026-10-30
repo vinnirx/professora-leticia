@@ -123,6 +123,34 @@ function cartaoPedido(pedido, loja) {
   return artigo;
 }
 
+function cartaoDownloadAdmin(loja, atividade) {
+  const artigo = document.createElement("article");
+  artigo.className = "item-conta";
+  const titulo = document.createElement("h3");
+  titulo.textContent = atividade.titulo;
+  const meta = document.createElement("p");
+  meta.textContent = "Como quem administra, você baixa sem uma compra.";
+  const botao = document.createElement("button");
+  botao.className = "botao";
+  botao.type = "button";
+  botao.textContent = "Baixar atividade";
+  const estado = document.createElement("p");
+  estado.className = "aviso-conta";
+  estado.setAttribute("role", "status");
+  botao.addEventListener("click", async () => {
+    botao.disabled = true;
+    try {
+      await loja.baixar(atividade.id);
+      aviso(estado, "O download começou.", true);
+    } catch {
+      aviso(estado, "O PDF ainda não foi guardado na área segura. Envie o arquivo no painel.");
+    }
+    botao.disabled = false;
+  });
+  artigo.append(titulo, meta, botao, estado);
+  return artigo;
+}
+
 async function iniciarMinhas(loja) {
   const lista = document.querySelector("#lista-pedidos");
   const vazio = document.querySelector("#conta-vazia");
@@ -146,9 +174,11 @@ async function iniciarMinhas(loja) {
   sair.hidden = false;
   if (dados?.papel === "admin") {
     document.querySelectorAll(".so-admin").forEach((link) => link.classList.add("visivel"));
+    const itens = await loja.atividades();
+    itens.forEach((item) => lista.append(cartaoDownloadAdmin(loja, item)));
   }
   const pedidos = await loja.meusPedidos();
-  if (!pedidos.length) {
+  if (!pedidos.length && dados?.papel !== "admin") {
     vazio.hidden = false;
     vazio.textContent = "Você ainda não tem atividades. A de adição com apoio visual está na loja.";
     return;
@@ -223,6 +253,18 @@ async function iniciarAdmin(loja) {
   corpo.hidden = false;
   document.querySelector("#sair").hidden = false;
   document.querySelector("#sair").addEventListener("click", () => loja.sair());
+  document.querySelector("#baixar-pdf").addEventListener("click", async () => {
+    const estado = document.querySelector("#baixar-status");
+    const botao = document.querySelector("#baixar-pdf");
+    botao.disabled = true;
+    try {
+      await loja.baixar("adicao");
+      aviso(estado, "O download começou.", true);
+    } catch {
+      aviso(estado, "O PDF ainda não foi guardado na área segura. Envie o arquivo aqui embaixo.");
+    }
+    botao.disabled = false;
+  });
   let painel;
   try {
     painel = await loja.painel();
@@ -243,7 +285,7 @@ async function iniciarAdmin(loja) {
     const estado = document.querySelector("#pdf-status");
     if (!arquivo) return;
     const resultado = await loja.enviarPdf(arquivo);
-    aviso(estado, resultado.ok ? "PDF guardado. Quem já pagou consegue baixar." : resultado.mensagem, resultado.ok);
+    aviso(estado, resultado.ok ? "PDF guardado. Quem administra e quem já pagou conseguem baixar." : resultado.mensagem, resultado.ok);
   });
 }
 

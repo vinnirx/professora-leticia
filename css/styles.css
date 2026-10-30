@@ -528,6 +528,8 @@ main {
 
 .card .comprar { width: 100%; margin-top: 0.2rem; }
 
+.card .baixar-admin { width: 100%; margin-top: 0.55rem; }
+
 .liberar {
   margin-top: 0.85rem;
 }

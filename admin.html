@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=32" />
+    <link rel="stylesheet" href="css/styles.css?v=34" />
     <link rel="stylesheet" href="css/conta.css?v=1" />
   </head>
   <body data-pagina="admin">
@@ -47,7 +47,9 @@
         </div>
         <section class="admin-bloco" aria-labelledby="titulo-pdf">
           <h2 id="titulo-pdf">PDF da atividade de adição</h2>
-          <p>Este arquivo fica numa área fechada. Só quem teve o Pix confirmado consegue baixar.</p>
+          <p>Quem administra baixa sem compra. Quem pagou baixa depois que o Pix é confirmado.</p>
+          <button class="botao botao-secundario" id="baixar-pdf" type="button">Baixar atividade</button>
+          <p class="aviso-conta" id="baixar-status" role="status"></p>
           <form id="enviar-pdf">
             <label>
               Arquivo PDF
@@ -60,7 +62,7 @@
       </div>
     </main>
 
-    <script type="module" src="js/sessao.js?v=2"></script>
-    <script type="module" src="js/conta.js?v=3"></script>
+    <script type="module" src="js/sessao.js?v=3"></script>
+    <script type="module" src="js/conta.js?v=4"></script>
   </body>
 </html>

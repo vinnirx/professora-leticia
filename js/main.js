@@ -251,3 +251,39 @@ async function abrirPix(atividade) {
 document.querySelector("#pix .fechar").addEventListener("click", () => dialogo.close());
 
 loja.atividades.forEach((atividade) => grade.append(cartao(atividade)));
+
+async function mostrarBaixarAdmin() {
+  const lojaConta = window.contaPronta ? await window.contaPronta : null;
+  if (!lojaConta?.configurada) return;
+  const sessao = await lojaConta.sessao();
+  if (!sessao) return;
+  const perfil = await lojaConta.perfil();
+  if (perfil?.papel !== "admin") return;
+  document.querySelectorAll("#grade .card").forEach((artigo, indice) => {
+    const atividade = loja.atividades[indice];
+    if (!atividade) return;
+    const botao = document.createElement("button");
+    botao.className = "botao botao-secundario baixar-admin";
+    botao.type = "button";
+    botao.textContent = "Baixar atividade";
+    const estado = document.createElement("p");
+    estado.className = "aviso";
+    estado.setAttribute("role", "status");
+    botao.addEventListener("click", async () => {
+      botao.disabled = true;
+      try {
+        await lojaConta.baixar(atividade.id);
+        estado.textContent = "O download começou.";
+      } catch {
+        estado.textContent = "O PDF ainda não foi guardado na área segura. Envie o arquivo no painel.";
+      }
+      botao.disabled = false;
+    });
+    const oferta = artigo.querySelector(".oferta");
+    const liberar = oferta.querySelector(".liberar");
+    oferta.insertBefore(botao, liberar);
+    oferta.insertBefore(estado, liberar);
+  });
+}
+
+mostrarBaixarAdmin();
