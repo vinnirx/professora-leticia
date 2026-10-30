@@ -59,7 +59,7 @@ function cartao(atividade) {
         ${(atividade.inclui || []).map((item) => `<li>${escapar(item)}</li>`).join("")}
       </ul>
       <p class="preco">${dinheiro(atividade.preco)}</p>
-      <a class="botao comprar" href="${atividade.pagina}">Quero essa atividade</a>
+      <a class="botao comprar" href="${atividade.pagina}">Ver Atividade</a>
     </div>
   `;
   if (atividade.id !== "adicao") artigo.querySelector(".amostra")?.remove();
