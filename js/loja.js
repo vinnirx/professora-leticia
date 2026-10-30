@@ -16,6 +16,7 @@ const loja = {
       inclui: ["4 páginas para imprimir", "Contagem com ilustrações", "Múltipla escolha e espaço para resolver"],
       preco: 10,
       download: "situacoes-problema-adicao.pdf",
+      pagina: "atividade.html",
     },
   ],
 };

@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=34" />
+    <link rel="stylesheet" href="css/styles.css?v=35" />
     <link rel="stylesheet" href="css/conta.css?v=1" />
   </head>
   <body data-pagina="entrar">
@@ -39,7 +39,7 @@
           </label>
           <label>
             Senha
-            <input name="senha" type="password" autocomplete="current-password" required />
+            <input name="senha" type="password" autocomplete="current-password" minlength="8" required />
           </label>
           <button class="botao" type="submit">Entrar</button>
           <p class="aviso-conta" role="status"></p>
@@ -50,7 +50,7 @@
       <section class="acesso-cartao" id="painel-criar" hidden aria-labelledby="titulo-criar">
         <p class="faixa-hero">Sua conta</p>
         <h1 id="titulo-criar">Criar conta</h1>
-        <p>Nome, e-mail e uma senha. A atividade paga fica guardada aqui.</p>
+        <p>Nome, e-mail e uma senha com 8 caracteres ou mais. A atividade paga fica guardada aqui.</p>
         <form id="form-criar">
           <label>
             Nome
@@ -62,7 +62,7 @@
           </label>
           <label>
             Senha
-            <input name="senha" type="password" autocomplete="new-password" minlength="6" required />
+            <input name="senha" type="password" autocomplete="new-password" minlength="8" required />
           </label>
           <button class="botao" type="submit">Criar conta</button>
           <p class="aviso-conta" role="status"></p>
@@ -71,7 +71,7 @@
       </section>
     </main>
 
-    <script type="module" src="js/sessao.js?v=3"></script>
-    <script type="module" src="js/conta.js?v=4"></script>
+    <script type="module" src="js/sessao.js?v=5"></script>
+    <script type="module" src="js/conta.js?v=5"></script>
   </body>
 </html>

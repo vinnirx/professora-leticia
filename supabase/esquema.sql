@@ -1,7 +1,9 @@
 -- Rode uma vez no SQL Editor do Supabase, depois de criar o projeto.
 -- Em Authentication > Providers > Email, desligue "Confirm email"
 -- para a mãe entrar na hora em que criar a conta.
+-- Em Authentication > Settings, deixe a senha mínima em 8 caracteres.
 -- Administradores: estes e-mails viram admin no cadastro.
+-- A senha não fica neste arquivo. A Letícia cria a conta com o e-mail dela.
 -- Troque o e-mail do Vinícius no insert se não for este.
 
 create table if not exists public.administradores (
@@ -10,7 +12,7 @@ create table if not exists public.administradores (
 
 insert into public.administradores (email)
 values
-  ('leticiapimenteldemacedo@gmail.com'),
+  ('leticiapimenteldemace@gmail.com'),
   ('vinnirx@gmail.com')
 on conflict (email) do nothing;
 

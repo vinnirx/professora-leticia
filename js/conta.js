@@ -33,14 +33,19 @@ function iniciarEntrar(loja) {
   entrar.addEventListener("submit", async (evento) => {
     evento.preventDefault();
     const status = entrar.querySelector(".aviso-conta");
+    const dados = new FormData(entrar);
+    const senha = String(dados.get("senha") || "");
+    if (senha.length < 8) {
+      aviso(status, "A senha precisa de 8 caracteres ou mais.");
+      return;
+    }
     if (!loja.configurada) {
       faltaBanco(status);
       return;
     }
-    const dados = new FormData(entrar);
     const resultado = await loja.entrar({
       email: String(dados.get("email") || "").trim(),
-      senha: String(dados.get("senha") || ""),
+      senha,
     });
     if (!resultado.ok) {
       aviso(status, resultado.mensagem);
@@ -61,8 +66,8 @@ function iniciarEntrar(loja) {
       aviso(status, "Escreva seu nome.");
       return;
     }
-    if (senha.length < 6) {
-      aviso(status, "A senha precisa de 6 caracteres ou mais.");
+    if (senha.length < 8) {
+      aviso(status, "A senha precisa de 8 caracteres ou mais.");
       return;
     }
     if (!loja.configurada) {

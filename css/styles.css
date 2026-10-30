@@ -930,6 +930,9 @@ main {
 .preco { color: var(--verde-vivo); font-weight: 800; }
 
 .card .comprar { border-style: solid; }
+.card a.comprar { display: block; }
+.oferta h3 a { color: inherit; text-decoration: none; }
+.oferta h3 a:hover { color: var(--azul-vivo); }
 
 .base { margin-top: 2.2rem; }
 
@@ -942,6 +945,63 @@ main {
   box-shadow: var(--sombra);
   padding: 1rem 1rem 1.15rem;
 }
+
+.ficha {
+  width: min(42rem, 100%);
+  margin-inline: auto;
+}
+
+.ficha-volta {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: var(--azul-vivo);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.ficha h1 {
+  max-width: 18ch;
+  color: var(--azul-vivo);
+  font-size: clamp(1.85rem, 4vw, 2.5rem);
+}
+
+.ficha .preco { margin: 0.35rem 0 0; }
+
+.ficha-texto {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1.15rem;
+}
+
+.ficha h2 {
+  margin-top: 1.7rem;
+  color: var(--azul-vivo);
+  font-size: 1.45rem;
+}
+
+.ficha-habilidades {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.ficha-amostra { margin-top: 1.15rem; min-height: 0; }
+
+.ficha-compra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.8rem;
+  padding: 1rem 1.1rem;
+  background: white;
+  border: 3px dotted var(--coral);
+  border-radius: 1.2rem;
+  box-shadow: var(--sombra);
+}
+
+.ficha-compra .miudo { margin: 0.15rem 0 0; }
 
 @media (max-width: 980px) {
   .grade { grid-template-columns: 1fr 1fr; }
@@ -957,6 +1017,8 @@ main {
   .hero { min-height: 0; }
   .hero-ilustracao { order: -1; height: 16rem; }
   .hero-texto { padding: 1.3rem 1.1rem 1.5rem; }
+  .ficha-compra { align-items: stretch; flex-direction: column; }
+  .ficha-compra .botao { width: 100%; }
   .rodape { grid-template-columns: 1fr; }
   .rodape-marca { grid-row: auto; }
   .rodape-links, .rodape-pix { justify-content: flex-start; justify-self: start; }

@@ -1,11 +1,11 @@
-const destinos = new Set(["minhas.html", "admin.html", "index.html", "index.html#atividades"]);
+const destinos = new Set(["minhas.html", "admin.html", "index.html", "index.html#atividades", "atividade.html"]);
 
 function traduzir(erro) {
   const texto = String(erro?.message || erro || "");
   if (/invalid login/i.test(texto)) return "E-mail ou senha não conferem.";
   if (/already registered|already been registered/i.test(texto)) return "Já existe uma conta com este e-mail.";
   if (/email not confirmed/i.test(texto)) return "Confirme o e-mail antes de entrar. Veja a caixa de entrada.";
-  if (/password/i.test(texto)) return "A senha precisa de 6 caracteres ou mais.";
+  if (/password/i.test(texto)) return "A senha precisa de 8 caracteres ou mais.";
   if (/Entre na conta|Sem permissão|indisponível|inválido/i.test(texto)) return texto;
   return "Não foi possível agora. Tente de novo.";
 }
@@ -47,7 +47,12 @@ async function iniciar() {
   if (config) {
     const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/+esm");
     cliente = createClient(config.url, config.chave, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+      auth: {
+        persistSession: true,
+        storage: window.sessionStorage,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
     });
   }
 

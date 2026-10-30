@@ -39,13 +39,13 @@ function cartao(atividade) {
     </div>
     <div class="oferta">
       <p class="chapeu">${atividade.uso}</p>
-      <h3>${atividade.titulo}</h3>
+      <h3><a href="${atividade.pagina}">${atividade.titulo}</a></h3>
       <p class="resumo">${atividade.resumo}</p>
       <ul class="inclui">
         ${atividade.inclui.map((item) => `<li>${item}</li>`).join("")}
       </ul>
       <p class="preco">${dinheiro(atividade.preco)}</p>
-      <button class="botao comprar" type="button">Quero essa atividade</button>
+      <a class="botao comprar" href="${atividade.pagina}">Quero essa atividade</a>
       <details class="liberar">
         <summary>Já recebi o código</summary>
         <form>
@@ -59,7 +59,6 @@ function cartao(atividade) {
       </details>
     </div>
   `;
-  artigo.querySelector(".comprar").addEventListener("click", () => abrirPix(atividade));
   artigo.querySelector(".liberar form").addEventListener("submit", (evento) => {
     evento.preventDefault();
     destravar(atividade, artigo);
@@ -150,8 +149,9 @@ async function abrirPix(atividade) {
   if (ligada) {
     sessao = await lojaConta.sessao();
     if (!sessao) {
-      sessionStorage.setItem("depois", "index.html#atividades");
-      location.href = "entrar.html?depois=index.html%23atividades";
+      const volta = /atividade\.html$/.test(location.pathname) ? "atividade.html" : "index.html#atividades";
+      sessionStorage.setItem("depois", volta);
+      location.href = `entrar.html?depois=${encodeURIComponent(volta)}`;
       return;
     }
   }
@@ -248,9 +248,13 @@ async function abrirPix(atividade) {
   dialogo.showModal();
 }
 
-document.querySelector("#pix .fechar").addEventListener("click", () => dialogo.close());
+if (dialogo) {
+  document.querySelector("#pix .fechar").addEventListener("click", () => dialogo.close());
+}
 
-loja.atividades.forEach((atividade) => grade.append(cartao(atividade)));
+if (grade) {
+  loja.atividades.forEach((atividade) => grade.append(cartao(atividade)));
+}
 
 async function mostrarBaixarAdmin() {
   const lojaConta = window.contaPronta ? await window.contaPronta : null;
@@ -286,4 +290,4 @@ async function mostrarBaixarAdmin() {
   });
 }
 
-mostrarBaixarAdmin();
+if (grade) mostrarBaixarAdmin();
