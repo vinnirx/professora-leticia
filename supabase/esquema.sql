@@ -42,7 +42,12 @@ create table if not exists public.pedidos (
 );
 
 insert into public.atividades (id, titulo, preco, arquivo)
-values ('adicao', 'Situações-problema de adição com apoio visual — resultados até 20', 10, 'situacoes-problema-adicao.pdf')
+values ('adicao', 'Situações-Problema de Adição com Apoio Visual — Resultados até 20', 10, 'situacoes-problema-adicao.pdf')
+on conflict (id) do update
+set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
+
+insert into public.atividades (id, titulo, preco, arquivo)
+values ('silabas', 'Infográfico — Separação de Sílabas', 10, 'infografico-separacao-de-silabas.pdf')
 on conflict (id) do update
 set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
 
@@ -212,10 +217,10 @@ alter table public.atividades add column if not exists habilidades text not null
 update public.atividades
 set
   uso = 'AEE e sala regular',
-  resumo = 'Situações do cotidiano para somar com resultado até 20. As ilustrações ajudam a contar, e cada questão traz alternativas e espaço para resolver.',
-  inclui = E'4 páginas para imprimir\nContagem com ilustrações\nMúltipla escolha e espaço para resolver',
-  explicacao = E'Esta atividade foi desenvolvida para estimular o raciocínio lógico-matemático, a interpretação de enunciados e a resolução de situações-problema envolvendo a operação de adição.\nPor meio de situações contextualizadas no cotidiano, os estudantes são convidados a realizar cálculos de adição com resultados até 20, utilizando ilustrações coloridas como apoio para a contagem e a compreensão das quantidades.\nO material apresenta questões de múltipla escolha, representações visuais das operações e espaços destinados à resolução, favorecendo a utilização de diferentes estratégias matemáticas.\nA proposta pode ser desenvolvida tanto no Atendimento Educacional Especializado (AEE) quanto nas turmas do ensino regular, contribuindo para a promoção da acessibilidade curricular e a construção de aprendizagens significativas, considerando as singularidades, as potencialidades e os diferentes ritmos de aprendizagem dos estudantes.',
-  habilidades = E'Desenvolver a contagem e a relação entre números e quantidades.\nCompreender o conceito de adição por meio de situações contextualizadas.\nEstimular a leitura, a compreensão e a interpretação de situações-problema.\nAmpliar o raciocínio lógico-matemático e a construção do pensamento matemático.\nFavorecer a atenção, a concentração e a organização das informações.\nExplorar diferentes estratégias de cálculo e resolução de problemas.\nIncentivar a autonomia e a confiança na realização das atividades matemáticas.'
+  resumo = '12 situações do cotidiano para somar com resultado até 20. As ilustrações ajudam a interpretar os problemas, e cada questão traz alternativas e espaço para resolver.',
+  inclui = E'12 situações-problema em 4 páginas\nResultados até 20\nIlustrações, múltipla escolha e espaço para resolver',
+  explicacao = E'Esta atividade foi desenvolvida para estimular o raciocínio lógico-matemático, a interpretação de enunciados e a resolução de situações-problema envolvendo a operação de adição.\nPor meio de situações contextualizadas no cotidiano, os estudantes são convidados a realizar cálculos de adição com resultados até 20, com o apoio de ilustrações coloridas que auxiliam na interpretação dos problemas e na construção de estratégias de resolução.\nO material apresenta 12 situações-problema com questões de múltipla escolha, representações visuais das quantidades e espaços destinados à resolução, favorecendo a exploração de diferentes estratégias de cálculo e a construção do pensamento matemático.\nA proposta pode ser desenvolvida tanto no Atendimento Educacional Especializado (AEE) quanto nas turmas do ensino regular, contribuindo para a promoção da acessibilidade curricular e a construção de aprendizagens significativas, considerando as singularidades, as potencialidades e os diferentes ritmos de aprendizagem dos estudantes.',
+  habilidades = E'Desenvolver a contagem e a associação entre números e quantidades.\nCompreender e aplicar o conceito de adição em situações contextualizadas no cotidiano.\nEstimular a leitura, a compreensão e a interpretação de enunciados matemáticos.\nAmpliar o raciocínio lógico-matemático e a capacidade de resolução de situações-problema.\nReconhecer e representar quantidades utilizando recursos visuais.\nExplorar diferentes estratégias de contagem, cálculo e resolução de problemas.\nDesenvolver a atenção, a concentração e a organização das informações.\nEstimular a identificação e a seleção de respostas em questões de múltipla escolha.\nIncentivar a autonomia e a confiança na realização das atividades matemáticas.'
 where id = 'adicao' and explicacao = '';
 
 insert into public.administradores (email)

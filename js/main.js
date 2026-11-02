@@ -216,6 +216,20 @@ let areaEscolhida = "";
 let temaEscolhido = "";
 
 const temasPorArea = {
+  Alfabetização: [
+    "Sílabas e Famílias Silábicas",
+    "Leitura de Palavras e Frases",
+    "Escrita de Palavras e Frases",
+  ],
+  Português: [
+    "Ortografia",
+    "Gramática",
+    "Separação e Classificação Silábica",
+    "Pontuação",
+    "Formação de Frases",
+    "Produção Textual",
+    "Gêneros Textuais",
+  ],
   Matemática: [
     "Números e Quantidades",
     "Sequência Numérica",
@@ -295,7 +309,7 @@ function prepararAreas() {
       const aviso = document.createElement("p");
       aviso.className = "subareas-vazio";
       const imagem = document.createElement("img");
-      imagem.src = "img/em-breve.jpg?v=1";
+      imagem.src = "img/em-breve.jpg?v=2";
       imagem.alt = "Em Breve";
       aviso.append(imagem);
       grupoTemas.append(aviso);
