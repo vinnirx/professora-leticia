@@ -3,6 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self'; connect-src 'self' https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321 https://fonts.googleapis.com https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'" />
+    <script src="js/protecao.js?v=1"></script>
     <title>Minha conta — Inclusão no Cotidiano</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -37,7 +40,8 @@
       <p><a class="so-admin" href="admin.html">Abrir o painel da loja</a></p>
     </main>
 
-    <script type="module" src="js/sessao.js?v=7"></script>
-    <script type="module" src="js/conta.js?v=8"></script>
+    <script src="js/vendor/supabase.js?v=1"></script>
+    <script type="module" src="js/sessao.js?v=10"></script>
+    <script type="module" src="js/conta.js?v=11"></script>
   </body>
 </html>

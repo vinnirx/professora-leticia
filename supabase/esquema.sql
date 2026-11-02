@@ -180,7 +180,8 @@ values ('atividades', 'atividades', false)
 on conflict (id) do nothing;
 
 drop policy if exists "quem pagou baixa" on storage.objects;
-create policy "quem pagou baixa"
+drop policy if exists "quem comprou baixa" on storage.objects;
+create policy "quem comprou baixa"
 on storage.objects for select
 to authenticated
 using (
@@ -190,7 +191,6 @@ using (
     or exists (
       select 1 from public.pedidos
       where usuario_id = auth.uid()
-        and status = 'pago'
         and atividade_id = split_part(storage.objects.name, '/', 1)
     )
   )
@@ -213,6 +213,33 @@ alter table public.atividades add column if not exists explicacao text not null 
 alter table public.atividades add column if not exists uso text not null default 'AEE e sala regular';
 alter table public.atividades add column if not exists inclui text not null default '';
 alter table public.atividades add column if not exists habilidades text not null default '';
+alter table public.atividades add column if not exists destaque boolean not null default true;
+alter table public.atividades add column if not exists area text not null default '';
+alter table public.atividades add column if not exists tema text not null default '';
+alter table public.atividades add column if not exists capa text not null default '';
+alter table public.atividades add column if not exists informacoes jsonb not null default '[]'::jsonb;
+
+insert into storage.buckets (id, name, public)
+values ('capas', 'capas', true)
+on conflict (id) do update set public = excluded.public;
+
+drop policy if exists "capas a vista" on storage.objects;
+create policy "capas a vista"
+on storage.objects for select
+to anon, authenticated
+using (bucket_id = 'capas');
+
+drop policy if exists "admin envia capa" on storage.objects;
+create policy "admin envia capa"
+on storage.objects for insert
+to authenticated
+with check (bucket_id = 'capas' and public.sou_admin());
+
+drop policy if exists "admin substitui capa" on storage.objects;
+create policy "admin substitui capa"
+on storage.objects for update
+to authenticated
+using (bucket_id = 'capas' and public.sou_admin());
 
 update public.atividades
 set
@@ -230,6 +257,8 @@ on conflict (email) do nothing;
 delete from public.administradores
 where email = 'leticiapimenteldemace@gmail.com';
 
+drop function if exists public.criar_atividade(text, text, text, text, numeric, text, text, text);
+
 create or replace function public.criar_atividade(
   atividade_id text,
   atividade_titulo text,
@@ -238,7 +267,11 @@ create or replace function public.criar_atividade(
   atividade_preco numeric,
   atividade_uso text,
   atividade_inclui text,
-  atividade_habilidades text
+  atividade_habilidades text,
+  atividade_destaque boolean,
+  atividade_area text,
+  atividade_tema text,
+  atividade_informacoes jsonb
 )
 returns public.atividades
 language plpgsql
@@ -266,7 +299,10 @@ begin
   if atividade_preco is null or atividade_preco <= 0 then
     raise exception 'O valor precisa ser maior que zero.';
   end if;
-  insert into public.atividades (id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades)
+  insert into public.atividades (
+    id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades,
+    destaque, area, tema, informacoes
+  )
   values (
     atividade_id,
     trim(atividade_titulo),
@@ -274,9 +310,13 @@ begin
     atividade_id || '.pdf',
     trim(atividade_resumo),
     trim(atividade_explicacao),
-    coalesce(nullif(trim(atividade_uso), ''), 'AEE e sala regular'),
+    coalesce(nullif(trim(atividade_uso), ''), ''),
     coalesce(atividade_inclui, ''),
-    coalesce(atividade_habilidades, '')
+    coalesce(atividade_habilidades, ''),
+    coalesce(atividade_destaque, true),
+    coalesce(trim(atividade_area), ''),
+    coalesce(trim(atividade_tema), ''),
+    coalesce(atividade_informacoes, '[]'::jsonb)
   )
   returning * into novo;
   return novo;
@@ -286,8 +326,27 @@ exception
 end;
 $$;
 
-revoke all on function public.criar_atividade(text, text, text, text, numeric, text, text, text) from public, anon;
-grant execute on function public.criar_atividade(text, text, text, text, numeric, text, text, text) to authenticated;
+revoke all on function public.criar_atividade(text, text, text, text, numeric, text, text, text, boolean, text, text, jsonb) from public, anon;
+grant execute on function public.criar_atividade(text, text, text, text, numeric, text, text, text, boolean, text, text, jsonb) to authenticated;
+
+create or replace function public.definir_capa(atividade text, endereco text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.sou_admin() then
+    raise exception 'Sem permissão.';
+  end if;
+  update public.atividades
+  set capa = trim(endereco)
+  where id = atividade;
+end;
+$$;
+
+revoke all on function public.definir_capa(text, text) from public, anon;
+grant execute on function public.definir_capa(text, text) to authenticated;
 
 alter table public.pedidos drop constraint if exists pedidos_txid_key;
 create unique index if not exists pedidos_txid_atividade_unico on public.pedidos (txid, atividade_id);

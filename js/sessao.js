@@ -48,8 +48,8 @@ async function iniciar() {
   const config = await carregarConfig();
   let cliente = null;
   if (config) {
-    const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/+esm");
-    cliente = createClient(config.url, config.chave, {
+    const createClient = window.supabase?.createClient || null;
+    if (createClient) cliente = createClient(config.url, config.chave, {
       auth: {
         persistSession: true,
         storage: window.sessionStorage,
@@ -124,7 +124,7 @@ async function iniciar() {
     async atividades() {
       const { data, error } = await cliente
         .from("atividades")
-        .select("id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades")
+        .select("id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades, destaque, area, tema, capa, informacoes")
         .order("titulo");
       if (error) throw error;
       return data || [];
@@ -132,7 +132,7 @@ async function iniciar() {
     async atividade(id) {
       const { data, error } = await cliente
         .from("atividades")
-        .select("id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades")
+        .select("id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades, destaque, area, tema, capa, informacoes")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -148,6 +148,10 @@ async function iniciar() {
         atividade_uso: dados.uso,
         atividade_inclui: dados.inclui,
         atividade_habilidades: dados.habilidades,
+        atividade_destaque: dados.destaque !== false,
+        atividade_area: dados.area || "",
+        atividade_tema: dados.tema || "",
+        atividade_informacoes: dados.informacoes || [],
       });
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true, atividade: data };
@@ -176,6 +180,22 @@ async function iniciar() {
     },
     async confirmar(id) {
       const { error } = await cliente.rpc("confirmar_pix", { pedido: id });
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      return { ok: true };
+    },
+    async enviarCapa(atividadeId, arquivo) {
+      const extensao = arquivo.type === "image/png" ? "png" : arquivo.type === "image/webp" ? "webp" : "jpg";
+      const nome = `${atividadeId}.${extensao}`;
+      const { error } = await cliente.storage.from("capas").upload(nome, arquivo, {
+        upsert: true,
+        contentType: arquivo.type || "image/jpeg",
+      });
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      const { data } = cliente.storage.from("capas").getPublicUrl(nome);
+      return { ok: true, url: data.publicUrl };
+    },
+    async definirCapa(atividadeId, url) {
+      const { error } = await cliente.rpc("definir_capa", { atividade: atividadeId, endereco: url });
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true };
     },

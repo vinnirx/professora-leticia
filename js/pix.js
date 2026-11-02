@@ -31,7 +31,23 @@ function nomeRecebedor(nome) {
   return limpo.slice(0, 25);
 }
 
+const PIX_OFICIAL = Object.freeze({
+  chave: "leticiapimenteldemacedo@gmail.com",
+  nome: "Letícia Pimentel de Macedo",
+  cidade: "BRASIL",
+});
+
 function montarPix({ chave, nome, cidade, valor, txid }) {
+  if (chave !== PIX_OFICIAL.chave || nome !== PIX_OFICIAL.nome || cidade !== PIX_OFICIAL.cidade) {
+    throw new Error("recebedor");
+  }
+  if (!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{10}$/.test(txid || "")) {
+    throw new Error("txid");
+  }
+  const quantiaNumero = Number(valor);
+  if (!Number.isFinite(quantiaNumero) || quantiaNumero <= 0 || quantiaNumero > 10000) {
+    throw new Error("valor");
+  }
   const recebedor = nomeRecebedor(nome);
   const municipio = semAcento(cidade || "BRASIL").slice(0, 15);
   const quantia = Number(valor).toFixed(2);
@@ -409,17 +425,70 @@ function qrModulos(texto) {
   return melhor;
 }
 
-function qrSvg(texto) {
-  const modulos = qrModulos(texto);
+function lerCamposPix(texto) {
+  const campos = new Map();
+  let i = 0;
+  while (i < texto.length) {
+    if (i + 4 > texto.length) return null;
+    const id = texto.slice(i, i + 2);
+    const tamanho = Number(texto.slice(i + 2, i + 4));
+    if (!Number.isInteger(tamanho) || tamanho < 0 || i + 4 + tamanho > texto.length) return null;
+    campos.set(id, texto.slice(i + 4, i + 4 + tamanho));
+    i += 4 + tamanho;
+  }
+  return campos;
+}
+
+function payloadPixValido(payload, valorEsperado) {
+  if (typeof payload !== "string" || !/^[\x20-\x7E]+$/.test(payload)) return false;
+  const campos = lerCamposPix(payload);
+  if (!campos) return false;
+  const crcInformado = campos.get("63");
+  if (!crcInformado || crcInformado.length !== 4) return false;
+  const semCrc = payload.slice(0, -4);
+  if (!semCrc.endsWith("6304") || crc16(semCrc) !== crcInformado) return false;
+  if (campos.get("00") !== "01" || campos.get("53") !== "986" || campos.get("58") !== "BR") return false;
+  if (campos.get("59") !== nomeRecebedor(PIX_OFICIAL.nome)) return false;
+  if (campos.get("60") !== semAcento(PIX_OFICIAL.cidade).slice(0, 15)) return false;
+  const conta = lerCamposPix(campos.get("26") || "");
+  if (!conta || conta.get("00") !== "br.gov.bcb.pix" || conta.get("01") !== PIX_OFICIAL.chave) return false;
+  const quantia = campos.get("54");
+  if (quantia !== Number(valorEsperado).toFixed(2)) return false;
+  return true;
+}
+
+function desenharQr(destino, payload, valor) {
+  destino.replaceChildren();
+  if (!payloadPixValido(payload, valor)) return false;
+  const modulos = qrModulos(payload);
   const n = modulos.length;
   const quiet = 4;
   const total = n + quiet * 2;
-  let retangulos = "";
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  svg.setAttribute("viewBox", `0 0 ${total} ${total}`);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "QR Code do Pix de LETICIA PIMENTEL MACEDO");
   for (let y = 0; y < n; y += 1) {
     for (let x = 0; x < n; x += 1) {
       if (!modulos[y][x]) continue;
-      retangulos += `<rect x="${x + quiet}" y="${y + quiet}" width="1" height="1"/>`;
+      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      rect.setAttribute("x", String(x + quiet));
+      rect.setAttribute("y", String(y + quiet));
+      rect.setAttribute("width", "1");
+      rect.setAttribute("height", "1");
+      rect.setAttribute("fill", "#000000");
+      svg.append(rect);
     }
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" role="img" aria-label="QR Code do Pix">${retangulos}</svg>`;
+  destino.append(svg);
+  return true;
 }
+
+["montarPix", "desenharQr", "payloadPixValido", "identificadorPix"].forEach((nome) => {
+  Object.defineProperty(window, nome, {
+    value: window[nome],
+    writable: false,
+    configurable: false,
+  });
+});

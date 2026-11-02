@@ -3,12 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' blob:; connect-src 'self' https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321 https://fonts.googleapis.com https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'" />
+    <script src="js/protecao.js?v=1"></script>
     <title>Painel — Inclusão no Cotidiano</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="css/styles.css?v=35" />
-    <link rel="stylesheet" href="css/conta.css?v=2" />
+    <link rel="stylesheet" href="css/conta.css?v=3" />
   </head>
   <body data-pagina="admin">
     <header class="cabecalho">
@@ -34,6 +37,95 @@
       </div>
       <p id="admin-bloqueio" hidden></p>
       <p class="aviso-conta" id="admin-status" role="status"></p>
+      <section class="admin-bloco" id="cadastro-atividade" aria-labelledby="titulo-nova">
+        <h2 id="titulo-nova">Nova atividade</h2>
+        <p class="aviso-conta aviso-ok" id="cadastro-aviso">Você pode preencher e ver como a atividade fica na loja. Nada é salvo agora. A atividade só entra no site quando o banco de dados estiver ligado.</p>
+        <form id="nova-atividade">
+          <label>
+            Imagem da capa
+            <input name="capa" type="file" accept="image/jpeg,image/png,image/webp" />
+          </label>
+          <img id="capa-mini" alt="" hidden />
+          <label>
+            Qual é a atividade
+            <input name="titulo" type="text" required />
+          </label>
+          <label>
+            Valor
+            <input name="preco" type="number" min="1" step="0.01" value="10" required />
+          </label>
+          <label class="marca-destaque">
+            <input name="destaque" type="checkbox" value="sim" checked />
+            Mostrar em Materiais em destaque
+          </label>
+          <label>
+            Área na loja
+            <select name="area" required></select>
+          </label>
+          <label>
+            Tema
+            <select name="tema" id="tema-atividade" required></select>
+          </label>
+          <label>
+            Descrição breve, usada na busca
+            <textarea name="resumo" rows="3" required></textarea>
+          </label>
+          <label>
+            Texto da página
+            <textarea name="explicacao" rows="8" required></textarea>
+          </label>
+          <label>
+            Habilidades, uma por linha
+            <textarea name="habilidades" rows="5"></textarea>
+          </label>
+          <label>
+            Linha embaixo do preço, e o que inclui, um item por linha
+            <textarea name="inclui" rows="3"></textarea>
+          </label>
+          <fieldset class="info-material">
+            <legend>Informações do material</legend>
+            <label>
+              Área do conhecimento
+              <input name="info_area" type="text" />
+            </label>
+            <label>
+              Categoria
+              <input name="info_categoria" type="text" />
+            </label>
+            <label>
+              Subcategoria
+              <input name="info_subcategoria" type="text" />
+            </label>
+            <label>
+              Operação, se houver
+              <input name="info_operacao" type="text" />
+            </label>
+            <label>
+              Campo numérico, se houver
+              <input name="info_campo" type="text" />
+            </label>
+            <label>
+              Quantidade
+              <input name="info_quantidade" type="text" required />
+            </label>
+            <label>
+              Recursos
+              <textarea name="info_recursos" rows="3"></textarea>
+            </label>
+            <label>
+              Formato
+              <input name="info_formato" type="text" value="PDF para impressão" required />
+            </label>
+          </fieldset>
+          <label>
+            PDF, se já estiver pronto
+            <input name="pdf" type="file" accept="application/pdf" />
+          </label>
+          <button class="botao" type="submit">Ver prévia</button>
+          <p class="aviso-conta" id="nova-status" role="status"></p>
+        </form>
+        <div id="previa-atividade" hidden></div>
+      </section>
       <div id="admin-corpo" hidden>
         <section class="admin-bloco" aria-labelledby="titulo-lucros">
           <h2 id="titulo-lucros">Lucros</h2>
@@ -50,42 +142,6 @@
           <h2 id="titulo-atividades-admin">Atividades no site</h2>
           <div class="lista-conta" id="lista-atividades"></div>
         </section>
-        <section class="admin-bloco" aria-labelledby="titulo-nova">
-          <h2 id="titulo-nova">Nova atividade</h2>
-          <p>O card da loja e a página exclusiva nascem juntos, no mesmo formato da atividade de adição.</p>
-          <form id="nova-atividade">
-            <label>
-              Qual é a atividade
-              <input name="titulo" type="text" required />
-            </label>
-            <label>
-              Descrição breve
-              <textarea name="resumo" rows="3" required></textarea>
-            </label>
-            <label>
-              O que a pessoa pode esperar
-              <textarea name="explicacao" rows="8" required></textarea>
-            </label>
-            <label>
-              Habilidades, uma por linha
-              <textarea name="habilidades" rows="5"></textarea>
-            </label>
-            <label>
-              O que inclui, um item por linha
-              <textarea name="inclui" rows="3"></textarea>
-            </label>
-            <label>
-              Valor
-              <input name="preco" type="number" min="1" step="0.01" value="10" required />
-            </label>
-            <label>
-              PDF, se já estiver pronto
-              <input name="pdf" type="file" accept="application/pdf" />
-            </label>
-            <button class="botao" type="submit">Criar atividade</button>
-            <p class="aviso-conta" id="nova-status" role="status"></p>
-          </form>
-        </section>
         <div class="admin-grade">
           <section class="admin-bloco" aria-labelledby="titulo-contas">
             <h2 id="titulo-contas">Contas</h2>
@@ -99,7 +155,8 @@
       </div>
     </main>
 
-    <script type="module" src="js/sessao.js?v=7"></script>
-    <script type="module" src="js/conta.js?v=8"></script>
+    <script src="js/vendor/supabase.js?v=1"></script>
+    <script type="module" src="js/sessao.js?v=10"></script>
+    <script type="module" src="js/conta.js?v=10"></script>
   </body>
 </html>

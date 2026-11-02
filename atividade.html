@@ -3,6 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self'; connect-src 'self' https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321 https://fonts.googleapis.com https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'" />
+    <script src="js/protecao.js?v=1"></script>
     <title>Situações-Problema de Adição com Apoio Visual — Resultados até 20 — Inclusão no Cotidiano</title>
     <meta
       name="description"
@@ -125,6 +128,7 @@
         </form>
         <div id="pix-resultado" hidden>
           <div class="qr-caixa" id="pix-imagem"></div>
+          <p class="miudo">No aplicativo do banco, o recebedor tem que ser <strong>LETICIA PIMENTEL MACEDO</strong>. Se aparecer outro nome, não pague.</p>
           <p class="miudo">Código deste pedido</p>
           <p class="codigo-pedido" id="pix-codigo"></p>
           <p class="miudo" id="pix-pessoa"></p>
@@ -141,10 +145,10 @@
       </div>
     </dialog>
 
-    <script src="js/loja.js?v=38"></script>
-    <script src="js/pix.js?v=20"></script>
-    <script src="js/main.js?v=55"></script>
-    <script type="module" src="js/sessao.js?v=7"></script>
-    <script src="js/atividade.js?v=6"></script>
+    <script src="js/loja.js?v=40"></script>
+    <script src="js/pix.js?v=21"></script>
+    <script src="js/vendor/supabase.js?v=1"></script>
+    <script type="module" src="js/sessao.js?v=10"></script>
+    <script type="module" src="js/atividade.js?v=8"></script>
   </body>
 </html>

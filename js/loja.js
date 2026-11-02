@@ -129,3 +129,8 @@ const loja = {
     },
   ],
 };
+
+loja.atividades.forEach((item) => Object.freeze(item));
+Object.freeze(loja.atividades);
+Object.freeze(loja);
+window.loja = loja;

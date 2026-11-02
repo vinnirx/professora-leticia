@@ -51,7 +51,8 @@
 
 .acesso-cartao input,
 .admin-bloco input,
-.admin-bloco textarea {
+.admin-bloco textarea,
+.admin-bloco select {
   width: 100%;
   border: 1.5px solid var(--azul);
   border-radius: 0.7rem;
@@ -130,7 +131,59 @@
 .admin-bloco textarea { min-height: 6rem; resize: vertical; }
 
 .admin-bloco + .admin-bloco,
-.admin-bloco + .admin-grade { margin-top: 1rem; }
+.admin-bloco + .admin-grade,
+#cadastro-atividade + #admin-corpo { margin-top: 1rem; }
+
+.marca-destaque {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 1rem;
+}
+
+.marca-destaque input {
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+}
+
+.info-material {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0.9rem;
+  border: 1.5px solid var(--linha);
+  border-radius: 0.9rem;
+}
+
+.info-material legend {
+  padding: 0 0.35rem;
+  color: var(--azul-vivo);
+  font-weight: 800;
+}
+
+#capa-mini {
+  width: min(12rem, 100%);
+  border-radius: 0.8rem;
+}
+
+.previa-loja {
+  display: grid;
+  grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  margin-top: 0.8rem;
+}
+
+.previa-card .botao { display: block; margin-top: 0.45rem; }
+
+.previa-ficha h3 { margin: 1rem 0 0.4rem; color: var(--azul-vivo); }
+
+@media (max-width: 800px) {
+  .previa-loja { grid-template-columns: 1fr; }
+}
 
 .lucro-total {
   margin: 0 0 0.8rem;

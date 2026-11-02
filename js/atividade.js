@@ -1,6 +1,6 @@
-function linhasDaPagina(texto) {
-  return String(texto || "").split(/\n+/).map((item) => item.trim()).filter(Boolean);
-}
+import { abrirCarrinho, guardarNoCarrinho, prepararCarrinho, rotuloAdicionar } from "./carrinho.js";
+import { abrirPix, prepararCheckout } from "./checkout.js";
+import { dinheiro, linhas } from "./texto.js";
 
 function preencherFicha(atividade) {
   const uso = document.querySelector("#ficha-uso");
@@ -15,12 +15,12 @@ function preencherFicha(atividade) {
   });
   const texto = document.querySelector("#ficha-texto");
   texto.replaceChildren();
-  linhasDaPagina(atividade.explicacao).forEach((paragrafo) => {
+  linhas(atividade.explicacao).forEach((paragrafo) => {
     const p = document.createElement("p");
     p.textContent = paragrafo;
     texto.append(p);
   });
-  const habilidades = linhasDaPagina(atividade.habilidades);
+  const habilidades = linhas(atividade.habilidades);
   const tituloHabilidades = document.querySelector("#ficha-habilidades-titulo");
   const lista = document.querySelector("#ficha-habilidades");
   tituloHabilidades.hidden = habilidades.length === 0;
@@ -58,7 +58,7 @@ function preencherFicha(atividade) {
     });
   }
   const extra = document.querySelector("#ficha-extra");
-  const inclui = linhasDaPagina(atividade.inclui);
+  const inclui = linhas(atividade.inclui);
   extra.textContent = inclui[0] || "Para imprimir.";
   const comprar = document.querySelector("#comprar");
   comprar.dataset.id = atividade.id;
@@ -77,7 +77,7 @@ function preencherFicha(atividade) {
 
 function fichaLocal() {
   const id = new URLSearchParams(location.search).get("id") || "adicao";
-  const item = loja.atividades.find((atividade) => atividade.id === id);
+  const item = window.loja.atividades.find((atividade) => atividade.id === id);
   if (!item) return null;
   if (item.explicacao) {
     return {
@@ -97,6 +97,8 @@ function fichaLocal() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  prepararCarrinho(abrirPix);
+  prepararCheckout();
   const bruto = new URLSearchParams(location.search).get("id") || "adicao";
   const id = /^[a-z0-9-]{1,48}$/.test(bruto) ? bruto : "";
   const local = fichaLocal();
