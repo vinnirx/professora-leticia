@@ -42,17 +42,17 @@ create table if not exists public.pedidos (
 );
 
 insert into public.atividades (id, titulo, preco, arquivo)
-values ('adicao', 'Situações-Problema de Adição com Apoio Visual — Resultados até 20', 10, 'situacoes-problema-adicao.pdf')
+values ('adicao', 'Situações-Problema de Adição com Apoio Visual — Resultados até 20', 9.90, 'situacoes-problema-adicao.pdf')
 on conflict (id) do update
 set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
 
 insert into public.atividades (id, titulo, preco, arquivo)
-values ('silabas', 'Infográfico — Separação de Sílabas', 5, 'infografico-separacao-de-silabas.pdf')
+values ('silabas', 'Infográfico — Separação de Sílabas', 4.90, 'infografico-separacao-de-silabas.pdf')
 on conflict (id) do update
 set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
 
 insert into public.atividades (id, titulo, preco, arquivo)
-values ('celulas', 'Infográfico — Células e Tipos de Células', 5, 'infografico-celulas-e-tipos-de-celulas.pdf')
+values ('celulas', 'Infográfico — Células e Tipos de Células', 4.90, 'infografico-celulas-e-tipos-de-celulas.pdf')
 on conflict (id) do update
 set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
 
