@@ -47,7 +47,7 @@ on conflict (id) do update
 set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
 
 insert into public.atividades (id, titulo, preco, arquivo)
-values ('silabas', 'Infográfico — Separação de Sílabas', 10, 'infografico-separacao-de-silabas.pdf')
+values ('silabas', 'Infográfico — Separação de Sílabas', 5, 'infografico-separacao-de-silabas.pdf')
 on conflict (id) do update
 set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
 

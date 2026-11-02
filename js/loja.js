@@ -121,7 +121,7 @@ const loja = {
         ["Quantidade", "1 página"],
         ["Formato", "PDF para impressão"],
       ],
-      preco: 10,
+      preco: 5,
       download: "infografico-separacao-de-silabas.pdf",
       pagina: "atividade.html?id=silabas",
       capa: "img/capa-silabas.png?v=1",

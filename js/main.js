@@ -58,17 +58,12 @@ function cartao(atividade) {
     <div class="oferta">
       ${atividade.uso ? `<p class="chapeu">${escapar(atividade.uso)}</p>` : ""}
       <h3><a href="${atividade.pagina}">${escapar(atividade.titulo)}</a></h3>
-      <p class="resumo">${escapar(atividade.resumo)}</p>
-      <ul class="inclui">
-        ${(atividade.inclui || []).map((item) => `<li>${escapar(item)}</li>`).join("")}
-      </ul>
       <p class="preco">${dinheiro(atividade.preco)}</p>
       <a class="botao comprar" href="${atividade.pagina}">Ver Atividade</a>
       <button class="botao botao-secundario adicionar-carrinho" type="button">Adicionar ao carrinho</button>
     </div>
   `;
   if (!atividade.capa) artigo.querySelector(".amostra")?.remove();
-  if (!(atividade.inclui || []).length) artigo.querySelector(".inclui")?.remove();
   const adicionar = artigo.querySelector(".adicionar-carrinho");
   adicionar.dataset.id = atividade.id;
   adicionar.addEventListener("click", () => {
