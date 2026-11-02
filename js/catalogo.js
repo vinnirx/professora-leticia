@@ -25,6 +25,7 @@ function temasDoItem(item) {
   if (item.tema) return [item.tema];
   if (item.id === "adicao" || item.id === "adicao-50") return ["Situações-Problema"];
   if (item.id === "silabas") return ["Separação e Classificação Silábica"];
+  if (item.id === "celulas") return ["Células"];
   return [];
 }
 
@@ -38,7 +39,7 @@ function paraCartao(item) {
     preco: Number(item.preco),
     download: item.arquivo || item.download,
     pagina: `atividade.html?id=${encodeURIComponent(item.id)}`,
-    area: item.area || (item.id === "adicao" || item.id === "adicao-50" ? "Matemática" : item.id === "silabas" ? "Português" : ""),
+    area: item.area || (item.id === "adicao" || item.id === "adicao-50" ? "Matemática" : item.id === "silabas" ? "Português" : item.id === "celulas" ? "Ciências" : ""),
     temas: temasDoItem(item),
     destaque: item.destaque !== false,
     explicacao: item.explicacao || "",

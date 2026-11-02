@@ -51,6 +51,11 @@ values ('silabas', 'Infográfico — Separação de Sílabas', 5, 'infografico-s
 on conflict (id) do update
 set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
 
+insert into public.atividades (id, titulo, preco, arquivo)
+values ('celulas', 'Infográfico — Células e Tipos de Células', 5, 'infografico-celulas-e-tipos-de-celulas.pdf')
+on conflict (id) do update
+set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
+
 create or replace function public.sou_admin()
 returns boolean
 language sql

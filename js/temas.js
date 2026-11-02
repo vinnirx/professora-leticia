@@ -38,4 +38,5 @@ export const temasPorArea = {
     "Sistema Monetário",
     "Frações",
   ],
+  Ciências: ["Células", "Corpo Humano"],
 };
