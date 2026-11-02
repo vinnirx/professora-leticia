@@ -1315,16 +1315,34 @@ main {
 }
 
 .ficha {
-  width: 100%;
+  width: min(1120px, calc(100% - 6vw));
   margin-inline: auto;
 }
 
 .ficha-volta {
-  display: inline-block;
-  margin-bottom: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.55rem 0 1.35rem;
+  padding: 0.62rem 1.15rem 0.62rem 0.9rem;
+  background: white;
   color: var(--azul-vivo);
   font-weight: 800;
   text-decoration: none;
+  border: 2px solid #d5e4f2;
+  border-radius: 999px;
+  box-shadow: var(--sombra);
+}
+
+.ficha-volta::before {
+  content: "←";
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.ficha-volta:hover {
+  background: #f4f8ff;
+  border-color: var(--azul-vivo);
 }
 
 .ficha h1 {
