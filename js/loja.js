@@ -124,8 +124,8 @@ const loja = {
       preco: 4.9,
       download: "infografico-separacao-de-silabas.pdf",
       pagina: "atividade.html?id=silabas",
-      capa: "img/capa-silabas.png?v=1",
-      capaAlt: "Infográfico de separação de sílabas, com a casa de quebra-cabeça, exemplos de palavras e a classificação em monossílaba, dissílaba, trissílaba e polissílaba.",
+      capa: "img/capa-silabas.png?v=2",
+      capaAlt: "Infográfico de separação de sílabas, com exemplos de sol, casa, banana e elefante, o passo a passo da separação e a classificação em monossílaba, dissílaba, trissílaba e polissílaba.",
     },
     {
       id: "celulas",
