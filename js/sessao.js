@@ -156,6 +156,24 @@ async function iniciar() {
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true, atividade: data };
     },
+    async editarAtividade(dados) {
+      const { data, error } = await cliente.rpc("editar_atividade", {
+        atividade_id: dados.id,
+        atividade_titulo: dados.titulo,
+        atividade_resumo: dados.resumo,
+        atividade_explicacao: dados.explicacao,
+        atividade_preco: dados.preco,
+        atividade_uso: dados.uso,
+        atividade_inclui: dados.inclui,
+        atividade_habilidades: dados.habilidades,
+        atividade_destaque: dados.destaque === true,
+        atividade_area: dados.area || "",
+        atividade_tema: dados.tema || "",
+        atividade_informacoes: dados.informacoes || [],
+      });
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      return { ok: true, atividade: data };
+    },
     async baixar(atividadeId) {
       const arquivo = await api.arquivoDa(atividadeId);
       if (!arquivo) throw new Error("arquivo");
@@ -193,6 +211,11 @@ async function iniciar() {
       if (error) return { ok: false, mensagem: traduzir(error) };
       const { data } = cliente.storage.from("capas").getPublicUrl(nome);
       return { ok: true, url: data.publicUrl };
+    },
+    async definirDestaque(atividadeId, ligado) {
+      const { error } = await cliente.rpc("definir_destaque", { atividade: atividadeId, ligado });
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      return { ok: true };
     },
     async definirCapa(atividadeId, url) {
       const { error } = await cliente.rpc("definir_capa", { atividade: atividadeId, endereco: url });

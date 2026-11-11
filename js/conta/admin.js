@@ -1,4 +1,4 @@
-import { prepararCadastro } from "./cadastro.js";
+import { abrirEdicao, prepararCadastro } from "./cadastro.js";
 import { aviso, moeda, quando } from "./avisos.js";
 
 function blocoConta(conta) {
@@ -110,6 +110,7 @@ function pintarLucros(pedidos, modo) {
 function cartaoAtividadeAdmin(loja, atividade, lista) {
   const artigo = document.createElement("article");
   artigo.className = "item-conta";
+  artigo.dataset.atividade = atividade.id;
   const titulo = document.createElement("h3");
   titulo.textContent = atividade.titulo;
   const meta = document.createElement("p");
@@ -119,6 +120,11 @@ function cartaoAtividadeAdmin(loja, atividade, lista) {
   const ver = document.createElement("a");
   ver.href = `atividade.html?id=${encodeURIComponent(atividade.id)}`;
   ver.textContent = "Ver a página";
+  const editar = document.createElement("button");
+  editar.className = "botao botao-secundario";
+  editar.type = "button";
+  editar.textContent = "Editar";
+  editar.addEventListener("click", () => abrirEdicao(atividade));
   const baixar = document.createElement("button");
   baixar.className = "botao botao-secundario";
   baixar.type = "button";
@@ -139,6 +145,7 @@ function cartaoAtividadeAdmin(loja, atividade, lista) {
   const arquivo = document.createElement("input");
   arquivo.type = "file";
   arquivo.accept = "application/pdf";
+  arquivo.setAttribute("aria-label", "Trocar o PDF");
   arquivo.addEventListener("change", async () => {
     const pdf = arquivo.files?.[0];
     if (!pdf) return;
@@ -146,8 +153,38 @@ function cartaoAtividadeAdmin(loja, atividade, lista) {
     aviso(estado, resultado.ok ? "PDF guardado. Quem administra e quem já pagou conseguem baixar." : resultado.mensagem, resultado.ok);
     arquivo.value = "";
   });
-  acoes.append(ver, baixar);
-  artigo.append(titulo, meta, acoes, arquivo, estado);
+  const destaque = document.createElement("label");
+  destaque.className = "marca-destaque";
+  const caixa = document.createElement("input");
+  caixa.type = "checkbox";
+  caixa.dataset.destaque = atividade.id;
+  caixa.checked = atividade.destaque !== false && !atividade.foraDoBanco;
+  caixa.addEventListener("change", async () => {
+    const ligar = caixa.checked;
+    const marcadas = lista.querySelectorAll("[data-destaque]:checked").length;
+    if (ligar && marcadas > 4) {
+      caixa.checked = false;
+      aviso(estado, "A vitrine mostra no máximo 4. Tire uma do destaque antes.");
+      return;
+    }
+    if (atividade.foraDoBanco) {
+      caixa.checked = !ligar;
+      aviso(estado, "Essa atividade ainda não está no banco, então a escolha não fica salva.");
+      return;
+    }
+    caixa.disabled = true;
+    const resultado = await loja.definirDestaque(atividade.id, ligar);
+    caixa.disabled = false;
+    if (!resultado.ok) {
+      caixa.checked = !ligar;
+      aviso(estado, resultado.mensagem);
+      return;
+    }
+    aviso(estado, ligar ? "Entrou em Materiais em destaque." : "Saiu de Materiais em destaque.", true);
+  });
+  destaque.append(caixa, document.createTextNode("Em destaque"));
+  acoes.append(ver, editar, baixar);
+  artigo.append(titulo, meta, acoes, destaque, arquivo, estado);
   lista.prepend(artigo);
 }
 
@@ -200,9 +237,29 @@ export async function iniciarAdmin(loja) {
   pintar();
 
   const listaAtividades = document.querySelector("#lista-atividades");
-  const ids = new Set(atividades.map((item) => item.id));
-  if (!atividades.length) listaAtividades.textContent = "Nenhuma atividade no site ainda.";
-  atividades.forEach((atividade) => cartaoAtividadeAdmin(loja, atividade, listaAtividades));
+  const porId = new Map(atividades.map((item) => [item.id, item]));
+  (window.loja?.atividades || []).forEach((local) => {
+    if (porId.has(local.id)) return;
+    porId.set(local.id, {
+      id: local.id,
+      titulo: local.titulo,
+      preco: local.preco,
+      resumo: local.resumo,
+      explicacao: local.explicacao,
+      habilidades: local.habilidades,
+      inclui: local.inclui,
+      area: local.area,
+      tema: (local.temas || [])[0] || "",
+      informacoes: local.informacoes,
+      arquivo: local.download,
+      destaque: local.destaque !== false,
+      foraDoBanco: true,
+    });
+  });
+  const todas = [...porId.values()];
+  const ids = new Set(todas.map((item) => item.id));
+  if (!todas.length) listaAtividades.textContent = "Nenhuma atividade no site ainda.";
+  todas.forEach((atividade) => cartaoAtividadeAdmin(loja, atividade, listaAtividades));
   prepararCadastro(loja, ids, (criada) => {
     if (!listaAtividades.querySelector(".item-conta")) listaAtividades.replaceChildren();
     cartaoAtividadeAdmin(loja, criada, listaAtividades);

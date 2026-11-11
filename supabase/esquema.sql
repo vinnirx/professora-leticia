@@ -47,6 +47,16 @@ on conflict (id) do update
 set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
 
 insert into public.atividades (id, titulo, preco, arquivo)
+values ('adicao-50', 'Situações-Problema de Adição com Apoio Visual — Resultados até 50', 9.90, 'situacoes-problema-adicao-ate-50.pdf')
+on conflict (id) do update
+set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
+
+insert into public.atividades (id, titulo, preco, arquivo)
+values ('resolver-problemas', 'Infográfico — Como Resolver Situações-Problema?', 4.90, 'infografico-como-resolver-situacoes-problema.pdf')
+on conflict (id) do update
+set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
+
+insert into public.atividades (id, titulo, preco, arquivo)
 values ('silabas', 'Infográfico — Separação de Sílabas', 4.90, 'infografico-separacao-de-silabas.pdf')
 on conflict (id) do update
 set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
@@ -304,6 +314,10 @@ begin
   if atividade_preco is null or atividade_preco <= 0 then
     raise exception 'O valor precisa ser maior que zero.';
   end if;
+  if coalesce(atividade_destaque, true)
+     and (select count(*) from public.atividades where destaque) >= 4 then
+    raise exception 'A vitrine mostra no máximo 4. Tire uma do destaque antes.';
+  end if;
   insert into public.atividades (
     id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades,
     destaque, area, tema, informacoes
@@ -352,6 +366,107 @@ $$;
 
 revoke all on function public.definir_capa(text, text) from public, anon;
 grant execute on function public.definir_capa(text, text) to authenticated;
+
+create or replace function public.definir_destaque(atividade text, ligado boolean)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  quantidade integer;
+begin
+  if not public.sou_admin() then
+    raise exception 'Sem permissão.';
+  end if;
+  if ligado then
+    select count(*) into quantidade
+    from public.atividades
+    where destaque and id <> atividade;
+    if quantidade >= 4 then
+      raise exception 'A vitrine mostra no máximo 4. Tire uma do destaque antes.';
+    end if;
+  end if;
+  update public.atividades
+  set destaque = coalesce(ligado, false)
+  where id = atividade;
+  if not found then
+    raise exception 'Atividade não encontrada.';
+  end if;
+end;
+$$;
+
+revoke all on function public.definir_destaque(text, boolean) from public, anon;
+grant execute on function public.definir_destaque(text, boolean) to authenticated;
+
+create or replace function public.editar_atividade(
+  atividade_id text,
+  atividade_titulo text,
+  atividade_resumo text,
+  atividade_explicacao text,
+  atividade_preco numeric,
+  atividade_uso text,
+  atividade_inclui text,
+  atividade_habilidades text,
+  atividade_destaque boolean,
+  atividade_area text,
+  atividade_tema text,
+  atividade_informacoes jsonb
+)
+returns public.atividades
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  novo public.atividades;
+begin
+  if not public.sou_admin() then
+    raise exception 'Sem permissão.';
+  end if;
+  if atividade_id is null or atividade_id !~ '^[a-z0-9-]{1,48}$' then
+    raise exception 'Diga qual é a atividade.';
+  end if;
+  if length(trim(atividade_titulo)) < 3 then
+    raise exception 'Diga qual é a atividade.';
+  end if;
+  if length(trim(atividade_resumo)) < 10 then
+    raise exception 'Escreva uma descrição breve.';
+  end if;
+  if length(trim(atividade_explicacao)) < 20 then
+    raise exception 'Explique o que a pessoa pode esperar.';
+  end if;
+  if atividade_preco is null or atividade_preco <= 0 then
+    raise exception 'O valor precisa ser maior que zero.';
+  end if;
+  if not exists (select 1 from public.atividades where id = atividade_id) then
+    raise exception 'Atividade não encontrada.';
+  end if;
+  if coalesce(atividade_destaque, false)
+     and (select count(*) from public.atividades where destaque and id <> atividade_id) >= 4 then
+    raise exception 'A vitrine mostra no máximo 4. Tire uma do destaque antes.';
+  end if;
+  update public.atividades
+  set
+    titulo = trim(atividade_titulo),
+    preco = atividade_preco,
+    resumo = trim(atividade_resumo),
+    explicacao = trim(atividade_explicacao),
+    uso = coalesce(nullif(trim(atividade_uso), ''), ''),
+    inclui = coalesce(atividade_inclui, ''),
+    habilidades = coalesce(atividade_habilidades, ''),
+    destaque = coalesce(atividade_destaque, false),
+    area = coalesce(trim(atividade_area), ''),
+    tema = coalesce(trim(atividade_tema), ''),
+    informacoes = coalesce(atividade_informacoes, '[]'::jsonb)
+  where id = atividade_id
+  returning * into novo;
+  return novo;
+end;
+$$;
+
+revoke all on function public.editar_atividade(text, text, text, text, numeric, text, text, text, boolean, text, text, jsonb) from public, anon;
+grant execute on function public.editar_atividade(text, text, text, text, numeric, text, text, text, boolean, text, text, jsonb) to authenticated;
 
 alter table public.pedidos drop constraint if exists pedidos_txid_key;
 create unique index if not exists pedidos_txid_atividade_unico on public.pedidos (txid, atividade_id);

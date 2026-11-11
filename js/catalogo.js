@@ -23,7 +23,7 @@ export function limparFiltro() {
 function temasDoItem(item) {
   if (Array.isArray(item.temas) && item.temas.length) return [...new Set(item.temas)];
   if (item.tema) return [item.tema];
-  if (item.id === "adicao" || item.id === "adicao-50") return ["Situações-Problema"];
+  if (item.id === "adicao" || item.id === "adicao-50" || item.id === "resolver-problemas") return ["Situações-Problema"];
   if (item.id === "silabas") return ["Separação e Classificação Silábica"];
   if (item.id === "celulas") return ["Células"];
   return [];
@@ -39,7 +39,7 @@ function paraCartao(item) {
     preco: Number(item.preco),
     download: item.arquivo || item.download,
     pagina: `atividade.html?id=${encodeURIComponent(item.id)}`,
-    area: item.area || (item.id === "adicao" || item.id === "adicao-50" ? "Matemática" : item.id === "silabas" ? "Português" : item.id === "celulas" ? "Ciências" : ""),
+    area: item.area || (item.id === "adicao" || item.id === "adicao-50" || item.id === "resolver-problemas" ? "Matemática" : item.id === "silabas" ? "Português" : item.id === "celulas" ? "Ciências" : ""),
     temas: temasDoItem(item),
     destaque: item.destaque !== false,
     explicacao: item.explicacao || "",
@@ -123,7 +123,7 @@ export function mostrarCatalogo() {
     const cabeTema = !temaEscolhido || (item.temas || []).includes(temaEscolhido);
     if (areaEscolhida || temaEscolhido) return cabeArea && cabeTema;
     return item.destaque !== false;
-  });
+  }).slice(0, normal || areaEscolhida || temaEscolhido ? undefined : 4);
   grade.replaceChildren();
   visiveis.forEach((atividade) => grade.append(cartao(atividade)));
   mostrarSugestoes(visiveis, termo);

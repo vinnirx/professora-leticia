@@ -118,10 +118,11 @@
             </label>
           </fieldset>
           <label>
-            PDF, se já estiver pronto
+            PDF, para colocar ou trocar
             <input name="pdf" type="file" accept="application/pdf" />
           </label>
           <button class="botao" type="submit">Ver prévia</button>
+          <button class="botao botao-secundario" id="cancelar-edicao" type="button" hidden>Cancelar edição</button>
           <p class="aviso-conta" id="nova-status" role="status"></p>
         </form>
         <div id="previa-atividade" hidden></div>
@@ -140,6 +141,7 @@
         </section>
         <section class="admin-bloco" aria-labelledby="titulo-atividades-admin">
           <h2 id="titulo-atividades-admin">Atividades no site</h2>
+          <p>A página inicial mostra no máximo 4 em Materiais em destaque. Marque aqui quais entram nessa vitrine.</p>
           <div class="lista-conta" id="lista-atividades"></div>
         </section>
         <div class="admin-grade">
@@ -155,8 +157,9 @@
       </div>
     </main>
 
+    <script src="js/loja.js?v=46"></script>
     <script src="js/vendor/supabase.js?v=1"></script>
     <script type="module" src="js/sessao.js?v=10"></script>
-    <script type="module" src="js/conta.js?v=12"></script>
+    <script type="module" src="js/conta.js?v=14"></script>
   </body>
 </html>
