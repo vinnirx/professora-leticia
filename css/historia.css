@@ -25,14 +25,16 @@
 
 .historia-painel {
   display: grid;
-  grid-template-columns: minmax(16rem, 20rem) minmax(0, 40rem);
+  grid-template-columns: minmax(min(100%, 16rem), 20rem) minmax(0, 40rem);
   justify-content: center;
   align-items: start;
-  gap: 2.4rem;
-  width: min(72rem, calc(100% - 4rem));
+  gap: clamp(1.2rem, 3vw, 2.4rem);
+  width: min(72rem, calc(100% - clamp(1.5rem, 5vw, 4rem)));
   margin: 0 auto;
   padding: 2.4rem 0 3.5rem;
 }
+
+.historia-painel > * { min-width: 0; }
 
 .historia-foto {
   width: 100%;
@@ -60,18 +62,27 @@
 
 .assinatura { font-weight: 800; color: #d87462; }
 
-@media (max-width: 680px) {
+@media (max-width: 800px) {
   .historia-painel {
     grid-template-columns: 1fr;
-    width: min(40rem, calc(100% - 2rem));
+    width: min(40rem, calc(100% - 1.5rem));
     padding-top: 3.4rem;
   }
 
   .historia-foto {
     position: static;
-    max-height: 22rem;
+    max-height: min(22rem, 70dvh);
     aspect-ratio: 4 / 5;
   }
 
   .historia-texto { padding-right: 2.6rem; }
+}
+
+@media (max-height: 520px) {
+  .historia-foto {
+    position: static;
+    max-height: min(16rem, 55dvh);
+  }
+
+  .historia .fechar { top: 0.45rem; right: 0.45rem; }
 }

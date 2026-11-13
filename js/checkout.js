@@ -1,7 +1,25 @@
-import { dinheiro, escapar } from "./texto.js";
+import { dinheiro, escapar, linkAjuda } from "./texto.js";
 import { itemOficial, limparCarrinho } from "./carrinho.js";
 
 let pixAtual = "";
+
+function marcarEstado(tipo, texto, ajuda) {
+  const caixa = document.querySelector("#pix-estado");
+  const selo = document.querySelector("#pix-situacao");
+  const link = document.querySelector("#pix-ajuda");
+  if (!caixa || !selo) return;
+  caixa.hidden = false;
+  selo.className = `situacao situacao-${tipo}`;
+  selo.textContent = texto;
+  if (!link) return;
+  if (!ajuda) {
+    link.hidden = true;
+    link.removeAttribute("href");
+    return;
+  }
+  link.hidden = false;
+  link.href = ajuda;
+}
 
 export async function abrirPix(atividade) {
   const lojaConta = window.contaPronta ? await window.contaPronta : null;
@@ -53,13 +71,15 @@ export async function abrirPix(atividade) {
   pixAtual = "";
   whatsapp.hidden = true;
   whatsapp.removeAttribute("href");
+  document.querySelector("#pix-estado").hidden = true;
   aviso.textContent = window.loja.pixChave
-    ? "O QR leva um código deste pedido. A Letícia vê esse código no banco dela. Esta página não recebe aviso do pagamento."
+    ? "O pagamento ainda não foi feito. Ao gerar o QR, o pedido fica pendente até a confirmação."
     : "A chave Pix ainda não foi cadastrada. Quando a Letícia passar a chave, o QR aparece aqui.";
 
   if (total == null) {
     pedido.hidden = true;
-    aviso.textContent = "Não foi possível gerar o Pix desta atividade. Atualize a página e tente de novo.";
+    marcarEstado("problema", "Problema no pagamento", linkAjuda({ motivo: "Não foi possível preparar o Pix desta atividade." }));
+    aviso.textContent = "Não foi possível gerar o Pix desta atividade. Fale com a Letícia e atualize a página.";
   }
 
   pedido.onsubmit = async (evento) => {
@@ -75,6 +95,11 @@ export async function abrirPix(atividade) {
         ? await lojaConta.registrarPedidos(ids, txid)
         : await lojaConta.registrarPedido(ids[0], txid);
       if (!gravado.ok) {
+        marcarEstado("problema", "Problema no pagamento", linkAjuda({
+          txid,
+          email,
+          motivo: "O pedido não ficou registrado.",
+        }));
         aviso.textContent = gravado.mensagem;
         return;
       }
@@ -93,7 +118,12 @@ export async function abrirPix(atividade) {
       pixAtual = "";
       caixa.replaceChildren();
       document.querySelector("#pix-cola").value = "";
-      aviso.textContent = "Não foi possível gerar o QR. Atualize a página e tente de novo.";
+      marcarEstado("problema", "Problema no pagamento", linkAjuda({
+        txid,
+        email,
+        motivo: "O pedido foi registrado, mas o QR do Pix não saiu.",
+      }));
+      aviso.textContent = "O pedido ficou pendente, mas o QR não saiu. Fale com a Letícia e informe o código.";
       return;
     }
     document.querySelector("#pix-codigo").textContent = txid;
@@ -104,8 +134,9 @@ export async function abrirPix(atividade) {
     pedido.hidden = true;
     resultado.hidden = false;
     limparCarrinho();
+    marcarEstado("espera", "Pagamento pendente", linkAjuda({ txid, email, motivo: "Gerei o Pix e preciso de ajuda." }));
     aviso.textContent = ligada
-      ? `Pague ${dinheiro(total)}. O PDF entra em Minha conta quando o pagamento for confirmado. Esta página não recebe aviso do banco.`
+      ? `Pague ${dinheiro(total)}. O PDF só entra em Minha conta quando este pagamento for confirmado. Esta página não recebe aviso do banco.`
       : `Pague ${dinheiro(total)}. A conta ainda não está ligada ao banco, então o download entra quando ela estiver.`;
     if (/^[0-9]{10,15}$/.test(window.loja.whatsapp || "")) {
       const nomes = cobranca.map((item) => item.titulo).join(", ");
@@ -122,7 +153,7 @@ export async function abrirPix(atividade) {
     const campo = document.querySelector("#pix-cola");
     try {
       await navigator.clipboard.writeText(pixAtual);
-      aviso.textContent = "Pix copiado. O PDF entra em Minha conta quando o pagamento for confirmado.";
+      aviso.textContent = "Pix copiado. O pagamento continua pendente até a confirmação.";
     } catch {
       campo.focus();
       campo.select();

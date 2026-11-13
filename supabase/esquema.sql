@@ -2,7 +2,8 @@
 -- Em Authentication > Providers > Email, desligue "Confirm email"
 -- para a mãe entrar na hora em que criar a conta.
 -- Em Authentication > Settings, deixe a senha mínima em 8 caracteres.
--- Administradores: estes e-mails viram admin no cadastro.
+-- A lista abaixo não concede mais cargo no cadastro.
+-- A hierarquia fica em supabase/migracao-permissoes.sql.
 -- A senha não fica neste arquivo. A Letícia cria a conta com o e-mail dela.
 -- Troque o e-mail do Vinícius no insert se não for este.
 
@@ -20,7 +21,7 @@ create table if not exists public.perfis (
   id uuid primary key references auth.users (id) on delete cascade,
   nome text not null,
   email text not null unique,
-  papel text not null default 'cliente' check (papel in ('cliente', 'admin'))
+  papel text not null default 'cliente' check (papel in ('cliente', 'admin', 'super_admin', 'owner'))
 );
 
 create table if not exists public.atividades (
@@ -75,7 +76,7 @@ set search_path = public
 as $$
   select exists (
     select 1 from public.perfis
-    where id = auth.uid() and papel = 'admin'
+    where id = auth.uid() and papel in ('admin', 'super_admin', 'owner')
   );
 $$;
 
@@ -91,13 +92,7 @@ begin
     new.id,
     coalesce(nullif(trim(new.raw_user_meta_data->>'nome'), ''), split_part(new.email, '@', 1)),
     new.email,
-    case
-      when exists (
-        select 1 from public.administradores
-        where lower(email) = lower(new.email)
-      ) then 'admin'
-      else 'cliente'
-    end
+    'cliente'
   );
   return new;
 end;

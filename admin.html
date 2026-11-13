@@ -4,14 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' blob:; connect-src 'self' https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321 https://fonts.googleapis.com https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321 https://fonts.googleapis.com https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'" />
     <script src="js/protecao.js?v=1"></script>
     <title>Painel — Inclusão no Cotidiano</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=35" />
-    <link rel="stylesheet" href="css/conta.css?v=3" />
+    <link rel="stylesheet" href="css/styles.css?v=84" />
+    <link rel="stylesheet" href="css/conta.css?v=8" />
+    <link rel="stylesheet" href="css/painel.css?v=7" />
   </head>
   <body data-pagina="admin">
     <header class="cabecalho">
@@ -30,136 +31,267 @@
       </nav>
     </header>
 
-    <main class="conta">
-      <div class="conta-topo">
-        <h1>Painel da loja</h1>
-        <button class="botao botao-secundario" id="sair" type="button" hidden>Sair</button>
-      </div>
+    <main class="painel">
       <p id="admin-bloqueio" hidden></p>
       <p class="aviso-conta" id="admin-status" role="status"></p>
-      <section class="admin-bloco" id="cadastro-atividade" aria-labelledby="titulo-nova">
-        <h2 id="titulo-nova">Nova atividade</h2>
-        <p class="aviso-conta aviso-ok" id="cadastro-aviso">Você pode preencher e ver como a atividade fica na loja. Nada é salvo agora. A atividade só entra no site quando o banco de dados estiver ligado.</p>
-        <form id="nova-atividade">
-          <label>
-            Imagem da capa
-            <input name="capa" type="file" accept="image/jpeg,image/png,image/webp" />
-          </label>
-          <img id="capa-mini" alt="" hidden />
-          <label>
-            Qual é a atividade
-            <input name="titulo" type="text" required />
-          </label>
-          <label>
-            Valor
-            <input name="preco" type="number" min="1" step="0.01" value="10" required />
-          </label>
-          <label class="marca-destaque">
-            <input name="destaque" type="checkbox" value="sim" checked />
-            Mostrar em Materiais em destaque
-          </label>
-          <label>
-            Área na loja
-            <select name="area" required></select>
-          </label>
-          <label>
-            Tema
-            <select name="tema" id="tema-atividade" required></select>
-          </label>
-          <label>
-            Descrição breve, usada na busca
-            <textarea name="resumo" rows="3" required></textarea>
-          </label>
-          <label>
-            Texto da página
-            <textarea name="explicacao" rows="8" required></textarea>
-          </label>
-          <label>
-            Habilidades, uma por linha
-            <textarea name="habilidades" rows="5"></textarea>
-          </label>
-          <label>
-            Linha embaixo do preço, e o que inclui, um item por linha
-            <textarea name="inclui" rows="3"></textarea>
-          </label>
-          <fieldset class="info-material">
-            <legend>Informações do material</legend>
-            <label>
-              Área do conhecimento
-              <input name="info_area" type="text" />
-            </label>
-            <label>
-              Categoria
-              <input name="info_categoria" type="text" />
-            </label>
-            <label>
-              Subcategoria
-              <input name="info_subcategoria" type="text" />
-            </label>
-            <label>
-              Operação, se houver
-              <input name="info_operacao" type="text" />
-            </label>
-            <label>
-              Campo numérico, se houver
-              <input name="info_campo" type="text" />
-            </label>
-            <label>
-              Quantidade
-              <input name="info_quantidade" type="text" required />
-            </label>
-            <label>
-              Recursos
-              <textarea name="info_recursos" rows="3"></textarea>
-            </label>
-            <label>
-              Formato
-              <input name="info_formato" type="text" value="PDF para impressão" required />
-            </label>
-          </fieldset>
-          <label>
-            PDF, para colocar ou trocar
-            <input name="pdf" type="file" accept="application/pdf" />
-          </label>
-          <button class="botao" type="submit">Ver prévia</button>
-          <button class="botao botao-secundario" id="cancelar-edicao" type="button" hidden>Cancelar edição</button>
-          <p class="aviso-conta" id="nova-status" role="status"></p>
-        </form>
-        <div id="previa-atividade" hidden></div>
-      </section>
-      <div id="admin-corpo" hidden>
-        <section class="admin-bloco" aria-labelledby="titulo-lucros">
-          <h2 id="titulo-lucros">Lucros</h2>
-          <p>Entra aqui o valor dos Pix que você já confirmou.</p>
-          <div class="filtros" role="group" aria-label="Período">
-            <button class="filtro" type="button" data-periodo="dia" aria-pressed="true">Dia</button>
-            <button class="filtro" type="button" data-periodo="mes" aria-pressed="false">Mês</button>
-            <button class="filtro" type="button" data-periodo="ano" aria-pressed="false">Ano</button>
+      <div id="painel-app" hidden>
+        <div class="painel-topo">
+          <div>
+            <p class="painel-olho">Inclusão no Cotidiano</p>
+            <h1>Painel da loja</h1>
           </div>
-          <p class="lucro-total" id="lucro-total"></p>
-          <div class="lista-conta" id="lista-lucros"></div>
-        </section>
-        <section class="admin-bloco" aria-labelledby="titulo-atividades-admin">
-          <h2 id="titulo-atividades-admin">Atividades no site</h2>
-          <p>A página inicial mostra no máximo 4 em Materiais em destaque. Marque aqui quais entram nessa vitrine.</p>
-          <div class="lista-conta" id="lista-atividades"></div>
-        </section>
-        <div class="admin-grade">
-          <section class="admin-bloco" aria-labelledby="titulo-contas">
-            <h2 id="titulo-contas">Contas</h2>
-            <div class="lista-conta" id="lista-contas"></div>
-          </section>
-          <section class="admin-bloco" aria-labelledby="titulo-pedidos">
-            <h2 id="titulo-pedidos">Pedidos</h2>
-            <div class="lista-conta" id="lista-admin"></div>
-          </section>
+          <button class="botao botao-secundario" id="sair" type="button" hidden>Sair</button>
         </div>
+        <div class="painel-moldura">
+          <nav class="menu-painel" aria-label="Áreas do painel">
+            <button type="button" data-secao="visao"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1Z"/></svg>Visão geral</button>
+            <button type="button" data-secao="atividades"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6Z"/><path d="M15 4v3h3M8 12h8M8 16h6"/></svg>Atividades</button>
+            <button type="button" data-secao="arquivos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v4h4M8 13h8M8 17h5"/></svg>Arquivos PDF</button>
+            <button type="button" data-secao="pedidos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>Pedidos</button>
+            <button type="button" data-secao="financeiro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18V6M4 18h16"/><path d="m7 14 3-4 3 2 4-6"/></svg>Financeiro</button>
+            <button type="button" data-secao="clientes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16.5 11a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M3.5 19c.4-2.4 2.3-4 4.5-4s4.1 1.6 4.5 4M14 15.2c1.4-.1 2.8.5 3.6 1.8"/></svg>Clientes</button>
+            <button type="button" data-secao="equipe"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 14 8l5 .4-3.8 3.2 1.2 4.9L12 14.2 7.6 16.5 8.8 11.6 5 8.4 10 8Z"/></svg>Equipe e permissões</button>
+            <button type="button" data-secao="configuracoes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18"/></svg>Configurações</button>
+          </nav>
+          <div class="painel-conteudo">
+            <section class="admin-bloco" data-painel="visao" aria-labelledby="titulo-visao">
+              <div class="secao-cabeca">
+                <div>
+                  <h2 id="titulo-visao">Visão geral</h2>
+                  <p class="texto-secao">Os valores vêm dos pedidos já confirmados. Cobrança criada ou Pix pendente não entra como venda.</p>
+                </div>
+              </div>
+              <div class="indicadores indicadores-principais" id="indicadores-visao"></div>
+              <div class="indicadores indicadores-apoio" id="indicadores-visao-apoio"></div>
+              <div class="atalhos-painel" id="atalhos-visao"></div>
+              <h3>Pedidos recentes</h3>
+              <div id="vendas-recentes"></div>
+              <h3>Atividades mais vendidas</h3>
+              <div id="mais-vendidas"></div>
+            </section>
+
+            <section class="admin-bloco" data-painel="atividades" hidden aria-labelledby="titulo-atividades-admin">
+              <div id="lista-trabalho">
+                <div class="secao-cabeca">
+                  <div>
+                    <h2 id="titulo-atividades-admin">Atividades</h2>
+                    <p class="texto-secao">A página inicial mostra no máximo 4 em Materiais em destaque. O preço e o texto mudam em Editar.</p>
+                  </div>
+                  <button class="botao" id="abrir-cadastro" type="button">Nova atividade</button>
+                </div>
+                <div class="barra-ferramentas">
+                  <label class="campo-busca">Buscar pelo nome <input id="busca-atividade" type="search" /></label>
+                  <label>Área <select id="filtro-area-lista"><option value="">Todas</option></select></label>
+                  <label>Categoria <select id="filtro-categoria-lista"><option value="">Todas</option></select></label>
+                  <label>Destaque <select id="filtro-destaque-lista"><option value="">Todos</option><option value="sim">Em destaque</option><option value="nao">Sem destaque</option></select></label>
+                </div>
+                <div class="tabela-rolagem" id="lista-atividades"></div>
+              </div>
+              <div id="cadastro-atividade" hidden>
+                <div class="secao-cabeca">
+                  <h2 id="titulo-nova">Nova atividade</h2>
+                  <button class="botao botao-secundario" id="voltar-lista" type="button">Voltar à lista</button>
+                </div>
+                <p class="aviso-conta aviso-ok" id="cadastro-aviso">Você pode preencher e ver como a atividade fica na loja. Nada é salvo agora.</p>
+                <form id="nova-atividade">
+                  <div class="passos" role="tablist" aria-label="Etapas do cadastro">
+                    <button type="button" data-passo="1" aria-current="true">1. Informações básicas</button>
+                    <button type="button" data-passo="2">2. Conteúdo</button>
+                    <button type="button" data-passo="3">3. Imagens e arquivos</button>
+                    <button type="button" data-passo="4">4. Publicação</button>
+                  </div>
+                  <fieldset class="etapa" data-etapa="1">
+                    <legend>Informações básicas</legend>
+                    <div class="grade-campos">
+                      <label class="campo-largo">Qual é a atividade <input name="titulo" type="text" autocomplete="off" /></label>
+                      <label>Área na loja <select name="area"></select></label>
+                      <label>Tema <select name="tema" id="tema-atividade"></select></label>
+                      <label>Valor <input name="preco" type="number" min="0.01" step="0.01" value="10" /></label>
+                      <label class="campo-largo">Descrição breve, usada na busca <textarea name="resumo" rows="3"></textarea></label>
+                    </div>
+                  </fieldset>
+                  <fieldset class="etapa" data-etapa="2" hidden>
+                    <legend>Conteúdo pedagógico</legend>
+                    <div class="grade-campos">
+                      <label class="campo-largo">Texto da página <textarea name="explicacao" rows="6"></textarea></label>
+                      <label class="campo-largo">Habilidades, uma por linha <textarea name="habilidades" rows="4"></textarea></label>
+                      <label>Área do conhecimento <input name="info_area" type="text" /></label>
+                      <label>Categoria <input name="info_categoria" type="text" /></label>
+                      <label>Subcategoria <input name="info_subcategoria" type="text" /></label>
+                      <label>Operação, se houver <input name="info_operacao" type="text" /></label>
+                      <label>Campo numérico, se houver <input name="info_campo" type="text" /></label>
+                      <label>Quantidade <input name="info_quantidade" type="text" /></label>
+                      <label class="campo-largo">Recursos <textarea name="info_recursos" rows="3"></textarea></label>
+                      <label>Formato <input name="info_formato" type="text" value="PDF para impressão" /></label>
+                      <label class="campo-largo">Linha embaixo do preço, e o que inclui, um item por linha <textarea name="inclui" rows="3"></textarea></label>
+                    </div>
+                  </fieldset>
+                  <fieldset class="etapa" data-etapa="3" hidden>
+                    <legend>Imagens e arquivos</legend>
+                    <p class="texto-secao" id="aviso-arquivos">Na atividade nova, a capa é obrigatória. O PDF pode entrar agora ou depois, em Arquivos PDF.</p>
+                    <div class="grade-arquivos">
+                      <div class="zona-arquivo">
+                        <label>Imagem da capa <input name="capa" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+                        <p id="nome-capa"></p>
+                        <img id="capa-mini" alt="" hidden />
+                      </div>
+                      <div class="zona-arquivo">
+                        <label>PDF, para colocar ou trocar <input name="pdf" type="file" accept="application/pdf" /></label>
+                        <p id="nome-pdf"></p>
+                      </div>
+                    </div>
+                  </fieldset>
+                  <fieldset class="etapa" data-etapa="4" hidden>
+                    <legend>Publicação</legend>
+                    <dl id="revisao-atividade"></dl>
+                    <label class="marca-destaque">
+                      <input name="destaque" type="checkbox" value="sim" checked />
+                      Mostrar em Materiais em destaque
+                    </label>
+                    <p>A atividade fica visível na loja quando é publicada. Ainda não existe um botão separado para esconder um material já salvo.</p>
+                  </fieldset>
+                  <div class="etapas-acoes">
+                    <button class="botao botao-secundario" id="etapa-voltar" type="button" hidden>Voltar</button>
+                    <button class="botao" id="etapa-seguir" type="button">Continuar</button>
+                    <button class="botao" type="submit">Publicar atividade</button>
+                    <button class="botao botao-secundario" id="cancelar-edicao" type="button" hidden>Cancelar</button>
+                  </div>
+                  <p class="aviso-conta" id="nova-status" role="status"></p>
+                </form>
+                <div id="previa-atividade" hidden></div>
+              </div>
+            </section>
+
+            <section class="admin-bloco" data-painel="arquivos" hidden aria-labelledby="titulo-arquivos">
+              <div class="secao-cabeca">
+                <div>
+                  <h2 id="titulo-arquivos">Arquivos PDF</h2>
+                  <p class="texto-secao">O arquivo fica no espaço privado. Trocar pede confirmação e passa a ser o PDF de quem já pagou.</p>
+                </div>
+              </div>
+              <p class="aviso-conta" id="arquivos-status" role="status"></p>
+              <div class="tabela-rolagem" id="lista-pdfs"></div>
+            </section>
+
+            <section class="admin-bloco" data-painel="pedidos" hidden aria-labelledby="titulo-pedidos">
+              <div class="secao-cabeca">
+                <div>
+                  <h2 id="titulo-pedidos">Pedidos</h2>
+                  <p class="texto-secao">Cada compra pode reunir mais de uma atividade no mesmo código. Confirmar o Pix libera o download de todas elas.</p>
+                </div>
+              </div>
+              <div class="barra-ferramentas">
+                <label>Buscar <input id="busca-pedido" type="search" placeholder="Nome, e-mail ou código" /></label>
+                <label>Situação <select id="pedidos-status"><option value="">Todas</option><option value="pago">Pago</option><option value="aguardando">Aguardando</option></select></label>
+                <label>De <input id="pedidos-inicio" type="date" /></label>
+                <label>Até <input id="pedidos-fim" type="date" /></label>
+              </div>
+              <p class="aviso-conta" id="pedidos-status-aviso" role="status"></p>
+              <div class="tabela-rolagem" id="lista-pedidos"></div>
+              <div id="pedido-aberto"></div>
+            </section>
+
+            <section class="admin-bloco" data-painel="financeiro" hidden aria-labelledby="titulo-financeiro">
+              <div class="secao-cabeca">
+                <div>
+                  <h2 id="titulo-financeiro">Financeiro</h2>
+                  <p class="texto-secao">Receita bruta é a soma dos pedidos pagos. Taxa e receita líquida só aparecem quando o Asaas gravar esses valores. Nada aqui é estimativa.</p>
+                </div>
+              </div>
+              <div class="barra-ferramentas">
+                <label class="campo-periodo">Agrupar
+                  <span class="filtros" role="group" aria-label="Agrupar a receita bruta">
+                    <button class="filtro" type="button" data-periodo="dia" aria-pressed="true">Dia</button>
+                    <button class="filtro" type="button" data-periodo="mes" aria-pressed="false">Mês</button>
+                    <button class="filtro" type="button" data-periodo="ano" aria-pressed="false">Ano</button>
+                  </span>
+                </label>
+                <label>De <input id="financeiro-inicio" type="date" /></label>
+                <label>Até <input id="financeiro-fim" type="date" /></label>
+                <button class="botao botao-secundario" id="exportar-csv" type="button">Exportar CSV</button>
+              </div>
+              <div class="indicadores indicadores-principais" id="indicadores-financeiro"></div>
+              <div class="indicadores indicadores-apoio" id="indicadores-financeiro-apoio"></div>
+              <h3>Receita bruta no período</h3>
+              <div id="grafico-bruto"></div>
+              <div id="lista-periodos"></div>
+              <h3>Vendas pagas</h3>
+              <div class="tabela-rolagem" id="tabela-financeiro"></div>
+              <p class="nota-financeira">O valor recebido no Asaas, o saldo disponível e a transferência para o Banco do Brasil são coisas diferentes. Este painel ainda não lê nenhum dos três. A receita bruta da loja não é o saldo da conta nem um repasse já feito.</p>
+            </section>
+
+            <section class="admin-bloco" data-painel="clientes" hidden aria-labelledby="titulo-clientes">
+              <div class="secao-cabeca">
+                <div>
+                  <h2 id="titulo-clientes">Clientes</h2>
+                  <p class="texto-secao">Aparecem o nome, o e-mail e as compras registradas. Senha e outros segredos não ficam neste painel.</p>
+                </div>
+              </div>
+              <div class="barra-ferramentas">
+                <label>Buscar <input id="busca-cliente" type="search" placeholder="Nome ou e-mail" /></label>
+              </div>
+              <div class="tabela-rolagem" id="lista-clientes"></div>
+              <div id="cliente-aberto"></div>
+            </section>
+
+            <section class="admin-bloco" data-painel="equipe" hidden aria-labelledby="titulo-equipe">
+              <div class="secao-cabeca">
+                <div>
+                  <h2 id="titulo-equipe">Equipe e permissões</h2>
+                  <p class="texto-secao">A Letícia é a proprietária permanente. Só a conta dela concede ou tira Super Admin. Um Super Admin cuida de administradores comuns e não altera a proprietária.</p>
+                </div>
+              </div>
+              <p class="aviso-conta" id="equipe-aviso" role="status"></p>
+              <div id="lista-equipe"></div>
+              <div id="reauth-super" hidden>
+                <h3>Confirmar Super Admin</h3>
+                <p id="reauth-texto"></p>
+                <label class="marca-destaque">
+                  <input id="reauth-confirma" type="checkbox" />
+                  Confirmo esta alteração de Super Admin
+                </label>
+                <label>
+                  Senha da proprietária
+                  <input id="reauth-senha" type="password" autocomplete="current-password" />
+                </label>
+                <div class="etapas-acoes">
+                  <button class="botao" id="reauth-confirmar" type="button">Confirmar com a senha</button>
+                  <button class="botao botao-secundario" id="reauth-cancelar" type="button">Cancelar</button>
+                </div>
+              </div>
+              <h3 id="titulo-auditoria" hidden>Histórico de permissões</h3>
+              <div id="lista-auditoria"></div>
+            </section>
+
+            <section class="admin-bloco" data-painel="configuracoes" hidden aria-labelledby="titulo-config">
+              <div class="secao-cabeca">
+                <div>
+                  <h2 id="titulo-config">Configurações</h2>
+                  <p class="texto-secao">Informações da loja para consulta. Os campos abaixo não são editáveis neste painel.</p>
+                </div>
+              </div>
+              <div id="lista-config" class="grupos-config"></div>
+            </section>
+          </div>
+        </div>
+        <dialog class="dialogo-admin" id="pdf-troca">
+          <h3 id="pdf-troca-titulo">Substituir PDF</h3>
+          <p id="pdf-troca-atividade"></p>
+          <p id="pdf-troca-atual"></p>
+          <label>Arquivo PDF <input id="pdf-troca-arquivo" type="file" accept="application/pdf" /></label>
+          <p id="pdf-troca-nome">Nenhum arquivo escolhido.</p>
+          <p class="aviso-conta" id="pdf-troca-aviso" hidden>Quem já pagou passa a baixar o arquivo novo.</p>
+          <div class="etapas-acoes">
+            <button class="botao botao-secundario" id="pdf-troca-cancelar" type="button">Cancelar</button>
+            <button class="botao botao-perigo" id="pdf-troca-confirmar" type="button" disabled>Substituir</button>
+          </div>
+        </dialog>
       </div>
     </main>
 
     <script src="js/loja.js?v=46"></script>
     <script src="js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="js/sessao.js?v=10"></script>
-    <script type="module" src="js/conta.js?v=14"></script>
+    <script type="module" src="js/sessao.js?v=14"></script>
+    <script type="module" src="js/conta.js?v=22"></script>
   </body>
 </html>

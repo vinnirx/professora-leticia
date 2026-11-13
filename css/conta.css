@@ -1,6 +1,6 @@
 .acesso,
 .conta {
-  width: min(1120px, calc(100% - 6vw));
+  width: min(1120px, calc(100% - clamp(1.5rem, 5vw, 3rem)));
   margin: 1.2rem auto 3rem;
 }
 
@@ -112,14 +112,16 @@
 
 .item-conta h3 { font-size: 1.15rem; }
 
-.item-conta .botao { width: fit-content; margin-top: 0.35rem; }
+.item-conta .botao { width: fit-content; max-width: 100%; margin-top: 0.35rem; }
 
 .admin-grade {
   display: grid;
-  grid-template-columns: minmax(16rem, 0.8fr) minmax(0, 1.2fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
   gap: 1rem;
   align-items: start;
 }
+
+.admin-grade > * { min-width: 0; }
 
 .admin-bloco { padding: 1rem 1.1rem 1.2rem; }
 
@@ -171,18 +173,22 @@
 
 .previa-loja {
   display: grid;
-  grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
   gap: 1rem;
   align-items: start;
   margin-top: 0.8rem;
 }
 
+.previa-loja > * { min-width: 0; }
+
 .previa-card .botao { display: block; margin-top: 0.45rem; }
 
 .previa-ficha h3 { margin: 1rem 0 0.4rem; color: var(--azul-vivo); }
 
-@media (max-width: 800px) {
-  .previa-loja { grid-template-columns: 1fr; }
+@media (max-width: 520px) {
+  .conta-topo .botao,
+  .item-conta .botao,
+  .acesso-cartao .botao { width: 100%; }
 }
 
 .lucro-total {
@@ -199,12 +205,299 @@
   align-items: center;
 }
 
+.item-conta .acoes .botao,
+.item-conta input[type="file"],
+.admin-bloco input[type="file"] {
+  max-width: 100%;
+}
+
 .item-conta .acoes a { font-weight: 800; color: var(--azul-vivo); }
 
 .conta a.so-admin { display: none; }
 
 .conta a.so-admin.visivel { display: inline; }
 
-@media (max-width: 800px) {
-  .admin-grade { grid-template-columns: 1fr; }
+.painel {
+  width: min(1180px, calc(100% - clamp(1rem, 4vw, 2.5rem)));
+  margin: 1rem auto 3rem;
 }
+
+.painel-topo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.painel h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+}
+
+.painel-topo p,
+.painel h3 { margin: 0.35rem 0 0; }
+
+.painel h3 { color: var(--azul-vivo); }
+
+.painel-moldura {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.painel-conteudo { min-width: 0; }
+
+.menu-painel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-content: start;
+}
+
+.menu-painel button {
+  border: 0;
+  background: #fff;
+  color: var(--tinta);
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--sombra);
+}
+
+.menu-painel button[aria-current="page"] {
+  background: var(--azul);
+  color: #fff;
+}
+
+.indicadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.5rem), 1fr));
+  gap: 0.7rem;
+  margin: 0.8rem 0 1rem;
+}
+
+.indicador {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  background: #fff;
+  border-radius: 1rem;
+  padding: 0.85rem 1rem;
+  box-shadow: var(--sombra);
+}
+
+.indicador strong {
+  color: var(--azul);
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+}
+
+.indicador span,
+.indicador small { color: var(--tinta); }
+
+.indicador small { font-size: 0.82rem; }
+
+.atalhos-painel,
+.etapas-acoes,
+.bloco-cabeca,
+.filtros-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: end;
+}
+
+.bloco-cabeca {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.filtros-linha { margin: 0.7rem 0 1rem; }
+
+.filtros-linha label {
+  display: grid;
+  gap: 0.25rem;
+  flex: 1 1 11rem;
+  min-width: min(100%, 11rem);
+  color: var(--azul);
+  font-weight: 800;
+}
+
+.filtros-linha input,
+.filtros-linha select {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+}
+
+.tabela-rolagem {
+  max-width: 100%;
+  container-type: inline-size;
+}
+
+.tabela-admin {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 1rem;
+  table-layout: fixed;
+}
+
+.tabela-admin th,
+.tabela-admin td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--linha);
+  text-align: left;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.tabela-admin th { color: var(--azul); font-size: 0.92rem; }
+
+.capa-admin {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 0.6rem;
+  background: #f3f7fb;
+  color: var(--tinta);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.capa-admin img { width: 100%; height: 100%; object-fit: cover; }
+
+.passos { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+.passos button {
+  border: 1.5px solid var(--linha);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--tinta);
+  padding: 0.4rem 0.75rem;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.passos button[aria-current="true"] {
+  border-color: var(--azul);
+  background: var(--azul);
+  color: #fff;
+}
+
+.painel .etapa {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0.9rem;
+  border: 1.5px solid var(--linha);
+  border-radius: 0.9rem;
+}
+
+.painel .etapa[hidden],
+.etapas-acoes .botao[hidden],
+.tabela-admin tr[hidden],
+#reauth-super[hidden] { display: none; }
+
+.item-equipe {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0 0 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--linha);
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.equipe-topo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.7rem;
+  align-items: center;
+}
+
+.selo-papel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: #eef3f7;
+  color: var(--azul);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.selo-owner { background: #fff1ec; color: var(--coral-escuro); }
+
+.selo-super_admin { background: #e7eef8; color: var(--azul-vivo); }
+
+.coroa { width: 1rem; height: 1rem; }
+
+.equipe-protegida { margin: 0; color: var(--tinta); font-size: 0.92rem; }
+
+#reauth-super {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.8rem;
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  background: #fff8ee;
+}
+
+#lista-equipe { margin-top: 0.8rem; }
+
+.painel dl { margin: 0.4rem 0 0; }
+
+.painel dt { color: var(--azul); font-weight: 800; }
+
+.painel dd { margin: 0.15rem 0 0.7rem; overflow-wrap: anywhere; }
+
+.nota-financeira {
+  margin-top: 1rem;
+  padding: 0.8rem 1rem;
+  border-radius: 0.9rem;
+  background: #fff8ee;
+}
+
+.barra-linha {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  align-items: center;
+  margin: 0.35rem 0;
+}
+
+.barra {
+  overflow: hidden;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: #e7eef4;
+}
+
+.barra span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--azul);
+}
+
+.acoes .botao,
+.acoes a,
+.atalhos-painel .botao { width: auto; }
+
+.acoes input[type="file"] { max-width: 100%; }
+
+
+@media (max-width: 760px) {
+  .barra-linha { grid-template-columns: 1fr; }
+}
+
+

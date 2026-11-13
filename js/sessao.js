@@ -1,10 +1,23 @@
+import { administra } from "./conta/papeis.js";
+
 const destinos = new Set(["minhas.html", "admin.html", "index.html", "index.html#atividades", "atividade.html"]);
+
+function migracaoAusente(erro) {
+  const texto = String(erro?.message || erro || "");
+  if (/could not find|schema cache|does not exist|não encontr/i.test(texto)) {
+    return "A hierarquia ainda não está no banco. Rode a migração de permissões no Supabase.";
+  }
+  return "";
+}
 
 function traduzir(erro) {
   const texto = String(erro?.message || erro || "");
   if (/invalid login/i.test(texto)) return "E-mail ou senha não conferem.";
   if (/already registered|already been registered/i.test(texto)) return "Já existe uma conta com este e-mail.";
   if (/email not confirmed/i.test(texto)) return "Confirme o e-mail antes de entrar. Veja a caixa de entrada.";
+  if (/different from the old/i.test(texto)) return "Escolha uma senha diferente da anterior.";
+  if (/rate limit|only request this|too many/i.test(texto)) return "Espere um pouco e peça o link de novo.";
+  if (/expired|invalid.*token|otp/i.test(texto)) return "Esse link expirou. Peça outro.";
   if (/password/i.test(texto)) return "A senha precisa de 8 caracteres ou mais.";
   if (/Entre na conta|Sem permissão|indisponível|inválido/i.test(texto) || /[áàâãéêíóôõúç]/i.test(texto)) return texto;
   return "Não foi possível agora. Tente de novo.";
@@ -44,6 +57,24 @@ function pintarMenu(sessao, admin) {
   });
 }
 
+function hashDaUrl() {
+  return new URLSearchParams(location.hash.replace(/^#/, ""));
+}
+
+function linkDeSenha() {
+  const hash = hashDaUrl();
+  return hash.get("type") === "recovery" || hash.get("error_code") === "otp_expired";
+}
+
+function levarParaNovaSenha() {
+  if (!linkDeSenha() || /entrar\.html$/.test(location.pathname)) return false;
+  const destino = new URL("entrar.html", location.href);
+  destino.search = "";
+  destino.hash = location.hash;
+  location.replace(destino.href);
+  return true;
+}
+
 async function iniciar() {
   const config = await carregarConfig();
   let cliente = null;
@@ -55,6 +86,7 @@ async function iniciar() {
         storage: window.sessionStorage,
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        lock: async (_nome, _espera, executa) => executa(),
       },
     });
   }
@@ -68,7 +100,11 @@ async function iniciar() {
   async function perfil() {
     const atual = await sessao();
     if (!atual) return null;
-    const { data } = await cliente.from("perfis").select("nome, email, papel").eq("id", atual.user.id).maybeSingle();
+    let { data, error } = await cliente.from("perfis").select("nome, email, papel, acesso_financeiro").eq("id", atual.user.id).maybeSingle();
+    if (error) {
+      const basico = await cliente.from("perfis").select("nome, email, papel").eq("id", atual.user.id).maybeSingle();
+      data = basico.data ? { ...basico.data, acesso_financeiro: basico.data.papel === "admin" } : null;
+    }
     return data;
   }
 
@@ -95,9 +131,43 @@ async function iniciar() {
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true };
     },
+    async pedirNovaSenha(email) {
+      const volta = new URL("entrar.html", location.href);
+      volta.search = "";
+      volta.hash = "";
+      const { error } = await cliente.auth.resetPasswordForEmail(email, { redirectTo: volta.href });
+      if (error && !/user not found/i.test(error.message || "")) {
+        return { ok: false, mensagem: traduzir(error) };
+      }
+      return { ok: true };
+    },
+    async definirNovaSenha(senha) {
+      const { error } = await cliente.auth.updateUser({ password: senha });
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      return { ok: true };
+    },
     async sair() {
-      if (cliente) await cliente.auth.signOut();
-      location.href = "index.html";
+      const apagar = () => {
+        const chaves = [];
+        for (let indice = 0; indice < sessionStorage.length; indice += 1) {
+          const chave = sessionStorage.key(indice);
+          if (chave && chave.startsWith("sb-")) chaves.push(chave);
+        }
+        chaves.forEach((chave) => sessionStorage.removeItem(chave));
+      };
+      apagar();
+      try {
+        if (cliente) {
+          await Promise.race([
+            cliente.auth.signOut({ scope: "local" }),
+            new Promise((resolve) => setTimeout(resolve, 1500)),
+          ]);
+        }
+      } catch {
+        // A sessão local já foi apagada. A página inicial abre mesmo assim.
+      }
+      apagar();
+      location.replace("index.html");
     },
     async registrarPedido(atividadeId, txid) {
       const { error } = await cliente.rpc("criar_pedido", { atividade: atividadeId, txid });
@@ -188,13 +258,40 @@ async function iniciar() {
       link.remove();
     },
     async painel() {
-      const [{ data: contas, error: erroContas }, { data: pedidos, error: erroPedidos }] = await Promise.all([
-        cliente.from("perfis").select("id, nome, email, papel").order("nome"),
-        cliente.from("pedidos").select("id, titulo, valor, txid, status, criado_em, perfis(nome, email)").order("criado_em", { ascending: false }),
-      ]);
-      if (erroContas) throw erroContas;
+      let contasConsulta = await cliente.from("perfis").select("id, nome, email, papel, acesso_financeiro").order("nome");
+      if (contasConsulta.error) {
+        contasConsulta = await cliente.from("perfis").select("id, nome, email, papel").order("nome");
+        if (!contasConsulta.error && contasConsulta.data) {
+          contasConsulta.data = contasConsulta.data.map((conta) => ({
+            ...conta,
+            acesso_financeiro: conta.papel === "admin",
+          }));
+        }
+      }
+      const { data: pedidos, error: erroPedidos } = await cliente
+        .from("pedidos")
+        .select("id, usuario_id, atividade_id, titulo, valor, txid, status, criado_em, perfis(nome, email)")
+        .order("criado_em", { ascending: false });
+      if (contasConsulta.error) throw contasConsulta.error;
       if (erroPedidos) throw erroPedidos;
-      return { contas: contas || [], pedidos: pedidos || [] };
+      return { contas: contasConsulta.data || [], pedidos: pedidos || [] };
+    },
+    async definirPapel(alvo, novoPapel) {
+      const { data, error } = await cliente.rpc("definir_papel", { alvo, novo_papel: novoPapel });
+      if (error) return { ok: false, mensagem: migracaoAusente(error) || traduzir(error) };
+      if (!data?.ok) return { ok: false, mensagem: data?.mensagem || "Sem permissão." };
+      return { ok: true };
+    },
+    async definirFinanceiro(alvo, ligado) {
+      const { data, error } = await cliente.rpc("definir_financeiro", { alvo, ligado });
+      if (error) return { ok: false, mensagem: migracaoAusente(error) || traduzir(error) };
+      if (!data?.ok) return { ok: false, mensagem: data?.mensagem || "Sem permissão." };
+      return { ok: true };
+    },
+    async historicoPermissoes() {
+      const { data, error } = await cliente.rpc("historico_permissoes");
+      if (error) return { ok: false, mensagem: migracaoAusente(error) || traduzir(error), linhas: [] };
+      return { ok: true, linhas: data || [] };
     },
     async confirmar(id) {
       const { error } = await cliente.rpc("confirmar_pix", { pedido: id });
@@ -222,6 +319,21 @@ async function iniciar() {
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true };
     },
+    async arquivoPdf(atividadeId) {
+      const { data, error } = await cliente.storage.from("atividades").list(atividadeId, { limit: 20 });
+      if (error) return { ok: false };
+      const pdf = (data || []).find((item) => /\.pdf$/i.test(item.name || ""));
+      if (!pdf) return { ok: true, pdf: null };
+      return { ok: true, pdf: { nome: pdf.name, atualizado: pdf.updated_at || pdf.created_at || "" } };
+    },
+    async arquivosPdf(ids) {
+      const saida = {};
+      await Promise.all(ids.map(async (id) => {
+        const resultado = await api.arquivoPdf(id);
+        saida[id] = resultado.ok ? { ok: true, pdf: resultado.pdf } : { ok: false };
+      }));
+      return saida;
+    },
     async enviarPdf(atividadeId, arquivo, nome) {
       const { error } = await cliente.storage.from("atividades").upload(`${atividadeId}/${nome}`, arquivo, {
         upsert: true,
@@ -232,16 +344,23 @@ async function iniciar() {
     },
   };
 
+  const pedidoPeloEmail = hashDaUrl().get("type") === "recovery";
+  const linkVencido = hashDaUrl().get("error_code") === "otp_expired";
   let atual = null;
   let admin = false;
   if (cliente) {
     atual = await sessao();
     const dados = atual ? await perfil() : null;
-    admin = dados?.papel === "admin";
+    admin = administra(dados?.papel);
   }
+  if (pedidoPeloEmail || linkVencido) {
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+  api.recuperando = Boolean(pedidoPeloEmail && atual);
+  api.linkVencido = Boolean(linkVencido || (pedidoPeloEmail && !atual));
   pintarMenu(atual, admin);
   window.contaLoja = api;
   return api;
 }
 
-window.contaPronta = iniciar();
+window.contaPronta = levarParaNovaSenha() ? new Promise(() => {}) : iniciar();

@@ -1,4 +1,21 @@
 import { aviso, moeda } from "./avisos.js";
+import { administra } from "./papeis.js";
+import { linkAjuda } from "../texto.js";
+
+function contato(pedido, motivo) {
+  const link = document.createElement("a");
+  link.className = "botao botao-secundario";
+  link.textContent = "Falar com a Letícia";
+  link.href = linkAjuda({ txid: pedido.txid, motivo });
+  return link;
+}
+
+function selo(tipo, texto) {
+  const marca = document.createElement("p");
+  marca.className = `situacao situacao-${tipo}`;
+  marca.textContent = texto;
+  return marca;
+}
 
 function cartaoPedido(pedido, loja) {
   const artigo = document.createElement("article");
@@ -12,25 +29,36 @@ function cartaoPedido(pedido, loja) {
   estado.className = "aviso-conta";
   estado.setAttribute("role", "status");
   if (pedido.status !== "pago") {
-    estado.textContent = "Pagamento aguardando confirmação. O PDF aparece aqui quando o Pix for confirmado.";
-    artigo.append(estado);
+    artigo.append(
+      selo("espera", "Pagamento pendente"),
+      estado,
+      contato(pedido, "Meu Pix ainda não foi confirmado."),
+    );
+    estado.textContent = "O pagamento ainda não entrou. O PDF fica bloqueado até a confirmação. Se o banco recusou ou apareceu outro nome, fale com a Letícia.";
     return artigo;
   }
+  artigo.append(selo("ok", "Pagamento confirmado"));
   const botao = document.createElement("button");
   botao.className = "botao";
   botao.type = "button";
   botao.textContent = "Baixar atividade";
+  estado.hidden = true;
   botao.addEventListener("click", async () => {
+    estado.hidden = false;
     botao.disabled = true;
     try {
       await loja.baixar(pedido.atividade_id);
       aviso(estado, "O download começou.", true);
     } catch {
-      aviso(estado, "O PDF ainda não está na área segura. Avisa a Letícia.");
+      artigo.querySelector(".situacao")?.replaceWith(selo("problema", "Problema para baixar"));
+      aviso(estado, "O PDF não saiu. Fale com a Letícia e informe o código do pedido.");
+      if (!artigo.querySelector("a[href^='mailto:']")) {
+        artigo.append(contato(pedido, "O pagamento está confirmado, mas o PDF não baixou."));
+      }
     }
     botao.disabled = false;
   });
-  artigo.append(botao, estado);
+  artigo.append(botao, estado, contato(pedido, "Preciso de ajuda com este pedido."));
   return artigo;
 }
 
@@ -39,7 +67,11 @@ export async function iniciarMinhas(loja) {
   const vazio = document.querySelector("#conta-vazia");
   const saudacao = document.querySelector("#saudacao");
   const sair = document.querySelector("#sair");
-  sair.addEventListener("click", () => loja.sair());
+  sair.addEventListener("click", () => {
+    sair.disabled = true;
+    sair.textContent = "Saindo…";
+    loja.sair();
+  });
 
   if (!loja.configurada) {
     vazio.hidden = false;
@@ -55,7 +87,7 @@ export async function iniciarMinhas(loja) {
   const dados = await loja.perfil();
   saudacao.textContent = dados?.nome ? `Olá, ${dados.nome}` : "Minha conta";
   sair.hidden = false;
-  if (dados?.papel === "admin") {
+  if (administra(dados?.papel)) {
     document.querySelectorAll(".so-admin").forEach((link) => link.classList.add("visivel"));
   }
   const pedidos = await loja.meusPedidos();

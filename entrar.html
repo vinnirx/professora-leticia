@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=35" />
-    <link rel="stylesheet" href="css/conta.css?v=2" />
+    <link rel="stylesheet" href="css/styles.css?v=84" />
+    <link rel="stylesheet" href="css/conta.css?v=4" />
   </head>
   <body data-pagina="entrar">
     <header class="cabecalho">
@@ -47,7 +47,41 @@
           <button class="botao" type="submit">Entrar</button>
           <p class="aviso-conta" role="status"></p>
         </form>
+        <button class="troca" id="mostrar-senha" type="button">Esqueci a senha</button>
         <button class="troca" id="mostrar-criar" type="button">Criar uma conta</button>
+      </section>
+
+      <section class="acesso-cartao" id="painel-senha" hidden aria-labelledby="titulo-senha">
+        <p class="faixa-hero">Sua conta</p>
+        <h1 id="titulo-senha">Esqueci a senha</h1>
+        <p>Escreva o e-mail da conta. O link para criar uma senha nova chega nesse e-mail.</p>
+        <form id="form-senha">
+          <label>
+            E-mail
+            <input name="email" type="email" autocomplete="email" required />
+          </label>
+          <button class="botao" type="submit">Enviar link</button>
+          <p class="aviso-conta" role="status"></p>
+        </form>
+        <button class="troca" id="senha-voltar" type="button">Voltar para entrar</button>
+      </section>
+
+      <section class="acesso-cartao" id="painel-nova" hidden aria-labelledby="titulo-nova">
+        <p class="faixa-hero">Sua conta</p>
+        <h1 id="titulo-nova">Nova senha</h1>
+        <p>Escolha uma senha com 8 caracteres ou mais. Ela passa a valer nesta conta.</p>
+        <form id="form-nova">
+          <label>
+            Nova senha
+            <input name="senha" type="password" autocomplete="new-password" minlength="8" required />
+          </label>
+          <label>
+            Repetir a senha
+            <input name="confirma" type="password" autocomplete="new-password" minlength="8" required />
+          </label>
+          <button class="botao" type="submit">Salvar senha</button>
+          <p class="aviso-conta" role="status"></p>
+        </form>
       </section>
 
       <section class="acesso-cartao" id="painel-criar" hidden aria-labelledby="titulo-criar">
@@ -75,7 +109,7 @@
     </main>
 
     <script src="js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="js/sessao.js?v=10"></script>
-    <script type="module" src="js/conta.js?v=9"></script>
+    <script type="module" src="js/sessao.js?v=14"></script>
+    <script type="module" src="js/conta.js?v=16"></script>
   </body>
 </html>

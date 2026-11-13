@@ -17,8 +17,8 @@
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=79" />
-    <link rel="stylesheet" href="css/historia.css?v=2" />
+    <link rel="stylesheet" href="css/styles.css?v=84" />
+    <link rel="stylesheet" href="css/historia.css?v=3" />
   </head>
   <body>
     <a class="skip" href="#atividades">Ir para as atividades</a>
@@ -46,12 +46,18 @@
     </header>
 
     <section class="hero" id="para-quem" aria-labelledby="titulo-entrada">
-      <h1 id="titulo-entrada" class="somente-leitura">Cada estudante aprende de um jeito. Inclusão é abrir possibilidades.</h1>
       <img
         class="hero-banner"
         src="img/hero-banner.png?v=5"
-        alt="Cada estudante aprende de um jeito. Inclusão é abrir possibilidades. Explore atividades, jogos e recursos pedagógicos pensados para valorizar as singularidades, promover a autonomia e tornar a aprendizagem mais acessível e significativa."
+        alt="Ilustração com flores, casa de quebra-cabeça e materiais pedagógicos."
       />
+      <div class="hero-mensagem">
+        <h1 id="titulo-entrada">
+          <span class="cor-azul">Cada estudante aprende de um jeito.</span>
+          <span class="cor-coral">Inclusão é abrir possibilidades.</span>
+        </h1>
+        <p>Explore atividades, jogos e recursos pedagógicos pensados para valorizar as singularidades, promover a autonomia e tornar a aprendizagem mais acessível e significativa.</p>
+      </div>
       <div class="hero-acoes">
         <a class="botao botao-hero" href="#atividades">Explorar Materiais</a>
         <a class="botao botao-secundario abre-historia" href="#historia">Sobre mim</a>
@@ -200,6 +206,10 @@
             <a class="botao botao-secundario" id="whatsapp" href="#" hidden>Enviar comprovante</a>
           </div>
         </div>
+        <div class="pedido-estado" id="pix-estado" hidden>
+          <p class="situacao" id="pix-situacao"></p>
+          <a class="botao botao-secundario" id="pix-ajuda" hidden>Falar com a Letícia</a>
+        </div>
         <p class="miudo" id="pix-aviso" role="status"></p>
       </div>
     </dialog>
@@ -208,7 +218,7 @@
     <script src="js/pix.js?v=21"></script>
     <script src="js/historia.js?v=2"></script>
     <script src="js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="js/sessao.js?v=10"></script>
-    <script type="module" src="js/inicio.js?v=6"></script>
+    <script type="module" src="js/sessao.js?v=14"></script>
+    <script type="module" src="js/inicio.js?v=7"></script>
   </body>
 </html>
