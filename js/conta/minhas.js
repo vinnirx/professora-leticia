@@ -8,13 +8,18 @@ function cartaoPedido(pedido, loja) {
   const meta = document.createElement("p");
   meta.textContent = `${moeda.format(Number(pedido.valor))} · pedido ${pedido.txid}`;
   artigo.append(titulo, meta);
+  const estado = document.createElement("p");
+  estado.className = "aviso-conta";
+  estado.setAttribute("role", "status");
+  if (pedido.status !== "pago") {
+    estado.textContent = "Pagamento aguardando confirmação. O PDF aparece aqui quando o Pix for confirmado.";
+    artigo.append(estado);
+    return artigo;
+  }
   const botao = document.createElement("button");
   botao.className = "botao";
   botao.type = "button";
   botao.textContent = "Baixar atividade";
-  const estado = document.createElement("p");
-  estado.className = "aviso-conta";
-  estado.setAttribute("role", "status");
   botao.addEventListener("click", async () => {
     botao.disabled = true;
     try {

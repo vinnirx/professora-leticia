@@ -105,7 +105,7 @@ export async function abrirPix(atividade) {
     resultado.hidden = false;
     limparCarrinho();
     aviso.textContent = ligada
-      ? `Pague ${dinheiro(total)}. O PDF já está liberado em Minha conta. Esta página não recebe aviso do banco.`
+      ? `Pague ${dinheiro(total)}. O PDF entra em Minha conta quando o pagamento for confirmado. Esta página não recebe aviso do banco.`
       : `Pague ${dinheiro(total)}. A conta ainda não está ligada ao banco, então o download entra quando ela estiver.`;
     if (/^[0-9]{10,15}$/.test(window.loja.whatsapp || "")) {
       const nomes = cobranca.map((item) => item.titulo).join(", ");
@@ -122,7 +122,7 @@ export async function abrirPix(atividade) {
     const campo = document.querySelector("#pix-cola");
     try {
       await navigator.clipboard.writeText(pixAtual);
-      aviso.textContent = "Pix copiado. O PDF já está liberado em Minha conta.";
+      aviso.textContent = "Pix copiado. O PDF entra em Minha conta quando o pagamento for confirmado.";
     } catch {
       campo.focus();
       campo.select();

@@ -196,7 +196,7 @@ on conflict (id) do nothing;
 
 drop policy if exists "quem pagou baixa" on storage.objects;
 drop policy if exists "quem comprou baixa" on storage.objects;
-create policy "quem comprou baixa"
+create policy "quem pagou baixa"
 on storage.objects for select
 to authenticated
 using (
@@ -207,6 +207,7 @@ using (
       select 1 from public.pedidos
       where usuario_id = auth.uid()
         and atividade_id = split_part(storage.objects.name, '/', 1)
+        and status = 'pago'
     )
   )
 );
