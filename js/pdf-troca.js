@@ -2,6 +2,8 @@ import { caminhoPdf } from "./arquivo-seguro.js";
 
 export const LIMITE_PDF = 20 * 1024 * 1024;
 
+export const PDF_INDISPONIVEL = "Substituição de PDF temporariamente indisponível";
+
 export function formatarTamanho(bytes) {
   const valor = Number(bytes) || 0;
   if (valor >= 1024 * 1024) {
@@ -40,6 +42,24 @@ export function nomeAnterior(arquivoAtual, instante) {
   if (!/^[A-Za-z0-9._-]{1,180}$/.test(nome)) return "";
   if (nome === arquivoAtual) return "";
   return nome;
+}
+
+export function pdfAnteriorDisponivel(nomes, atual) {
+  const lista = (Array.isArray(nomes) ? nomes : [])
+    .map((nome) => String(nome || ""))
+    .filter((nome) => /\.pdf$/i.test(nome));
+  const copia = lista
+    .filter((nome) => /-anterior-\d+\.pdf$/i.test(nome))
+    .sort((a, b) => a.localeCompare(b))
+    .at(-1);
+  if (copia) return copia;
+  const vigente = String(atual || "");
+  if (!/^versao-\d+\.pdf$/i.test(vigente)) return "";
+  return lista.find((nome) => (
+    nome !== vigente
+    && !/^versao-\d+\.pdf$/i.test(nome)
+    && !/-anterior-\d+\.pdf$/i.test(nome)
+  )) || "";
 }
 
 export function nomeVersao(instante) {

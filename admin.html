@@ -139,7 +139,7 @@
                   </fieldset>
                   <fieldset class="etapa" data-etapa="3" hidden>
                     <legend>Imagens e arquivos</legend>
-                    <p class="texto-secao" id="aviso-arquivos">Na atividade nova, a capa é obrigatória. O envio do PDF está pendente de validação e não substitui nenhum arquivo.</p>
+                    <p class="texto-secao" id="aviso-arquivos">Na atividade nova, a capa é obrigatória. Substituição de PDF temporariamente indisponível.</p>
                     <div class="grade-arquivos">
                       <div class="zona-arquivo">
                         <label>Imagem da capa <input name="capa" type="file" accept="image/jpeg,image/png,image/webp" /></label>
@@ -222,7 +222,7 @@
                       </div>
                       <div class="zona-arquivo">
                         <p id="pdf-edicao-atual"></p>
-                        <p class="texto-secao">A troca do PDF está pendente de validação. O arquivo atual permanece.</p>
+                        <p class="texto-secao">Substituição de PDF temporariamente indisponível.</p>
                         <label>Substituir o PDF <input name="pdf" type="file" accept="application/pdf" disabled /></label>
                         <p id="pdf-edicao-nova"></p>
                       </div>
@@ -244,7 +244,7 @@
               <div class="secao-cabeca">
                 <div>
                   <h2 id="titulo-arquivos">Arquivos PDF</h2>
-                  <p class="texto-secao">O arquivo fica no espaço privado. A substituição está pendente de validação: o PDF atual permanece e o download continua igual.</p>
+                  <p class="texto-secao">O arquivo fica no espaço privado. Substituição de PDF temporariamente indisponível. O nome continua visível e o download segue igual.</p>
                 </div>
               </div>
               <p class="aviso-conta" id="arquivos-status" role="status"></p>
@@ -367,10 +367,10 @@
           <p id="pdf-troca-atual"></p>
           <label>Arquivo PDF <input id="pdf-troca-arquivo" type="file" accept="application/pdf" /></label>
           <p id="pdf-troca-nome">Nenhum arquivo escolhido.</p>
-          <p class="aviso-conta" id="pdf-troca-aviso">A substituição do PDF está pendente de validação. O arquivo atual foi mantido e o download continua igual.</p>
+          <p class="aviso-conta" id="pdf-troca-aviso">Substituição de PDF temporariamente indisponível.</p>
           <div class="etapas-acoes">
             <button class="botao botao-secundario" id="pdf-troca-cancelar" type="button">Cancelar</button>
-            <button class="botao" id="pdf-troca-confirmar" type="button" disabled>Substituição pendente</button>
+            <button class="botao" id="pdf-troca-confirmar" type="button" disabled>Substituição de PDF temporariamente indisponível</button>
           </div>
         </dialog>
       </div>
@@ -378,7 +378,7 @@
 
     <script src="js/loja.js?v=48"></script>
     <script src="js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="js/sessao.js?v=23"></script>
-    <script type="module" src="js/conta.js?v=32"></script>
+    <script type="module" src="js/sessao.js?v=24"></script>
+    <script type="module" src="js/conta.js?v=33"></script>
   </body>
 </html>

@@ -1,7 +1,7 @@
 import { caminhoPdf } from "./arquivo-seguro.js";
 import { nomeCapa, urlComVersao, validarCapa } from "./capa-loja.js";
 import { administra } from "./conta/papeis.js";
-import { executarRestauracao, executarSubstituicao } from "./pdf-troca.js";
+import { PDF_INDISPONIVEL, pdfAnteriorDisponivel } from "./pdf-troca.js";
 
 const destinos = new Set(["minhas.html", "admin.html", "index.html", "index.html#atividades", "atividade.html"]);
 
@@ -455,9 +455,8 @@ async function iniciar() {
       const { data, error } = await cliente.storage.from("atividades").list(atividadeId, { limit: 100 });
       if (error) return { ok: false };
       const pdfs = (data || []).filter((item) => /\.pdf$/i.test(item.name || ""));
-      const anterior = pdfs
-        .filter((item) => /-anterior-\d+\.pdf$/i.test(item.name || ""))
-        .sort((a, b) => String(b.name).localeCompare(String(a.name)))[0];
+      const nomeAnteriorArquivo = pdfAnteriorDisponivel(pdfs.map((item) => item.name), nomePreferido);
+      const anterior = pdfs.find((item) => item.name === nomeAnteriorArquivo);
       const preferido = pdfs.find((item) => item.name === nomePreferido);
       const pdf = preferido || pdfs.find((item) => !/-anterior-\d+\.pdf$/i.test(item.name || "") && !/^versao-\d+\.pdf$/i.test(item.name || ""));
       return {
@@ -501,64 +500,14 @@ async function iniciar() {
       };
     },
     async substituirPdf(atividadeId, arquivo, arquivoAtual) {
-      if (api.trocasPdf.has(atividadeId)) {
-        return { ok: false, mensagem: "A substituição deste PDF já está em andamento." };
-      }
-      const podeApontar = await api.referenciaPdfDisponivel();
-      if (!podeApontar) {
-        return {
-          ok: false,
-          mensagem: "A substituição do PDF está pendente de validação. O arquivo atual foi mantido.",
-          arquivo: arquivoAtual || "",
-        };
-      }
-      api.trocasPdf.add(atividadeId);
-      try {
-        const bytes = new Uint8Array(await arquivo.arrayBuffer());
-        return await executarSubstituicao({
-          storage: api.armazenamentoPdf(),
-          atividadeId,
-          arquivoAtual,
-          nome: arquivo.name,
-          tipo: arquivo.type,
-          tamanho: arquivo.size,
-          bytes,
-          instante: Date.now(),
-          existeAtual: false,
-          definirArquivo: async (nomeNovo) => {
-            const { error } = await cliente.rpc("definir_arquivo", { atividade: atividadeId, nome: nomeNovo });
-            if (error) return { ok: false, mensagem: traduzir(error) };
-            return { ok: true };
-          },
-        });
-      } finally {
-        api.trocasPdf.delete(atividadeId);
-      }
+      return {
+        ok: false,
+        mensagem: PDF_INDISPONIVEL,
+        arquivo: arquivoAtual || "",
+      };
     },
-    async restaurarPdf(atividadeId, arquivoAtual, nomeAnteriorArquivo) {
-      if (api.trocasPdf.has(atividadeId)) {
-        return { ok: false, mensagem: "A substituição deste PDF já está em andamento." };
-      }
-      const podeApontar = await api.referenciaPdfDisponivel();
-      if (!podeApontar) {
-        return { ok: false, mensagem: "A substituição do PDF está pendente de validação. O arquivo atual foi mantido." };
-      }
-      api.trocasPdf.add(atividadeId);
-      try {
-        return await executarRestauracao({
-          storage: api.armazenamentoPdf(),
-          atividadeId,
-          arquivoAtual,
-          nomeAnteriorArquivo,
-          definirArquivo: async (nomeNovo) => {
-            const { error } = await cliente.rpc("definir_arquivo", { atividade: atividadeId, nome: nomeNovo });
-            if (error) return { ok: false, mensagem: traduzir(error) };
-            return { ok: true };
-          },
-        });
-      } finally {
-        api.trocasPdf.delete(atividadeId);
-      }
+    async restaurarPdf() {
+      return { ok: false, mensagem: PDF_INDISPONIVEL };
     },
   };
   api.trocasPdf = new Set();

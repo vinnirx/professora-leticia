@@ -211,6 +211,20 @@ await como("postgres", "");
 assert.equal((await um(`select titulo from public.atividades where id = 'material-ficticio'`)).titulo, "Título com área nula");
 assert.deepEqual(await foto(), reaisAntes);
 
+await sql(arquivo("migracao-arquivo.sql"));
+await como("authenticated", adminId);
+assert.match(await falha(`select public.definir_arquivo('material-ficticio', 'versao-10.pdf')`), /ainda não está guardado/);
+assert.equal((await um(`select arquivo from public.atividades where id = 'material-ficticio'`)).arquivo, "material-ficticio.pdf");
+await sql("reset role");
+await sql(`insert into storage.objects (bucket_id, name) values ('atividades', 'material-ficticio/versao-10.pdf')`);
+await como("authenticated", adminId);
+await sql(`select public.definir_arquivo('material-ficticio', 'versao-10.pdf')`);
+const apontado = await um(`select titulo, arquivo from public.atividades where id = 'material-ficticio'`);
+assert.equal(apontado.arquivo, "versao-10.pdf");
+assert.equal(apontado.titulo, "Título com área nula");
+await sql("reset role");
+assert.deepEqual(await foto(), reaisAntes);
+
 const antesDaReversao = await foto();
 await sql(arquivo("reverter-edicao-parcial.sql"));
 assert.equal(Number((await um(`
