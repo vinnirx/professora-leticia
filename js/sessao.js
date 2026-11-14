@@ -133,7 +133,10 @@ async function iniciar() {
       return { ok: true };
     },
     async pedirNovaSenha(email) {
-      const volta = new URL("entrar.html", location.href);
+      const publicado = location.hostname === "vinnirx.github.io";
+      const volta = publicado
+        ? new URL("https://vinnirx.github.io/professora-leticia/entrar.html")
+        : new URL("entrar.html", location.href);
       volta.search = "";
       volta.hash = "";
       const { error } = await cliente.auth.resetPasswordForEmail(email, { redirectTo: volta.href });
@@ -250,8 +253,10 @@ async function iniciar() {
       const caminho = caminhoPdf(atividadeId, arquivo);
       if (!caminho) throw new Error("arquivo");
       const atual = await sessao();
-      if (atual && config) {
-        const resposta = await fetch(`${config.url}/functions/v1/link-download`, {
+      if (!atual?.access_token || !config) throw new Error("entrar");
+      let resposta = null;
+      try {
+        resposta = await fetch(`${config.url}/functions/v1/link-download`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${atual.access_token}`,
@@ -260,28 +265,18 @@ async function iniciar() {
           },
           body: JSON.stringify({ atividade: atividadeId }),
         });
-        if (resposta.status === 401 || resposta.status === 403) throw new Error("arquivo");
-        if (resposta.ok) {
-          const corpo = await resposta.json().catch(() => ({}));
-          if (corpo.url) {
-            const link = document.createElement("a");
-            link.href = corpo.url;
-            link.target = "_blank";
-            link.rel = "noopener";
-            document.body.append(link);
-            link.click();
-            link.remove();
-            return;
-          }
-        }
+      } catch {
+        resposta = null;
       }
-      const permissao = await cliente.rpc("pode_baixar", { atividade: atividadeId });
-      const funcaoAusente = permissao.error && /could not find|schema cache|does not exist/i.test(permissao.error.message || "");
-      if (!funcaoAusente && permissao.data !== true) throw new Error("arquivo");
-      const { data, error } = await cliente.storage.from("atividades").createSignedUrl(caminho, 120);
-      if (error || !data?.signedUrl) throw error || new Error("arquivo");
+      if (!resposta) throw new Error("tentar");
+      if (resposta.status === 401) throw new Error("entrar");
+      if (resposta.status === 403) throw new Error("negado");
+      if (resposta.status >= 500) throw new Error("tentar");
+      if (!resposta.ok) throw new Error("arquivo");
+      const corpo = await resposta.json().catch(() => ({}));
+      if (!corpo.url) throw new Error("arquivo");
       const link = document.createElement("a");
-      link.href = data.signedUrl;
+      link.href = corpo.url;
       link.target = "_blank";
       link.rel = "noopener";
       document.body.append(link);

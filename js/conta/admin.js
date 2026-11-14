@@ -638,8 +638,15 @@ export async function iniciarAdmin(loja) {
             acoes.append(botaoAcao("Baixar", async () => {
               try {
                 await loja.baixar(atividade.id);
-              } catch {
-                aviso(document.querySelector("#arquivos-status"), "Esse PDF ainda não está no espaço privado.");
+              } catch (erro) {
+                const mensagem = erro?.message === "entrar"
+                  ? "Entre de novo para baixar este material."
+                  : erro?.message === "negado"
+                    ? "Este material ainda não está liberado."
+                    : erro?.message === "tentar"
+                      ? "O download não respondeu. Tente de novo."
+                      : "Esse PDF ainda não está no espaço privado.";
+                aviso(document.querySelector("#arquivos-status"), mensagem);
               }
             }));
           }

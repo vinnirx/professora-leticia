@@ -1,3 +1,5 @@
+begin;
+
 -- Cole este arquivo inteiro no SQL Editor do Supabase e rode uma vez, só quando autorizar.
 -- Não rode o esquema.sql de novo. Não rode esta migração pelo site.
 -- Ela não apaga pedido, usuário, PDF nem venda paga.
@@ -748,3 +750,5 @@ using (
 update public.pedidos
 set legado = true
 where status = 'pago' and confirmacao is null and legado = false;
+
+commit;

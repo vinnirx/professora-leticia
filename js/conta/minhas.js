@@ -59,9 +59,16 @@ function cartaoPedido(pedido, loja) {
     try {
       await loja.baixar(pedido.atividade_id);
       aviso(estado, "O download começou.", true);
-    } catch {
+    } catch (erro) {
       artigo.querySelector(".situacao")?.replaceWith(selo("problema", "Problema para baixar"));
-      aviso(estado, "O PDF não saiu. Fale com a Letícia e informe o código do pedido.");
+      const mensagem = erro?.message === "entrar"
+        ? "Entre de novo para baixar este material."
+        : erro?.message === "negado"
+          ? "Este material ainda não está liberado."
+          : erro?.message === "tentar"
+            ? "O download não respondeu. Tente de novo."
+            : "O PDF não saiu. Fale com a Letícia e informe o código do pedido.";
+      aviso(estado, mensagem);
       if (!artigo.querySelector("a[href^='mailto:']")) {
         artigo.append(contato(pedido, "O pagamento está confirmado, mas o PDF não baixou."));
       }
