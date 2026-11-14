@@ -6,6 +6,7 @@ const loja = {
   // Cidade que aparece no QR. Troque quando a Letícia disser a cidade.
   pixCidade: "BRASIL",
   whatsapp: "",
+  cobrancaAutomatica: false,
   atividades: [
     {
       id: "adicao",
@@ -123,8 +124,8 @@ const loja = {
       preco: 4.9,
       download: "infografico-como-resolver-situacoes-problema.pdf",
       pagina: "atividade.html?id=resolver-problemas",
-      capa: "img/capa-resolver-problemas.jpg?v=2",
-      capaAlt: "Capa do infográfico Como resolver situações-problema, com o logo Inclusão no Cotidiano e as quatro etapas: ler, planejar, resolver e revisar.",
+      capa: "img/capa-resolver-problemas.jpg?v=3",
+      capaAlt: "Infográfico Situações-problema, com as etapas ler, planejar, resolver e revisar, o exemplo das maçãs e as palavras-chave das quatro operações.",
     },
     {
       id: "silabas",

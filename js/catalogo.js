@@ -57,7 +57,6 @@ function cartao(atividade) {
       <img src="${escapar(atividade.capa)}" alt="${escapar(atividade.capaAlt)}" />
     </div>
     <div class="oferta">
-      ${atividade.uso ? `<p class="chapeu">${escapar(atividade.uso)}</p>` : ""}
       <h3><a href="${atividade.pagina}">${escapar(atividade.titulo)}</a></h3>
       <p class="preco">${dinheiro(atividade.preco)}</p>
       <a class="botao comprar" href="${atividade.pagina}">Ver Atividade</a>

@@ -1,7 +1,35 @@
+import { documentoValido } from "./documento.js";
 import { dinheiro, escapar, linkAjuda } from "./texto.js";
 import { itemOficial, limparCarrinho } from "./carrinho.js";
 
 let pixAtual = "";
+let pixManual = true;
+
+function observarPedido(dialogo, txid, lojaConta) {
+  let restantes = 40;
+  const timer = setInterval(async () => {
+    restantes -= 1;
+    if (restantes <= 0 || !dialogo.open) {
+      clearInterval(timer);
+      return;
+    }
+    const situacao = await lojaConta.situacaoPedido(txid);
+    const finais = {
+      pago: ["ok", "Pagamento confirmado", "Pagamento confirmado. A liberação do PDF continua dependendo do servidor."],
+      analise: ["problema", "Pagamento em análise", "O aviso não conferiu com o pedido. O PDF continua bloqueado."],
+      expirada: ["problema", "Cobrança expirada", "Esta cobrança expirou. O PDF continua bloqueado."],
+      estornada: ["problema", "Pagamento estornado", "Este pagamento foi estornado. O PDF continua bloqueado."],
+      cancelada: ["problema", "Cobrança cancelada", "Esta cobrança foi cancelada. O PDF continua bloqueado."],
+    };
+    const final = finais[situacao];
+    if (!final) return;
+    clearInterval(timer);
+    marcarEstado(final[0], final[1]);
+    const caixa = document.querySelector("#pix-aviso");
+    if (caixa) caixa.textContent = final[2];
+  }, 8000);
+  dialogo.addEventListener("close", () => clearInterval(timer), { once: true });
+}
 
 function marcarEstado(tipo, texto, ajuda) {
   const caixa = document.querySelector("#pix-estado");
@@ -67,6 +95,8 @@ export async function abrirPix(atividade) {
     emailInput.readOnly = true;
   }
   pedido.hidden = !window.loja.pixChave;
+  const campoDocumento = document.querySelector("#campo-documento");
+  if (campoDocumento) campoDocumento.hidden = window.loja.cobrancaAutomatica !== true;
   resultado.hidden = true;
   pixAtual = "";
   whatsapp.hidden = true;
@@ -84,10 +114,62 @@ export async function abrirPix(atividade) {
 
   pedido.onsubmit = async (evento) => {
     evento.preventDefault();
-    if (!window.loja.pixChave || total == null) return;
+    if (total == null || pedido.dataset.enviando === "1") return;
+    pedido.dataset.enviando = "1";
+    try {
     const dados = new FormData(pedido);
     const nome = String(dados.get("nome") || "").trim();
     const email = String(dados.get("email") || "").trim();
+    if (window.loja.cobrancaAutomatica) {
+      if (!ligada || !sessao) {
+        marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: "Preciso entrar na conta para gerar a cobrança." }));
+        aviso.textContent = "Entre na conta para gerar a cobrança.";
+        return;
+      }
+      const documento = String(dados.get("documento") || "");
+      if (!documentoValido(documento)) {
+        marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: "O CPF ou CNPJ não foi aceito." }));
+        aviso.textContent = "Informe um CPF ou CNPJ válido para gerar o Pix.";
+        return;
+      }
+      if (!pedido.dataset.chaveCobranca) pedido.dataset.chaveCobranca = crypto.randomUUID();
+      const automatica = await lojaConta.criarCobranca(
+        cobranca.map((item) => item.id),
+        pedido.dataset.chaveCobranca,
+        documento,
+      );
+      if (!automatica.ok || !automatica.copiaCola) {
+        marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: automatica.mensagem || "A cobrança automática não saiu." }));
+        aviso.textContent = automatica.mensagem || "A cobrança automática não está disponível.";
+        return;
+      }
+      pixManual = false;
+      pixAtual = automatica.copiaCola;
+      const caixaAutomatica = document.querySelector("#pix-imagem");
+      caixaAutomatica.replaceChildren();
+      if (automatica.imagem) {
+        const imagem = document.createElement("img");
+        imagem.alt = "QR Code Pix da cobrança";
+        imagem.src = String(automatica.imagem).startsWith("data:")
+          ? automatica.imagem
+          : `data:image/png;base64,${automatica.imagem}`;
+        caixaAutomatica.append(imagem);
+      }
+      document.querySelector("#pix-codigo").textContent = automatica.txid;
+      document.querySelector("#pix-pessoa").textContent = `${nome} · ${email}`;
+      document.querySelector("#pix-cola").value = pixAtual;
+      document.querySelector("#pix-resumo").hidden = true;
+      document.querySelector("#pix-inclui").hidden = true;
+      pedido.hidden = true;
+      resultado.hidden = false;
+      limparCarrinho();
+      marcarEstado("espera", "Pagamento pendente", linkAjuda({ txid: automatica.txid, email, motivo: "Gerei o Pix e preciso de ajuda." }));
+      aviso.textContent = `Pague ${dinheiro(automatica.valor)}. O PDF só entra em Minha conta depois que o Asaas confirmar o recebimento.`;
+      observarPedido(dialogo, automatica.txid, lojaConta);
+      return;
+    }
+    if (!window.loja.pixChave) return;
+    pixManual = true;
     const txid = window.identificadorPix();
     if (ligada) {
       const ids = cobranca.map((item) => item.id);
@@ -136,8 +218,9 @@ export async function abrirPix(atividade) {
     limparCarrinho();
     marcarEstado("espera", "Pagamento pendente", linkAjuda({ txid, email, motivo: "Gerei o Pix e preciso de ajuda." }));
     aviso.textContent = ligada
-      ? `Pague ${dinheiro(total)}. O PDF só entra em Minha conta quando este pagamento for confirmado. Esta página não recebe aviso do banco.`
+      ? `Pague ${dinheiro(total)}. O PDF só entra em Minha conta quando este pagamento for confirmado.`
       : `Pague ${dinheiro(total)}. A conta ainda não está ligada ao banco, então o download entra quando ela estiver.`;
+    if (ligada) observarPedido(dialogo, txid, lojaConta);
     if (/^[0-9]{10,15}$/.test(window.loja.whatsapp || "")) {
       const nomes = cobranca.map((item) => item.titulo).join(", ");
       const texto = encodeURIComponent(
@@ -146,10 +229,13 @@ export async function abrirPix(atividade) {
       whatsapp.hidden = false;
       whatsapp.href = `https://wa.me/${window.loja.whatsapp}?text=${texto}`;
     }
+    } finally {
+      if (!pedido.hidden) delete pedido.dataset.enviando;
+    }
   };
 
   copiar.onclick = async () => {
-    if (!pixAtual || !window.payloadPixValido(pixAtual, total)) return;
+    if (!pixAtual || (pixManual && !window.payloadPixValido(pixAtual, total))) return;
     const campo = document.querySelector("#pix-cola");
     try {
       await navigator.clipboard.writeText(pixAtual);

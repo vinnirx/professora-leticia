@@ -1,3 +1,4 @@
+import { caminhoPdf } from "./arquivo-seguro.js";
 import { administra } from "./conta/papeis.js";
 
 const destinos = new Set(["minhas.html", "admin.html", "index.html", "index.html#atividades", "atividade.html"]);
@@ -246,8 +247,38 @@ async function iniciar() {
     },
     async baixar(atividadeId) {
       const arquivo = await api.arquivoDa(atividadeId);
-      if (!arquivo) throw new Error("arquivo");
-      const { data, error } = await cliente.storage.from("atividades").createSignedUrl(`${atividadeId}/${arquivo}`, 120);
+      const caminho = caminhoPdf(atividadeId, arquivo);
+      if (!caminho) throw new Error("arquivo");
+      const atual = await sessao();
+      if (atual && config) {
+        const resposta = await fetch(`${config.url}/functions/v1/link-download`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${atual.access_token}`,
+            apikey: config.chave,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ atividade: atividadeId }),
+        });
+        if (resposta.status === 401 || resposta.status === 403) throw new Error("arquivo");
+        if (resposta.ok) {
+          const corpo = await resposta.json().catch(() => ({}));
+          if (corpo.url) {
+            const link = document.createElement("a");
+            link.href = corpo.url;
+            link.target = "_blank";
+            link.rel = "noopener";
+            document.body.append(link);
+            link.click();
+            link.remove();
+            return;
+          }
+        }
+      }
+      const permissao = await cliente.rpc("pode_baixar", { atividade: atividadeId });
+      const funcaoAusente = permissao.error && /could not find|schema cache|does not exist/i.test(permissao.error.message || "");
+      if (!funcaoAusente && permissao.data !== true) throw new Error("arquivo");
+      const { data, error } = await cliente.storage.from("atividades").createSignedUrl(caminho, 120);
       if (error || !data?.signedUrl) throw error || new Error("arquivo");
       const link = document.createElement("a");
       link.href = data.signedUrl;
@@ -274,7 +305,68 @@ async function iniciar() {
         .order("criado_em", { ascending: false });
       if (contasConsulta.error) throw contasConsulta.error;
       if (erroPedidos) throw erroPedidos;
-      return { contas: contasConsulta.data || [], pedidos: pedidos || [] };
+      const cobrancasConsulta = await cliente
+        .from("cobrancas")
+        .select("txid, valor_bruto, taxa, valor_liquido, status, cobranca_externa, atualizado_em");
+      return {
+        contas: contasConsulta.data || [],
+        pedidos: pedidos || [],
+        cobrancas: cobrancasConsulta.error ? [] : cobrancasConsulta.data || [],
+        cobrancasDisponiveis: !cobrancasConsulta.error,
+      };
+    },
+    async situacaoPedido(txid) {
+      const cobranca = await cliente.from("cobrancas").select("status").eq("txid", txid).maybeSingle();
+      if (!cobranca.error && cobranca.data?.status) return cobranca.data.status;
+      const { data, error } = await cliente.from("pedidos").select("status").eq("txid", txid);
+      if (error || !data?.length) return null;
+      if (data.every((item) => item.status === "pago")) return "pago";
+      if (data.some((item) => item.status === "estornado")) return "estornado";
+      if (data.every((item) => item.status === "cancelado")) return "cancelado";
+      return "aguardando";
+    },
+    async listarConciliacao() {
+      const { data, error } = await cliente.rpc("listar_conciliacao");
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      return { ok: true, pedidos: data || [] };
+    },
+    async conciliarPedido(codigo, confirmar) {
+      const { data, error } = await cliente.rpc("conciliar_pedido", { codigo, confirmar: confirmar === true });
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      return data || { ok: false, mensagem: "Não foi possível conciliar." };
+    },
+    async encerrarConciliacao() {
+      const { data, error } = await cliente.rpc("encerrar_conciliacao");
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      return data || { ok: false, mensagem: "Não foi possível encerrar." };
+    },
+    async criarCobranca(ids, chave, documento) {
+      const atual = await sessao();
+      const chavePedido = String(chave || "");
+      if (!atual || !config) return { ok: false, mensagem: "Entre na conta para comprar." };
+      if (chavePedido.length < 8) return { ok: false, mensagem: "Pedido inválido." };
+      const resposta = await fetch(`${config.url}/functions/v1/criar-cobranca`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${atual.access_token}`,
+          apikey: config.chave,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ atividades: ids, chave: chavePedido, documento: String(documento || "") }),
+      });
+      const corpo = await resposta.json().catch(() => ({}));
+      if (!resposta.ok || !corpo.ok) {
+        return { ok: false, mensagem: corpo.mensagem || "A cobrança automática não está disponível." };
+      }
+      return {
+        ok: true,
+        txid: corpo.txid,
+        valor: corpo.valor,
+        copiaCola: corpo.copiaCola || "",
+        imagem: corpo.imagem || "",
+        expiraEm: corpo.expiraEm || "",
+        status: corpo.status || "pendente",
+      };
     },
     async definirPapel(alvo, novoPapel) {
       const { data, error } = await cliente.rpc("definir_papel", { alvo, novo_papel: novoPapel });

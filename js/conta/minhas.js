@@ -28,6 +28,16 @@ function cartaoPedido(pedido, loja) {
   const estado = document.createElement("p");
   estado.className = "aviso-conta";
   estado.setAttribute("role", "status");
+  if (pedido.status === "estornado") {
+    artigo.append(selo("problema", "Pagamento estornado"), estado, contato(pedido, "Meu pagamento foi estornado."));
+    estado.textContent = "Este pagamento foi estornado. O PDF deixa de ficar disponível.";
+    return artigo;
+  }
+  if (pedido.status === "cancelado") {
+    artigo.append(selo("problema", "Pagamento cancelado"), estado, contato(pedido, "Minha cobrança foi cancelada."));
+    estado.textContent = "Esta cobrança foi cancelada. O PDF continua bloqueado.";
+    return artigo;
+  }
   if (pedido.status !== "pago") {
     artigo.append(
       selo("espera", "Pagamento pendente"),

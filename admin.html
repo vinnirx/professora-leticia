@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="css/styles.css?v=84" />
     <link rel="stylesheet" href="css/conta.css?v=8" />
-    <link rel="stylesheet" href="css/painel.css?v=7" />
+    <link rel="stylesheet" href="css/painel.css?v=9" />
   </head>
   <body data-pagina="admin">
     <header class="cabecalho">
@@ -180,7 +180,7 @@
                   <p class="texto-secao">Cada compra pode reunir mais de uma atividade no mesmo código. Confirmar o Pix libera o download de todas elas.</p>
                 </div>
               </div>
-              <div class="barra-ferramentas">
+              <div class="barra-ferramentas barra-filtros">
                 <label>Buscar <input id="busca-pedido" type="search" placeholder="Nome, e-mail ou código" /></label>
                 <label>Situação <select id="pedidos-status"><option value="">Todas</option><option value="pago">Pago</option><option value="aguardando">Aguardando</option></select></label>
                 <label>De <input id="pedidos-inicio" type="date" /></label>
@@ -212,6 +212,8 @@
               </div>
               <div class="indicadores indicadores-principais" id="indicadores-financeiro"></div>
               <div class="indicadores indicadores-apoio" id="indicadores-financeiro-apoio"></div>
+              <h3>Atividades mais vendidas</h3>
+              <div class="tabela-rolagem" id="ranking-vendas"></div>
               <h3>Receita bruta no período</h3>
               <div id="grafico-bruto"></div>
               <div id="lista-periodos"></div>
@@ -271,6 +273,13 @@
                 </div>
               </div>
               <div id="lista-config" class="grupos-config"></div>
+              <section id="conciliacao" hidden>
+                <h3>Compras antigas</h3>
+                <p class="texto-secao">Só a proprietária, com a sessão dela, libera uma compra antiga. O SQL Editor não entra nessa conta. Sem a confirmação, nada é liberado.</p>
+                <div id="lista-conciliacao"></div>
+                <p class="aviso-conta" id="conciliacao-aviso" hidden></p>
+                <button class="botao botao-secundario" id="encerrar-conciliacao" type="button">Encerrar a exceção quando não restar compra antiga</button>
+              </section>
             </section>
           </div>
         </div>
@@ -289,9 +298,9 @@
       </div>
     </main>
 
-    <script src="js/loja.js?v=46"></script>
+    <script src="js/loja.js?v=48"></script>
     <script src="js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="js/sessao.js?v=14"></script>
-    <script type="module" src="js/conta.js?v=22"></script>
+    <script type="module" src="js/sessao.js?v=17"></script>
+    <script type="module" src="js/conta.js?v=25"></script>
   </body>
 </html>

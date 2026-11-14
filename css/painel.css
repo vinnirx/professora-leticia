@@ -154,6 +154,15 @@ body[data-pagina="admin"] {
 
 .painel .botao:hover { background: var(--coral-escuro); }
 
+.painel .botao:focus-visible,
+.painel .botao-secundario:focus-visible,
+.painel .botao-perigo:focus-visible,
+.painel .filtro:focus-visible,
+.painel .menu-painel button:focus-visible {
+  outline: 2px solid var(--azul-vivo);
+  outline-offset: 2px;
+}
+
 .painel .botao-secundario {
   border-color: var(--adm-linha);
   background: #fff;
@@ -225,6 +234,21 @@ body[data-pagina="admin"] {
 .barra-ferramentas .filtros { flex: 0 0 auto; margin: 0; }
 
 .barra-ferramentas > .botao { align-self: end; }
+
+.barra-filtros {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.8fr) minmax(8.5rem, 0.9fr) minmax(10.4rem, 0.85fr) minmax(10.4rem, 0.85fr);
+  align-items: end;
+}
+
+.barra-filtros label {
+  flex: none;
+  min-width: 0;
+}
+
+.painel input[type="date"] {
+  font-variant-numeric: tabular-nums;
+}
 
 .barra-ferramentas[hidden] { display: none; }
 
@@ -393,8 +417,11 @@ body[data-pagina="admin"] {
 .tabela-admin th.numero {
   text-align: right;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
+
+.tabela-admin td.numero { white-space: nowrap; }
+
+.tabela-admin th.numero { white-space: normal; }
 
 .titulo-duas {
   display: -webkit-box;
@@ -447,6 +474,8 @@ body[data-pagina="admin"] {
 }
 
 .etiqueta-ok { background: #eef6e6; color: var(--verde); }
+
+.etiqueta-problema { background: #fdeceb; color: var(--adm-perigo); }
 
 .etiqueta-espera { background: #fff6df; color: #8a6a1d; }
 
@@ -762,6 +791,7 @@ body[data-pagina="admin"] {
 
 @media (max-width: 900px) {
   .barra-ferramentas label { flex-basis: calc(50% - 0.7rem); }
+  .barra-filtros { grid-template-columns: 1fr 1fr; }
   .indicadores-principais,
   .indicadores-apoio { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 

@@ -1,0 +1,14 @@
+{
+  "name": "inclusao-no-cotidiano",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:regras": "node testes/regras-pagamento.test.mjs && node testes/migracao.test.mjs && node testes/caminho-pdf.test.mjs && node testes/seguranca-anon.mjs",
+    "test:isolado": "node testes/isolado-banco.mjs",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@playwright/test": "^1.56.1"
+  }
+}

@@ -189,6 +189,10 @@
             Seu e-mail
             <input name="email" type="email" autocomplete="email" required />
           </label>
+          <label id="campo-documento" hidden>
+            CPF ou CNPJ
+            <input name="documento" inputmode="numeric" autocomplete="off" maxlength="18" />
+          </label>
           <button class="botao" type="submit">Gerar QR do Pix</button>
         </form>
         <div id="pix-resultado" hidden>
@@ -214,11 +218,11 @@
       </div>
     </dialog>
 
-    <script src="js/loja.js?v=46"></script>
+    <script src="js/loja.js?v=48"></script>
     <script src="js/pix.js?v=21"></script>
     <script src="js/historia.js?v=2"></script>
     <script src="js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="js/sessao.js?v=14"></script>
-    <script type="module" src="js/inicio.js?v=7"></script>
+    <script type="module" src="js/sessao.js?v=17"></script>
+    <script type="module" src="js/inicio.js?v=11"></script>
   </body>
 </html>

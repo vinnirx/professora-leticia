@@ -5,6 +5,13 @@ import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
 
 const SECOES = ["visao", "atividades", "arquivos", "pedidos", "financeiro", "clientes", "equipe", "configuracoes"];
 
+function rotuloStatus(status) {
+  if (status === "pago") return ["Pago", "ok"];
+  if (status === "estornado") return ["Estornado", "problema"];
+  if (status === "cancelado") return ["Cancelado", "neutro"];
+  return ["Aguardando", "espera"];
+}
+
 function secaoAtual() {
   const nome = location.hash.replace("#", "");
   return SECOES.includes(nome) ? nome : "visao";
@@ -102,7 +109,15 @@ function montarTabela(colunas, linhas, larguras) {
   colunas.forEach((coluna, indice) => {
     const th = document.createElement("th");
     th.scope = "col";
-    th.textContent = coluna;
+    const partes = coluna.split(" ");
+    if (partes.length > 1) {
+      partes.forEach((parte, indiceParte) => {
+        if (indiceParte) th.append(document.createElement("br"));
+        th.append(parte);
+      });
+    } else {
+      th.textContent = coluna;
+    }
     if (["Preço", "Valor", "Valor bruto", "Pedidos pagos", "Materiais pagos", "Unidades", "Receita bruta"].includes(coluna)) th.className = "numero";
     if (coluna === "Destaque") th.className = "centro";
     cabecalho.append(th);
@@ -339,6 +354,8 @@ export async function iniciarAdmin(loja) {
   const memoria = {
     contas: painel.contas,
     pedidos: painel.pedidos,
+    cobrancas: painel.cobrancas || [],
+    cobrancasDisponiveis: painel.cobrancasDisponiveis === true,
     atividades: [...porId.values()].sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR")),
     periodo: "dia",
   };
@@ -423,7 +440,7 @@ export async function iniciarAdmin(loja) {
             celula("Pedido", grupo.txid),
             celula("Cliente", nomeCliente(grupo)),
             ...(podeFinanceiro(dados) ? [celula("Valor", moeda.format(grupo.valor), "numero")] : []),
-            celula("Status", selo(grupo.status === "pago" ? "Pago" : "Aguardando", grupo.status === "pago" ? "ok" : "espera")),
+            celula("Status", selo(...rotuloStatus(grupo.status))),
           ],
         })),
       ));
@@ -696,7 +713,7 @@ export async function iniciarAdmin(loja) {
             celula("Cliente", pessoa(nomeCliente(grupo), grupo.perfis?.email || "")),
             celula("Materiais", tituloDuas(materiaisDe(grupo))),
             celula("Valor", moeda.format(grupo.valor), "numero"),
-            celula("Status", selo(grupo.status === "pago" ? "Pago" : "Aguardando", grupo.status === "pago" ? "ok" : "espera")),
+            celula("Status", selo(...rotuloStatus(grupo.status))),
             celula("Asaas", selo(indisponivel(), "neutro")),
             celula("Ações", acoes),
           ],
@@ -719,7 +736,7 @@ export async function iniciarAdmin(loja) {
         celulas: [
           celula("Material", item.titulo),
           celula("Valor", moeda.format(Number(item.valor) || 0), "numero"),
-          celula("Status", selo(item.status === "pago" ? "Pago" : "Aguardando", item.status === "pago" ? "ok" : "espera")),
+          celula("Status", selo(...rotuloStatus(item.status))),
         ],
       })),
     ));
@@ -742,28 +759,68 @@ export async function iniciarAdmin(loja) {
       if (apoio) apoio.replaceChildren();
       document.querySelector("#grafico-bruto").replaceChildren();
       document.querySelector("#lista-periodos").replaceChildren();
+      document.querySelector("#ranking-vendas")?.replaceChildren();
       document.querySelector("#tabela-financeiro").replaceChildren();
       return;
     }
     const { inicio, fim } = intervalosFinanceiro();
     const noPeriodo = memoria.pedidos.filter((pedido) => dentroDoIntervalo(pedido.criado_em, inicio, fim));
     const pagos = noPeriodo.filter((pedido) => pedido.status === "pago");
-    const aguardando = noPeriodo.filter((pedido) => pedido.status !== "pago");
+    const aguardando = noPeriodo.filter((pedido) => pedido.status === "aguardando");
     const gruposPagos = agruparPedidos(pagos);
     const bruto = pagos.reduce((soma, pedido) => soma + (Number(pedido.valor) || 0), 0);
     const ticket = gruposPagos.length ? bruto / gruposPagos.length : null;
+    const cobrancaDo = (txid) => memoria.cobrancas.find((item) => item.txid === txid) || null;
+    const taxasConhecidas = memoria.cobrancasDisponiveis && gruposPagos.length > 0 && gruposPagos.every((grupo) => {
+      const cobranca = cobrancaDo(grupo.txid);
+      return cobranca && cobranca.taxa != null && cobranca.valor_liquido != null;
+    });
+    const taxaTotal = taxasConhecidas
+      ? gruposPagos.reduce((soma, grupo) => soma + Number(cobrancaDo(grupo.txid).taxa), 0)
+      : null;
+    const liquidoTotal = taxasConhecidas
+      ? gruposPagos.reduce((soma, grupo) => soma + Number(cobrancaDo(grupo.txid).valor_liquido), 0)
+      : null;
+    const estornos = memoria.cobrancasDisponiveis
+      ? memoria.cobrancas.filter((item) => item.status === "estornada" && dentroDoIntervalo(item.atualizado_em, inicio, fim))
+      : null;
     document.querySelector("#indicadores-financeiro").replaceChildren(
       indicador("Receita bruta", moeda.format(bruto), "Soma dos itens com pagamento confirmado."),
-      indicador("Receita líquida", indisponivel(), "Sem a taxa registrada, o líquido não é calculado."),
-      indicador("Taxas Asaas", indisponivel(), "A integração ainda não grava a tarifa de cada cobrança."),
+      indicador("Receita líquida", liquidoTotal == null ? indisponivel() : moeda.format(liquidoTotal), liquidoTotal == null ? "Sem a taxa registrada, o líquido não é calculado." : "Soma do líquido gravado em cada cobrança."),
+      indicador("Taxas Asaas", taxaTotal == null ? indisponivel() : moeda.format(taxaTotal), taxaTotal == null ? "A integração ainda não grava a tarifa de cada cobrança." : "Soma da tarifa gravada pelo Asaas."),
       indicador("Pedidos pagos", String(gruposPagos.length), "Um código de pedido conta uma vez."),
     );
     apoio.replaceChildren(
       indicador("Atividades vendidas", String(pagos.length), "Cada material pago conta uma unidade."),
       indicador("Ticket médio", ticket === null ? "—" : moeda.format(ticket), "Receita bruta dividida pelos pedidos pagos."),
       indicador("Valores pendentes", moeda.format(aguardando.reduce((soma, pedido) => soma + (Number(pedido.valor) || 0), 0)), `${aguardando.length} ${aguardando.length === 1 ? "item aguardando" : "itens aguardando"}.`),
-      indicador("Estornos", indisponivel(), "O banco só registra aguardando ou pago."),
+      indicador("Estornos", estornos == null ? indisponivel() : moeda.format(estornos.reduce((soma, item) => soma + (Number(item.valor_bruto) || 0), 0)), estornos == null ? "O banco ainda não registra estorno." : "Soma do bruto das cobranças estornadas neste intervalo."),
     );
+    const ranking = new Map();
+    pagos.forEach((pedido) => {
+      const atual = ranking.get(pedido.atividade_id) || { titulo: pedido.titulo, quantidade: 0, bruto: 0 };
+      atual.quantidade += 1;
+      atual.bruto += Number(pedido.valor) || 0;
+      ranking.set(pedido.atividade_id, atual);
+    });
+    const destinoRanking = document.querySelector("#ranking-vendas");
+    const linhasRanking = [...ranking.values()].sort((a, b) => b.quantidade - a.quantidade || b.bruto - a.bruto);
+    if (destinoRanking) {
+      destinoRanking.replaceChildren(linhasRanking.length
+        ? montarTabela(
+          ["Atividade", "Unidades", "Receita bruta"],
+          linhasRanking.map((item) => ({
+            tr: document.createElement("tr"),
+            celulas: [
+              celula("Atividade", tituloDuas(item.titulo)),
+              celula("Unidades", String(item.quantidade), "numero"),
+              celula("Receita bruta", moeda.format(item.bruto), "numero"),
+            ],
+          })),
+          ["58%", "18%", "24%"],
+        )
+        : vazio("Nenhuma atividade vendida nesse intervalo."));
+    }
     const mapa = new Map();
     pagos.forEach((pedido) => {
       const chave = chavePeriodo(new Date(pedido.criado_em), memoria.periodo);
@@ -807,8 +864,14 @@ export async function iniciarAdmin(loja) {
             celula("Pedido", grupo.txid),
             celula("Cliente", nomeCliente(grupo)),
             celula("Valor bruto", moeda.format(grupo.valor), "numero"),
-            celula("Taxa Asaas", selo(indisponivel(), "neutro")),
-            celula("Valor líquido", selo(indisponivel(), "neutro")),
+            celula("Taxa Asaas", (() => {
+              const cobranca = cobrancaDo(grupo.txid);
+              return cobranca?.taxa == null ? selo(indisponivel(), "neutro") : moeda.format(Number(cobranca.taxa));
+            })()),
+            celula("Valor líquido", (() => {
+              const cobranca = cobrancaDo(grupo.txid);
+              return cobranca?.valor_liquido == null ? selo(indisponivel(), "neutro") : moeda.format(Number(cobranca.valor_liquido));
+            })()),
             celula("Status", selo("Pago", "ok")),
           ],
         })),
@@ -858,7 +921,7 @@ export async function iniciarAdmin(loja) {
                 celula("Pedido", pedido.txid),
                 celula("Material", pedido.titulo),
                 celula("Valor", moeda.format(Number(pedido.valor) || 0), "numero"),
-                celula("Status", selo(pedido.status === "pago" ? "Pago" : "Aguardando", pedido.status === "pago" ? "ok" : "espera")),
+                celula("Status", selo(...rotuloStatus(pedido.status))),
               ],
             })),
           ));
@@ -881,7 +944,7 @@ export async function iniciarAdmin(loja) {
           ],
         };
       }),
-      ["20%", "32%", "14%", "11%", "11%", "12%"],
+      ["18%", "28%", "14%", "14%", "14%", "12%"],
     ));
   }
 
@@ -899,8 +962,9 @@ export async function iniciarAdmin(loja) {
       ["Pagamentos", "O Pix da loja continua manual. O Asaas ainda não grava taxa, saldo nem identificador.", [
         ["Chave Pix publicada", lojaPublica.pixChave || indisponivel()],
         ["Asaas", "Não ligado"],
-        ["Repasse", "O painel não lê o saldo do Asaas nem a transferência para o Banco do Brasil."],
-        ["Confirmação", "A venda só conta depois de Confirmar Pix."],
+        ["Repasse", "O valor líquido da cobrança não é o saldo do Asaas nem a transferência para o Banco do Brasil. Os dois continuam não disponíveis."],
+        ["Confirmação", "A venda manual só conta depois de Confirmar Pix. O navegador não marca pedido como pago."],
+        ["Pedidos antigos", "Continuam baixáveis até a proprietária conciliar cada código no painel e encerrar a exceção. Pedido novo não usa essa exceção."],
       ]],
       ["Equipe e permissões", "A hierarquia fica na seção Equipe. Aqui só aparece quem já administra.", [
         ["Quem administra", admins],
@@ -951,6 +1015,57 @@ export async function iniciarAdmin(loja) {
   const botaoFinanceiro = document.querySelector("[data-secao='financeiro']");
   if (botaoFinanceiro) botaoFinanceiro.hidden = !podeFinanceiro(dados);
 
+  async function pintarConciliacao() {
+    const bloco = document.querySelector("#conciliacao");
+    const lista = document.querySelector("#lista-conciliacao");
+    const status = document.querySelector("#conciliacao-aviso");
+    if (!bloco || !lista || dados.papel !== "owner" || !loja.listarConciliacao) return;
+    const resultado = await loja.listarConciliacao();
+    if (!resultado.ok) {
+      bloco.hidden = true;
+      return;
+    }
+    bloco.hidden = false;
+    lista.replaceChildren();
+    if (!resultado.pedidos.length) {
+      const vazio = document.createElement("p");
+      vazio.textContent = "Não há compra antiga esperando conciliação.";
+      lista.append(vazio);
+      return;
+    }
+    resultado.pedidos.forEach((pedido) => {
+      const linha = document.createElement("article");
+      linha.className = "config-linha";
+      const texto = document.createElement("p");
+      texto.textContent = `${pedido.titulo} · ${pedido.email} · ${pedido.txid}`;
+      const confirma = document.createElement("label");
+      confirma.className = "marca-destaque";
+      const caixa = document.createElement("input");
+      caixa.type = "checkbox";
+      confirma.append(caixa, document.createTextNode("Confirmo que esta compra antiga foi paga"));
+      const botao = document.createElement("button");
+      botao.className = "botao";
+      botao.type = "button";
+      botao.textContent = "Conciliar";
+      botao.addEventListener("click", async () => {
+        botao.disabled = true;
+        const gravado = await loja.conciliarPedido(pedido.txid, caixa.checked);
+        botao.disabled = false;
+        aviso(status, gravado.mensagem || (gravado.ok ? "Compra antiga conciliada." : "Não foi possível conciliar."), Boolean(gravado.ok));
+        if (gravado.ok) pintarConciliacao();
+      });
+      linha.append(texto, confirma, botao);
+      lista.append(linha);
+    });
+  }
+
+  document.querySelector("#encerrar-conciliacao")?.addEventListener("click", async () => {
+    if (dados.papel !== "owner" || !loja.encerrarConciliacao) return;
+    const status = document.querySelector("#conciliacao-aviso");
+    const gravado = await loja.encerrarConciliacao();
+    aviso(status, gravado.mensagem || (gravado.ok ? "Exceção encerrada." : "Não foi possível encerrar."), Boolean(gravado.ok));
+  });
+
   function pintarTudo() {
     pintarVisao();
     pintarAtividades();
@@ -960,6 +1075,7 @@ export async function iniciarAdmin(loja) {
     pintarClientes();
     pintarEquipe();
     pintarConfig();
+    pintarConciliacao();
   }
 
   ["#busca-atividade", "#filtro-area-lista", "#filtro-categoria-lista", "#filtro-destaque-lista"].forEach((seletor) => {

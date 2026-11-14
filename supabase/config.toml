@@ -88,17 +88,12 @@ api_url = "http://127.0.0.1"
 # OpenAI API Key to use for Supabase AI in the Supabase Studio.
 openai_api_key = "env(OPENAI_API_KEY)"
 
-# Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
-# are monitored, and you can view the emails that would have been sent from the web interface.
-[inbucket]
+# E-mail local de teste. As mensagens não saem para a internet.
+[local_smtp]
 enabled = true
-# Port to use for the email testing server web interface.
 port = 54324
-# Uncomment to expose additional ports for testing user applications that send emails.
 # smtp_port = 54325
 # pop3_port = 54326
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
 
 [storage]
 enabled = true
@@ -122,7 +117,7 @@ enabled = true
 # in emails.
 site_url = "http://127.0.0.1:4204"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://127.0.0.1:4204"]
+additional_redirect_urls = ["http://127.0.0.1:4204", "http://127.0.0.1:4204/entrar.html"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).
@@ -355,3 +350,12 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+[functions.criar-cobranca]
+verify_jwt = true
+
+[functions.webhook-asaas]
+verify_jwt = false
+
+[functions.link-download]
+verify_jwt = true
