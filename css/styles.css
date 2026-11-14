@@ -881,6 +881,66 @@ main {
 
 .cabecalho .menu a.so-admin.visivel { display: inline-flex; }
 
+.menu-conta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.menu-conta > a[hidden],
+.menu-conta [hidden] {
+  display: none !important;
+}
+
+.menu-conta-abre,
+.menu-conta-opcoes button {
+  border: 0;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.menu-conta-abre {
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  background: var(--coral);
+  color: white;
+}
+
+.menu-conta-abre:hover { background: var(--coral-escuro); }
+
+.menu-conta-opcoes {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  display: grid;
+  gap: 0.15rem;
+  min-width: 12.5rem;
+  padding: 0.4rem;
+  border-radius: 0.9rem;
+  background: white;
+  box-shadow: var(--sombra);
+}
+
+.menu-conta-opcoes a,
+.menu-conta-opcoes button {
+  display: flex;
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--tinta);
+  text-align: left;
+  text-decoration: none;
+}
+
+.menu-conta-opcoes a:hover,
+.menu-conta-opcoes button:hover {
+  background: #eef6ea;
+  color: var(--verde);
+}
+
 main {
   width: min(1120px, calc(100% - clamp(1.5rem, 5vw, 3rem)));
   margin-top: 1.4rem;
@@ -1620,6 +1680,14 @@ main {
   .cabecalho .menu a,
   .cabecalho .menu .carrinho-abre {
     padding: 0.45rem 0.6rem;
+  }
+
+  .menu-conta { flex: 1 1 100%; justify-content: center; }
+
+  .menu-conta-opcoes {
+    position: static;
+    width: min(18rem, 100%);
+    margin-top: 0.35rem;
   }
 }
 

@@ -10,9 +10,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=84" />
-    <link rel="stylesheet" href="css/conta.css?v=8" />
-    <link rel="stylesheet" href="css/painel.css?v=9" />
+    <link rel="stylesheet" href="css/styles.css?v=85" />
+    <link rel="stylesheet" href="css/conta.css?v=9" />
+    <link rel="stylesheet" href="css/painel.css?v=10" />
   </head>
   <body data-pagina="admin">
     <header class="cabecalho">
@@ -26,8 +26,17 @@
         <a href="index.html#gratuitos"><img src="img/icones/gratuitos.png?v=1" alt="" />Gratuitos</a>
         <a href="index.html#dicas"><img src="img/icones/dicas.png?v=1" alt="" />Dicas</a>
         <a href="index.html#historia"><img src="img/icones/inclusao.png?v=1" alt="" />Sobre mim</a>
-        <a data-conta href="minhas.html">Minha conta</a>
-        <a class="so-admin visivel" href="admin.html">Painel</a>
+        <div class="menu-conta">
+          <a data-conta href="entrar.html">Entrar</a>
+          <div data-menu-conta hidden>
+            <button class="menu-conta-abre" type="button" aria-expanded="false" aria-haspopup="true">Conta</button>
+            <div class="menu-conta-opcoes" hidden>
+              <a href="minhas.html">Minha conta</a>
+              <a class="so-admin" href="admin.html">Gerenciar loja</a>
+              <button type="button" data-sair>Sair</button>
+            </div>
+          </div>
+        </div>
       </nav>
     </header>
 
@@ -79,6 +88,7 @@
                   </div>
                   <button class="botao" id="abrir-cadastro" type="button">Nova atividade</button>
                 </div>
+                <p class="aviso-conta" id="atividades-status" role="status"></p>
                 <div class="barra-ferramentas">
                   <label class="campo-busca">Buscar pelo nome <input id="busca-atividade" type="search" /></label>
                   <label>Área <select id="filtro-area-lista"><option value="">Todas</option></select></label>
@@ -93,6 +103,7 @@
                   <button class="botao botao-secundario" id="voltar-lista" type="button">Voltar à lista</button>
                 </div>
                 <p class="aviso-conta aviso-ok" id="cadastro-aviso">Você pode preencher e ver como a atividade fica na loja. Nada é salvo agora.</p>
+                <p class="texto-secao" id="origem-catalogo" hidden></p>
                 <form id="nova-atividade">
                   <div class="passos" role="tablist" aria-label="Etapas do cadastro">
                     <button type="button" data-passo="1" aria-current="true">1. Informações básicas</button>
@@ -289,7 +300,7 @@
           <p id="pdf-troca-atual"></p>
           <label>Arquivo PDF <input id="pdf-troca-arquivo" type="file" accept="application/pdf" /></label>
           <p id="pdf-troca-nome">Nenhum arquivo escolhido.</p>
-          <p class="aviso-conta" id="pdf-troca-aviso" hidden>Quem já pagou passa a baixar o arquivo novo.</p>
+          <p class="aviso-conta" id="pdf-troca-aviso" hidden>O PDF atual fica guardado. Quem já pagou passa a baixar o arquivo novo somente depois que o envio terminar.</p>
           <div class="etapas-acoes">
             <button class="botao botao-secundario" id="pdf-troca-cancelar" type="button">Cancelar</button>
             <button class="botao botao-perigo" id="pdf-troca-confirmar" type="button" disabled>Substituir</button>
@@ -300,7 +311,7 @@
 
     <script src="js/loja.js?v=48"></script>
     <script src="js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="js/sessao.js?v=20"></script>
-    <script type="module" src="js/conta.js?v=27"></script>
+    <script type="module" src="js/sessao.js?v=21"></script>
+    <script type="module" src="js/conta.js?v=28"></script>
   </body>
 </html>

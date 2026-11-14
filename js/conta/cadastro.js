@@ -1,19 +1,20 @@
-import { aviso } from "./avisos.js";
+import { validarCapa } from "../capa-loja.js";
+import { camposDoCatalogo, fichaInicial, payloadEdicao, rotulosInformacao } from "../edicao-atividade.js";
+import { formatarTamanho, validarPdf } from "../pdf-troca.js";
 import { dinheiro, linhas } from "../texto.js";
 import { areas, temasPorArea } from "../temas.js";
+import { criarTrava } from "../trava.js";
+import { aviso } from "./avisos.js";
 
 let capaUrl = "";
 let atividadeEmEdicao = null;
+let fichaAberta = null;
 let etapaAtual = 1;
+const travaSalvar = criarTrava();
 
-function textoLista(valor) {
-  return Array.isArray(valor) ? valor.filter(Boolean).join("\n") : String(valor || "");
-}
-
-function valorInformacao(atividade, rotulo) {
-  const pares = Array.isArray(atividade.informacoes) ? atividade.informacoes : [];
-  const achado = pares.find((par) => Array.isArray(par) && par[0] === rotulo);
-  return achado ? String(achado[1] || "") : "";
+async function bytesDoArquivo(arquivo, quantidade) {
+  const fatia = quantidade ? arquivo.slice(0, quantidade) : arquivo;
+  return new Uint8Array(await fatia.arrayBuffer());
 }
 
 function temRascunho(formulario) {
@@ -63,8 +64,8 @@ function preencherRevisao(formulario) {
     ["Preço", dinheiro(formulario.querySelector('[name="preco"]').value)],
     ["Descrição", formulario.querySelector('[name="resumo"]').value.trim()],
     ["Categoria", formulario.querySelector('[name="info_categoria"]').value.trim() || "—"],
-    ["Capa", formulario.querySelector('[name="capa"]').files[0]?.name || (formulario.dataset.editando ? "Mantém a capa atual, se já houver" : "Não escolhida")],
-    ["PDF", formulario.querySelector('[name="pdf"]').files[0]?.name || "Não escolhido nesta etapa"],
+    ["Capa", formulario.querySelector('[name="capa"]').files[0]?.name || formulario.dataset.capaAtual || (formulario.dataset.editando ? "Mantém a capa atual" : "Não escolhida")],
+    ["PDF", formulario.querySelector('[name="pdf"]').files[0]?.name || formulario.dataset.arquivoAtual || "Nenhum PDF novo"],
     ["Destaque", formulario.querySelector('[name="destaque"]').checked ? "Entra na vitrine, se ainda houver vaga" : "Não entra na vitrine"],
   ];
   lista.replaceChildren();
@@ -84,8 +85,28 @@ function definirTrabalho(aberto) {
   if (lista) lista.hidden = aberto;
 }
 
+function emEdicao(formulario) {
+  return formulario.classList.contains("edicao-plana");
+}
+
 function mostrarEtapa(formulario, numero) {
   etapaAtual = numero;
+  if (emEdicao(formulario)) {
+    formulario.querySelectorAll("[data-etapa]").forEach((bloco) => {
+      bloco.hidden = false;
+    });
+    formulario.querySelectorAll("[data-passo]").forEach((botao) => {
+      botao.removeAttribute("aria-current");
+    });
+    const voltar = document.querySelector("#etapa-voltar");
+    const seguir = document.querySelector("#etapa-seguir");
+    const publicar = formulario.querySelector('[type="submit"]');
+    if (voltar) voltar.hidden = true;
+    if (seguir) seguir.hidden = true;
+    if (publicar) publicar.hidden = false;
+    preencherRevisao(formulario);
+    return;
+  }
   formulario.querySelectorAll("[data-etapa]").forEach((bloco) => {
     bloco.hidden = Number(bloco.dataset.etapa) !== numero;
   });
@@ -104,8 +125,12 @@ function mostrarEtapa(formulario, numero) {
 
 function limparEdicao(formulario) {
   atividadeEmEdicao = null;
+  fichaAberta = null;
+  formulario.classList.remove("edicao-plana");
   delete formulario.dataset.editando;
   delete formulario.dataset.destaqueAtual;
+  delete formulario.dataset.capaAtual;
+  delete formulario.dataset.arquivoAtual;
   formulario.reset();
   formulario.querySelector('[name="preco"]').value = "10";
   formulario.querySelector('[name="info_formato"]').value = "PDF para impressão";
@@ -116,8 +141,13 @@ function limparEdicao(formulario) {
   document.querySelector("#cancelar-edicao").hidden = true;
   const nomeCapa = document.querySelector("#nome-capa");
   const nomePdf = document.querySelector("#nome-pdf");
+  const origem = document.querySelector("#origem-catalogo");
   if (nomeCapa) nomeCapa.textContent = "";
   if (nomePdf) nomePdf.textContent = "";
+  if (origem) {
+    origem.hidden = true;
+    origem.textContent = "";
+  }
   const botao = formulario.querySelector('[type="submit"]');
   const avisoCadastro = document.querySelector("#cadastro-aviso");
   const ligado = formulario.dataset.ligado === "sim";
@@ -139,38 +169,86 @@ function atualizarCartao(atividade) {
   if (caixa) caixa.checked = atividade.destaque !== false;
 }
 
+function catalogoDa(id) {
+  return (window.loja?.atividades || []).find((item) => item.id === id) || null;
+}
+
+function preencherInformacoes(formulario, valores) {
+  rotulosInformacao().forEach(({ campo, rotulo }) => {
+    const entrada = formulario.querySelector(`[name="${campo}"]`);
+    if (entrada) entrada.value = valores?.[rotulo] || "";
+  });
+}
+
+function mostrarArquivosAtuais(ficha) {
+  const mini = document.querySelector("#capa-mini");
+  const nomeCapa = document.querySelector("#nome-capa");
+  const nomePdf = document.querySelector("#nome-pdf");
+  if (mini) {
+    if (ficha.capa) {
+      mini.src = ficha.capa;
+      mini.alt = "Capa atual";
+      mini.hidden = false;
+    } else {
+      mini.hidden = true;
+      mini.removeAttribute("src");
+    }
+  }
+  if (nomeCapa) {
+    nomeCapa.textContent = ficha.capa
+      ? "Capa atual. Escolha outra imagem só se quiser trocar."
+      : "Nenhuma capa gravada. Escolha uma imagem só se quiser enviar.";
+  }
+  if (nomePdf) {
+    nomePdf.textContent = ficha.arquivo
+      ? `PDF atual: ${ficha.arquivo}. Escolha outro arquivo só se quiser trocar.`
+      : "Nenhum PDF vinculado. Escolha um arquivo só se quiser enviar.";
+  }
+}
+
 export function abrirEdicao(atividade) {
   const formulario = document.querySelector("#nova-atividade");
+  const local = catalogoDa(atividade.id);
   atividadeEmEdicao = atividade;
+  fichaAberta = atividade.foraDoBanco ? null : fichaInicial(atividade, local);
+  const ficha = fichaAberta || fichaInicial({ ...atividade, destaque: false }, local);
+  formulario.classList.add("edicao-plana");
   formulario.dataset.editando = atividade.id;
-  formulario.dataset.destaqueAtual = atividade.destaque !== false && !atividade.foraDoBanco ? "sim" : "";
-  formulario.querySelector('[name="titulo"]').value = atividade.titulo || "";
-  formulario.querySelector('[name="preco"]').value = Number(atividade.preco) || "";
-  formulario.querySelector('[name="destaque"]').checked = atividade.destaque !== false && !atividade.foraDoBanco;
-  formulario.querySelector('[name="resumo"]').value = atividade.resumo || "";
-  formulario.querySelector('[name="explicacao"]').value = textoLista(atividade.explicacao);
-  formulario.querySelector('[name="habilidades"]').value = textoLista(atividade.habilidades);
-  formulario.querySelector('[name="inclui"]').value = textoLista(atividade.inclui);
-  formulario.querySelector('[name="info_area"]').value = valorInformacao(atividade, "Área do conhecimento");
-  formulario.querySelector('[name="info_categoria"]').value = valorInformacao(atividade, "Categoria");
-  formulario.querySelector('[name="info_subcategoria"]').value = valorInformacao(atividade, "Subcategoria");
-  formulario.querySelector('[name="info_operacao"]').value = valorInformacao(atividade, "Operação");
-  formulario.querySelector('[name="info_campo"]').value = valorInformacao(atividade, "Campo numérico");
-  formulario.querySelector('[name="info_quantidade"]').value = valorInformacao(atividade, "Quantidade");
-  formulario.querySelector('[name="info_recursos"]').value = valorInformacao(atividade, "Recursos");
-  formulario.querySelector('[name="info_formato"]').value = valorInformacao(atividade, "Formato") || "PDF para impressão";
+  formulario.dataset.destaqueAtual = ficha.destaque ? "sim" : "";
+  formulario.dataset.capaAtual = ficha.capa || "";
+  formulario.dataset.arquivoAtual = ficha.arquivo || "";
+  formulario.querySelector('[name="titulo"]').value = ficha.campos.titulo || "";
+  formulario.querySelector('[name="preco"]').value = ficha.campos.preco || "";
+  formulario.querySelector('[name="destaque"]').checked = ficha.destaque;
+  formulario.querySelector('[name="resumo"]').value = ficha.campos.resumo || "";
+  formulario.querySelector('[name="explicacao"]').value = ficha.campos.explicacao || "";
+  formulario.querySelector('[name="habilidades"]').value = ficha.campos.habilidades || "";
+  formulario.querySelector('[name="inclui"]').value = ficha.campos.inclui || "";
+  preencherInformacoes(formulario, ficha.campos.informacoes);
   const area = formulario.querySelector('[name="area"]');
-  area.value = areas.includes(atividade.area) ? atividade.area : "";
-  preencherTemas(area.value, atividade.tema || "");
+  area.value = areas.includes(ficha.campos.area) ? ficha.campos.area : "";
+  preencherTemas(area.value, ficha.campos.tema || "");
+  mostrarArquivosAtuais(ficha);
+  const origem = document.querySelector("#origem-catalogo");
+  const complementos = fichaAberta ? camposDoCatalogo(fichaAberta) : [];
+  if (origem) {
+    origem.hidden = complementos.length === 0;
+    origem.textContent = complementos.length
+      ? `Estes dados aparecem no site, mas ainda não estão gravados: ${complementos.join(", ")}. Eles continuam na vitrine e só entram no banco se você alterar o campo.`
+      : "";
+  }
+  const avisoArquivos = document.querySelector("#aviso-arquivos");
+  if (avisoArquivos) avisoArquivos.textContent = "A capa e o PDF atuais continuam se você não escolher outro arquivo.";
   document.querySelector("#titulo-nova").textContent = "Editar atividade";
-  document.querySelector("#cadastro-aviso").textContent = "Altere o texto, o valor, a capa ou o PDF. Os campos preenchidos continuam aqui até você salvar ou cancelar.";
+  document.querySelector("#cadastro-aviso").textContent = "Altere só o que precisar e salve. Não é preciso refazer a atividade nem enviar de novo a capa ou o PDF.";
   formulario.querySelector('[type="submit"]').textContent = "Salvar alterações";
   document.querySelector("#cancelar-edicao").hidden = false;
   document.querySelector("#previa-atividade").hidden = true;
+  document.querySelector("#nova-status").textContent = "";
   definirTrabalho(true);
   mostrarEtapa(formulario, 1);
   if (location.hash !== "#atividades") location.hash = "atividades";
-  caixa?.scrollIntoView({ behavior: "smooth", block: "start" });
+  document.querySelector("#cadastro-atividade")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function slugAtividade(titulo, existentes) {
@@ -388,19 +466,49 @@ export function prepararCadastro(loja, existentes, aoCriar) {
   preencherTemas("", "");
 
   const capa = formulario.querySelector('[name="capa"]');
-  capa.addEventListener("change", () => {
+  capa.addEventListener("change", async () => {
     if (capaUrl) URL.revokeObjectURL(capaUrl);
+    capaUrl = "";
     const arquivo = capa.files[0];
     const mini = document.querySelector("#capa-mini");
-    if (!arquivo || !/^image\/(jpeg|png|webp)$/.test(arquivo.type)) {
+    const atual = formulario.dataset.capaAtual || "";
+    if (!arquivo) {
+      if (atual) {
+        mini.src = atual;
+        mini.alt = "Capa atual";
+        mini.hidden = false;
+      } else {
+        mini.hidden = true;
+        mini.removeAttribute("src");
+      }
+      return;
+    }
+    const bytes = await bytesDoArquivo(arquivo, 16);
+    const validacao = validarCapa({ tipo: arquivo.type, tamanho: arquivo.size, bytes });
+    if (!validacao.ok) {
+      capa.value = "";
+      aviso(document.querySelector("#nova-status"), validacao.mensagem);
+      const nomeCapa = document.querySelector("#nome-capa");
+      if (nomeCapa) {
+        nomeCapa.textContent = atual
+          ? "Capa atual. Escolha outra imagem só se quiser trocar."
+          : "Nenhuma capa gravada. Escolha uma imagem só se quiser enviar.";
+      }
+      if (capaUrl) URL.revokeObjectURL(capaUrl);
       capaUrl = "";
-      mini.hidden = true;
-      mini.removeAttribute("src");
+      if (atual) {
+        mini.src = atual;
+        mini.alt = "Capa atual";
+        mini.hidden = false;
+      } else {
+        mini.hidden = true;
+        mini.removeAttribute("src");
+      }
       return;
     }
     capaUrl = URL.createObjectURL(arquivo);
     mini.src = capaUrl;
-    mini.alt = "Capa escolhida";
+    mini.alt = "Nova capa";
     mini.hidden = false;
   });
 
@@ -413,15 +521,21 @@ export function prepararCadastro(loja, existentes, aoCriar) {
   }
   mostrarEtapa(formulario, 1);
 
-  const marcarArquivo = (campo, destino, prefixo) => {
+  const marcarArquivo = (campo, destino, prefixo, atual) => {
     formulario.querySelector(`[name="${campo}"]`).addEventListener("change", () => {
       const arquivo = formulario.querySelector(`[name="${campo}"]`).files[0];
       const alvo = document.querySelector(destino);
-      if (alvo) alvo.textContent = arquivo ? `${prefixo}: ${arquivo.name}` : "";
+      if (!alvo) return;
+      if (arquivo) {
+        alvo.textContent = `${prefixo}: ${arquivo.name} · ${formatarTamanho(arquivo.size)}`;
+        return;
+      }
+      const vigente = formulario.dataset[atual] || "";
+      alvo.textContent = vigente ? `${prefixo === "Novo PDF" ? "PDF atual" : "Capa atual"}: ${vigente}` : "";
     });
   };
-  marcarArquivo("pdf", "#nome-pdf", "Arquivo selecionado");
-  marcarArquivo("capa", "#nome-capa", "Capa selecionada");
+  marcarArquivo("pdf", "#nome-pdf", "Novo PDF", "arquivoAtual");
+  marcarArquivo("capa", "#nome-capa", "Nova capa", "capaAtual");
 
   document.querySelectorAll("[data-passo]").forEach((passo) => {
     passo.addEventListener("click", () => {
@@ -475,14 +589,142 @@ export function prepararCadastro(loja, existentes, aoCriar) {
     if (loja?.configurada) definirTrabalho(false);
   });
 
+  function lerCamposEdicao(formularioEdicao) {
+    const campos = new FormData(formularioEdicao);
+    const informacoes = {};
+    rotulosInformacao().forEach(({ campo, rotulo }) => {
+      informacoes[rotulo] = String(campos.get(campo) || "");
+    });
+    return {
+      titulo: campos.get("titulo"),
+      resumo: campos.get("resumo"),
+      explicacao: campos.get("explicacao"),
+      preco: campos.get("preco"),
+      area: campos.get("area"),
+      tema: campos.get("tema"),
+      inclui: campos.get("inclui"),
+      habilidades: campos.get("habilidades"),
+      destaque: campos.get("destaque") === "sim",
+      informacoes,
+    };
+  }
+
+  function avisarLista(texto) {
+    const lista = document.querySelector("#atividades-status");
+    if (!lista) return;
+    lista.classList.add("aviso-ok");
+    lista.textContent = texto;
+  }
+
   formulario.addEventListener("submit", async (evento) => {
     evento.preventDefault();
-    if (etapaAtual < 4) {
+    const editando = formulario.dataset.editando || "";
+    if (!editando && etapaAtual < 4) {
       document.querySelector("#etapa-seguir")?.click();
       return;
     }
+    if (!travaSalvar.entrar()) return;
+    const botaoEnvio = formulario.querySelector('[type="submit"]');
+    botaoEnvio.disabled = true;
     const estado = document.querySelector("#nova-status");
-    const editando = formulario.dataset.editando || "";
+    try {
+    if (editando && fichaAberta) {
+      const plano = payloadEdicao(lerCamposEdicao(formulario), fichaAberta);
+      if (!plano.ok) {
+        aviso(estado, plano.mensagem);
+        return;
+      }
+      const capaNova = formulario.querySelector('[name="capa"]').files[0] || null;
+      const pdfNovo = formulario.querySelector('[name="pdf"]').files[0] || null;
+      if (capaNova) {
+        const validacao = validarCapa({
+          tipo: capaNova.type,
+          tamanho: capaNova.size,
+          bytes: await bytesDoArquivo(capaNova, 16),
+        });
+        if (!validacao.ok) {
+          aviso(estado, validacao.mensagem);
+          return;
+        }
+      }
+      if (pdfNovo) {
+        const validacao = validarPdf({
+          nome: pdfNovo.name,
+          tipo: pdfNovo.type,
+          tamanho: pdfNovo.size,
+          bytes: await bytesDoArquivo(pdfNovo, 5),
+        });
+        if (!validacao.ok) {
+          aviso(estado, validacao.mensagem);
+          return;
+        }
+      }
+      if (!plano.alterouTexto && !capaNova && !pdfNovo) {
+        aviso(estado, "Nada foi alterado.");
+        return;
+      }
+      if (!loja?.configurada) {
+        aviso(estado, "Nada foi salvo. A atividade só entra na loja quando o banco de dados estiver ligado.");
+        return;
+      }
+      const jaEraDestaque = formulario.dataset.destaqueAtual === "sim";
+      if (plano.atividade.destaque && !jaEraDestaque && document.querySelectorAll("#lista-atividades [data-destaque]:checked").length >= 4) {
+        aviso(estado, "A vitrine mostra no máximo 4. Tire uma do destaque antes.");
+        return;
+      }
+      let salva = {};
+      if (plano.alterouTexto) {
+        const resultado = await loja.editarAtividade(plano.atividade);
+        if (!resultado.ok) {
+          aviso(estado, resultado.mensagem);
+          return;
+        }
+        salva = resultado.atividade || {};
+      }
+      let capaUrlSalva = "";
+      if (capaNova) {
+        const capaEnviada = await loja.enviarCapa(plano.atividade.id, capaNova);
+        if (!capaEnviada.ok) {
+          aviso(estado, plano.alterouTexto ? `O texto foi salvo, mas a capa não entrou. ${capaEnviada.mensagem}` : capaEnviada.mensagem);
+          return;
+        }
+        const definida = await loja.definirCapa(plano.atividade.id, capaEnviada.url);
+        if (!definida?.ok) {
+          aviso(estado, "A imagem foi enviada, mas a atividade ainda mostra a capa anterior.");
+          return;
+        }
+        capaUrlSalva = capaEnviada.url;
+      }
+      let arquivoSalvo = salva.arquivo || fichaAberta.arquivo || "";
+      if (pdfNovo) {
+        const envio = await (loja.substituirPdf
+          ? loja.substituirPdf(plano.atividade.id, pdfNovo, arquivoSalvo)
+          : loja.enviarPdf(plano.atividade.id, pdfNovo, arquivoSalvo));
+        if (!envio.ok) {
+          aviso(estado, plano.alterouTexto || capaNova ? `O restante foi salvo, mas o PDF não entrou. ${envio.mensagem}` : envio.mensagem);
+          return;
+        }
+        arquivoSalvo = envio.arquivo || arquivoSalvo;
+        if (atividadeEmEdicao && envio.anterior) atividadeEmEdicao.pdfAnterior = envio.anterior;
+      }
+      if (atividadeEmEdicao) {
+        Object.assign(atividadeEmEdicao, plano.atividade, {
+          foraDoBanco: false,
+          arquivo: arquivoSalvo,
+          capa: capaUrlSalva || atividadeEmEdicao.capa,
+        });
+        if (pdfNovo) {
+          atividadeEmEdicao.pdfInfo = { ok: true, pdf: { nome: arquivoSalvo, atualizado: new Date().toISOString() } };
+        }
+        document.dispatchEvent(new CustomEvent("atividade-salva", { detail: { ...atividadeEmEdicao } }));
+      }
+      atualizarCartao(plano.atividade);
+      aviso(estado, "Alterações salvas.", true);
+      avisarLista("Alterações salvas.");
+      limparEdicao(formulario);
+      definirTrabalho(false);
+      return;
+    }
     const leitura = lerCadastro(formulario, existentes, editando);
     if (leitura.erro) {
       aviso(estado, leitura.erro);
@@ -623,5 +865,9 @@ export function prepararCadastro(loja, existentes, aoCriar) {
       status.replaceChildren("Atividade criada. O card já entra na loja. ", link);
     }
     definirTrabalho(false);
+    } finally {
+      travaSalvar.sair();
+      botaoEnvio.disabled = false;
+    }
   });
 }

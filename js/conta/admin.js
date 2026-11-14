@@ -1,7 +1,11 @@
+import { formatarTamanho, validarPdf } from "../pdf-troca.js";
+import { criarTrava } from "../trava.js";
 import { abrirEdicao, prepararCadastro } from "./cadastro.js";
 import { prepararEquipe } from "./equipe.js";
 import { aviso, moeda, quando } from "./avisos.js";
 import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
+
+const travaPdf = criarTrava();
 
 const SECOES = ["visao", "atividades", "arquivos", "pedidos", "financeiro", "clientes", "equipe", "configuracoes"];
 
@@ -360,12 +364,13 @@ export async function iniciarAdmin(loja) {
     periodo: "dia",
   };
 
-  const idsBanco = memoria.atividades.filter((item) => !item.foraDoBanco).map((item) => item.id);
+  const idsBanco = memoria.atividades.filter((item) => !item.foraDoBanco).map((item) => ({ id: item.id, arquivo: item.arquivo || "" }));
   if (loja.arquivosPdf) {
     loja.arquivosPdf(idsBanco).then((mapa) => {
       memoria.atividades.forEach((item) => {
         if (item.foraDoBanco || !Object.hasOwn(mapa, item.id)) return;
         item.pdfInfo = mapa[item.id];
+        if (mapa[item.id].anterior) item.pdfAnterior = mapa[item.id].anterior;
       });
       pintarArquivos();
     }).catch(() => {
@@ -589,9 +594,9 @@ export async function iniciarAdmin(loja) {
     if (atividade.foraDoBanco) return { arquivo: "—", quando: "—", situacao: "Ainda não está no banco" };
     if (!Object.hasOwn(atividade, "pdfInfo")) return { arquivo: "Verificando…", quando: "Verificando…", situacao: "Verificando" };
     if (!atividade.pdfInfo?.ok) return { arquivo: indisponivel(), quando: indisponivel(), situacao: "Não foi possível verificar" };
-    if (!atividade.pdfInfo.pdf) return { arquivo: "Nenhum", quando: "—", situacao: "Sem PDF" };
-    const atualizado = atividade.pdfInfo.pdf.atualizado ? quando.format(new Date(atividade.pdfInfo.pdf.atualizado)) : indisponivel();
-    return { arquivo: atividade.pdfInfo.pdf.nome, quando: atualizado, situacao: "PDF no espaço privado" };
+    if (!atividade.pdfInfo.pdf && !atividade.arquivo) return { arquivo: "Nenhum", quando: "—", situacao: "Sem PDF" };
+    const atualizado = atividade.pdfInfo.pdf?.atualizado ? quando.format(new Date(atividade.pdfInfo.pdf.atualizado)) : indisponivel();
+    return { arquivo: atividade.arquivo || atividade.pdfInfo.pdf?.nome || "Nenhum", quando: atualizado, situacao: "PDF no espaço privado" };
   }
 
   let pdfAlvo = null;
@@ -599,11 +604,12 @@ export async function iniciarAdmin(loja) {
   function abrirPdf(atividade) {
     pdfAlvo = atividade;
     const dialogo = document.querySelector("#pdf-troca");
-    const temArquivo = Boolean(atividade.pdfInfo?.pdf);
+    const nomeAtual = atividade.arquivo || atividade.pdfInfo?.pdf?.nome || "";
+    const temArquivo = Boolean(nomeAtual);
     document.querySelector("#pdf-troca-titulo").textContent = temArquivo ? "Substituir PDF" : "Enviar PDF";
     document.querySelector("#pdf-troca-atividade").textContent = atividade.titulo;
-    document.querySelector("#pdf-troca-atual").textContent = temArquivo
-      ? `Arquivo atual: ${atividade.pdfInfo.pdf.nome}`
+    document.querySelector("#pdf-troca-atual").textContent = nomeAtual
+      ? `Arquivo atual: ${nomeAtual}`
       : "Esta atividade ainda não tem PDF.";
     document.querySelector("#pdf-troca-aviso").hidden = !temArquivo;
     const entrada = document.querySelector("#pdf-troca-arquivo");
@@ -634,7 +640,7 @@ export async function iniciarAdmin(loja) {
           acoes.append(botaoAcao("Visualizar", () => {
             location.href = `atividade.html?id=${encodeURIComponent(atividade.id)}`;
           }));
-          if (atividade.pdfInfo?.pdf) {
+          if (atividade.pdfInfo?.pdf || atividade.arquivo) {
             acoes.append(botaoAcao("Baixar", async () => {
               try {
                 await loja.baixar(atividade.id);
@@ -650,7 +656,10 @@ export async function iniciarAdmin(loja) {
               }
             }));
           }
-          acoes.append(botaoAcao(atividade.pdfInfo?.pdf ? "Substituir" : "Enviar", () => abrirPdf(atividade), atividade.pdfInfo?.pdf ? "botao-perigo" : ""));
+          acoes.append(botaoAcao(atividade.pdfInfo?.pdf || atividade.arquivo ? "Substituir" : "Enviar", () => abrirPdf(atividade), atividade.pdfInfo?.pdf || atividade.arquivo ? "botao-perigo" : ""));
+          if (atividade.pdfAnterior && atividade.arquivo) {
+            acoes.append(botaoAcao("Restaurar anterior", () => restaurarPdf(atividade)));
+          }
         }
         acoes.classList.add("acoes-pdf");
         const situacaoPdf = selo(info.situacao === "PDF no espaço privado" ? "Privado" : info.situacao, info.situacao === "PDF no espaço privado" ? "ok" : "neutro");
@@ -1091,11 +1100,39 @@ export async function iniciarAdmin(loja) {
   });
   document.addEventListener("click", fecharMenus);
   document.querySelector("#busca-cliente")?.addEventListener("input", pintarClientes);
+  async function restaurarPdf(atividade) {
+    if (!loja.restaurarPdf || !atividade.pdfAnterior) return;
+    if (!window.confirm("Voltar ao PDF anterior? O arquivo novo permanece guardado, mas os downloads passam a usar o anterior.")) return;
+    if (!travaPdf.entrar()) return;
+    const status = document.querySelector("#arquivos-status");
+    try {
+      const resultado = await loja.restaurarPdf(atividade.id, atividade.arquivo, atividade.pdfAnterior);
+      aviso(status, resultado.mensagem, Boolean(resultado.ok));
+      if (!resultado.ok) return;
+      atividade.arquivo = resultado.arquivo || atividade.arquivo;
+      atividade.pdfAnterior = "";
+      pintarArquivos();
+    } finally {
+      travaPdf.sair();
+    }
+  }
+
   const entradaPdf = document.querySelector("#pdf-troca-arquivo");
-  entradaPdf?.addEventListener("change", () => {
+  entradaPdf?.addEventListener("change", async () => {
     const arquivo = entradaPdf.files?.[0];
-    document.querySelector("#pdf-troca-nome").textContent = arquivo ? arquivo.name : "Nenhum arquivo escolhido.";
-    document.querySelector("#pdf-troca-confirmar").disabled = !arquivo;
+    const nome = document.querySelector("#pdf-troca-nome");
+    const confirmar = document.querySelector("#pdf-troca-confirmar");
+    if (!arquivo) {
+      nome.textContent = "Nenhum arquivo escolhido.";
+      confirmar.disabled = true;
+      return;
+    }
+    const bytes = new Uint8Array(await arquivo.slice(0, 5).arrayBuffer());
+    const validacao = validarPdf({ nome: arquivo.name, tipo: arquivo.type, tamanho: arquivo.size, bytes });
+    nome.textContent = validacao.ok
+      ? `${arquivo.name} · ${formatarTamanho(arquivo.size)}`
+      : validacao.mensagem;
+    confirmar.disabled = !validacao.ok;
   });
   document.querySelector("#pdf-troca-cancelar")?.addEventListener("click", () => {
     pdfAlvo = null;
@@ -1105,22 +1142,37 @@ export async function iniciarAdmin(loja) {
     const atividade = pdfAlvo;
     const arquivo = entradaPdf.files?.[0];
     if (!atividade || !arquivo) return;
+    if (!travaPdf.entrar()) return;
     const confirmar = document.querySelector("#pdf-troca-confirmar");
     confirmar.disabled = true;
     const nome = atividade.arquivo || `${atividade.id}.pdf`;
-    const resultado = await loja.enviarPdf(atividade.id, arquivo, nome);
-    confirmar.disabled = false;
-    if (!resultado.ok) {
-      aviso(document.querySelector("#arquivos-status"), resultado.mensagem);
-      return;
+    try {
+      const bytes = new Uint8Array(await arquivo.slice(0, 5).arrayBuffer());
+      const validacao = validarPdf({ nome: arquivo.name, tipo: arquivo.type, tamanho: arquivo.size, bytes });
+      if (!validacao.ok) {
+        aviso(document.querySelector("#arquivos-status"), validacao.mensagem);
+        confirmar.disabled = false;
+        return;
+      }
+      const resultado = await (loja.substituirPdf
+        ? loja.substituirPdf(atividade.id, arquivo, nome)
+        : loja.enviarPdf(atividade.id, arquivo, nome));
+      if (!resultado.ok) {
+        aviso(document.querySelector("#arquivos-status"), resultado.mensagem);
+        confirmar.disabled = false;
+        return;
+      }
+      const conferido = loja.arquivoPdf ? await loja.arquivoPdf(atividade.id, resultado.arquivo || nome) : { ok: true, pdf: { nome: resultado.arquivo || nome, atualizado: new Date().toISOString() }, anterior: resultado.anterior || "" };
+      atividade.arquivo = resultado.arquivo || nome;
+      atividade.pdfInfo = conferido.ok ? { ok: true, pdf: conferido.pdf || { nome: atividade.arquivo, atualizado: new Date().toISOString() }, anterior: conferido.anterior || "" } : { ok: false };
+      if (resultado.anterior || conferido.anterior) atividade.pdfAnterior = resultado.anterior || conferido.anterior;
+      pdfAlvo = null;
+      document.querySelector("#pdf-troca").close();
+      aviso(document.querySelector("#arquivos-status"), resultado.mensagem || "PDF guardado. Quem administra e quem já pagou conseguem baixar.", true);
+      pintarArquivos();
+    } finally {
+      travaPdf.sair();
     }
-    const conferido = loja.arquivoPdf ? await loja.arquivoPdf(atividade.id) : { ok: true, pdf: { nome: arquivo.name, atualizado: new Date().toISOString() } };
-    atividade.pdfInfo = conferido.ok ? { ok: true, pdf: conferido.pdf } : { ok: false };
-    if (!atividade.arquivo) atividade.arquivo = nome;
-    pdfAlvo = null;
-    document.querySelector("#pdf-troca").close();
-    aviso(document.querySelector("#arquivos-status"), "PDF guardado. Quem administra e quem já pagou conseguem baixar.", true);
-    pintarArquivos();
   });
   ["#busca-pedido", "#pedidos-status", "#pedidos-inicio", "#pedidos-fim"].forEach((seletor) => {
     document.querySelector(seletor).addEventListener("input", pintarPedidos);

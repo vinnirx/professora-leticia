@@ -1,5 +1,7 @@
 import { caminhoPdf } from "./arquivo-seguro.js";
+import { nomeCapa, urlComVersao, validarCapa } from "./capa-loja.js";
 import { administra } from "./conta/papeis.js";
+import { executarRestauracao, executarSubstituicao } from "./pdf-troca.js";
 
 const destinos = new Set(["minhas.html", "admin.html", "index.html", "index.html#atividades", "atividade.html"]);
 
@@ -45,16 +47,44 @@ async function carregarConfig() {
 
 function pintarMenu(sessao, admin) {
   document.querySelectorAll("[data-conta]").forEach((link) => {
-    if (sessao) {
-      link.textContent = "Minha conta";
-      link.href = "minhas.html";
-    } else {
-      link.textContent = "Entrar";
-      link.href = "entrar.html";
-    }
+    link.hidden = Boolean(sessao);
+    link.textContent = "Entrar";
+    link.href = "entrar.html";
+  });
+  document.querySelectorAll("[data-menu-conta]").forEach((menu) => {
+    menu.hidden = !sessao;
   });
   document.querySelectorAll(".so-admin").forEach((link) => {
     link.classList.toggle("visivel", Boolean(admin));
+  });
+}
+
+function prepararMenuConta(sair) {
+  const bloco = document.querySelector("[data-menu-conta]");
+  if (!bloco || bloco.dataset.pronto === "sim") return;
+  bloco.dataset.pronto = "sim";
+  const botao = bloco.querySelector(".menu-conta-abre");
+  const lista = bloco.querySelector(".menu-conta-opcoes");
+  if (!botao || !lista) return;
+  const fechar = () => {
+    lista.hidden = true;
+    botao.setAttribute("aria-expanded", "false");
+  };
+  botao.addEventListener("click", () => {
+    const vaiAbrir = lista.hidden;
+    lista.hidden = !vaiAbrir;
+    botao.setAttribute("aria-expanded", String(vaiAbrir));
+  });
+  document.addEventListener("click", (evento) => {
+    if (!bloco.contains(evento.target)) fechar();
+  });
+  document.addEventListener("keydown", (evento) => {
+    if (evento.key === "Escape") fechar();
+  });
+  bloco.querySelector("[data-sair]")?.addEventListener("click", () => {
+    const botaoSair = bloco.querySelector("[data-sair]");
+    if (botaoSair) botaoSair.disabled = true;
+    sair();
   });
 }
 
@@ -386,15 +416,19 @@ async function iniciar() {
       return { ok: true };
     },
     async enviarCapa(atividadeId, arquivo) {
-      const extensao = arquivo.type === "image/png" ? "png" : arquivo.type === "image/webp" ? "webp" : "jpg";
-      const nome = `${atividadeId}.${extensao}`;
-      const { error } = await cliente.storage.from("capas").upload(nome, arquivo, {
-        upsert: true,
-        contentType: arquivo.type || "image/jpeg",
+      const bytes = new Uint8Array(await arquivo.arrayBuffer());
+      const instante = Date.now();
+      const validacao = validarCapa({ tipo: arquivo.type, tamanho: arquivo.size, bytes });
+      if (!validacao.ok) return { ok: false, mensagem: validacao.mensagem };
+      const nome = nomeCapa(atividadeId, validacao.extensao, instante);
+      if (!nome) return { ok: false, mensagem: "Não foi possível nomear a capa. A imagem atual foi mantida." };
+      const { error } = await cliente.storage.from("capas").upload(nome, bytes, {
+        upsert: false,
+        contentType: arquivo.type,
       });
-      if (error) return { ok: false, mensagem: traduzir(error) };
+      if (error) return { ok: false, mensagem: "A capa atual foi mantida. A imagem nova não entrou." };
       const { data } = cliente.storage.from("capas").getPublicUrl(nome);
-      return { ok: true, url: data.publicUrl };
+      return { ok: true, url: urlComVersao(data.publicUrl, instante) };
     },
     async definirDestaque(atividadeId, ligado) {
       const { error } = await cliente.rpc("definir_destaque", { atividade: atividadeId, ligado });
@@ -406,30 +440,119 @@ async function iniciar() {
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true };
     },
-    async arquivoPdf(atividadeId) {
-      const { data, error } = await cliente.storage.from("atividades").list(atividadeId, { limit: 20 });
+    async arquivoPdf(atividadeId, nomePreferido = "") {
+      const { data, error } = await cliente.storage.from("atividades").list(atividadeId, { limit: 100 });
       if (error) return { ok: false };
-      const pdf = (data || []).find((item) => /\.pdf$/i.test(item.name || ""));
-      if (!pdf) return { ok: true, pdf: null };
-      return { ok: true, pdf: { nome: pdf.name, atualizado: pdf.updated_at || pdf.created_at || "" } };
+      const pdfs = (data || []).filter((item) => /\.pdf$/i.test(item.name || ""));
+      const anterior = pdfs
+        .filter((item) => /-anterior-\d+\.pdf$/i.test(item.name || ""))
+        .sort((a, b) => String(b.name).localeCompare(String(a.name)))[0];
+      const preferido = pdfs.find((item) => item.name === nomePreferido);
+      const pdf = preferido || pdfs.find((item) => !/-anterior-\d+\.pdf$/i.test(item.name || "") && !/^versao-\d+\.pdf$/i.test(item.name || ""));
+      return {
+        ok: true,
+        pdf: pdf ? { nome: pdf.name, atualizado: pdf.updated_at || pdf.created_at || "" } : null,
+        anterior: anterior?.name || "",
+      };
     },
     async arquivosPdf(ids) {
       const saida = {};
-      await Promise.all(ids.map(async (id) => {
-        const resultado = await api.arquivoPdf(id);
-        saida[id] = resultado.ok ? { ok: true, pdf: resultado.pdf } : { ok: false };
+      await Promise.all(ids.map(async (item) => {
+        const id = typeof item === "string" ? item : item.id;
+        const nome = typeof item === "string" ? "" : item.arquivo || "";
+        const resultado = await api.arquivoPdf(id, nome);
+        saida[id] = resultado.ok ? { ok: true, pdf: resultado.pdf, anterior: resultado.anterior || "" } : { ok: false };
       }));
       return saida;
     },
     async enviarPdf(atividadeId, arquivo, nome) {
-      const { error } = await cliente.storage.from("atividades").upload(`${atividadeId}/${nome}`, arquivo, {
-        upsert: true,
-        contentType: "application/pdf",
-      });
-      if (error) return { ok: false, mensagem: traduzir(error) };
-      return { ok: true };
+      return api.substituirPdf(atividadeId, arquivo, nome);
+    },
+    async referenciaPdfDisponivel() {
+      const { error } = await cliente.rpc("definir_arquivo", { atividade: "x", nome: "x" });
+      if (!error) return false;
+      return !/could not find|schema cache|does not exist|não encontr/i.test(String(error.message || ""));
+    },
+    armazenamentoPdf() {
+      return {
+        async baixar(caminhoArquivo) {
+          const { data, error } = await cliente.storage.from("atividades").download(caminhoArquivo);
+          if (error || !data) throw new Error("ausente");
+          return new Uint8Array(await data.arrayBuffer());
+        },
+        async enviar(caminhoArquivo, bytes, opcoes) {
+          const { error } = await cliente.storage.from("atividades").upload(caminhoArquivo, bytes, {
+            upsert: opcoes?.upsert === true,
+            contentType: "application/pdf",
+          });
+          if (error) throw new Error(error.message || "falha");
+        },
+      };
+    },
+    async substituirPdf(atividadeId, arquivo, arquivoAtual) {
+      if (api.trocasPdf.has(atividadeId)) {
+        return { ok: false, mensagem: "A substituição deste PDF já está em andamento." };
+      }
+      api.trocasPdf.add(atividadeId);
+      try {
+        const bytes = new Uint8Array(await arquivo.arrayBuffer());
+        const podeApontar = await api.referenciaPdfDisponivel();
+        let existeAtual = false;
+        if (arquivoAtual && !podeApontar) {
+          const info = await api.arquivoPdf(atividadeId, arquivoAtual);
+          if (!info.ok) {
+            return { ok: false, mensagem: "Não foi possível conferir o PDF atual. Nada foi substituído.", arquivo: arquivoAtual };
+          }
+          existeAtual = info.pdf?.nome === arquivoAtual;
+        }
+        return await executarSubstituicao({
+          storage: api.armazenamentoPdf(),
+          atividadeId,
+          arquivoAtual,
+          nome: arquivo.name,
+          tipo: arquivo.type,
+          tamanho: arquivo.size,
+          bytes,
+          instante: Date.now(),
+          existeAtual,
+          definirArquivo: podeApontar
+            ? async (nomeNovo) => {
+              const { error } = await cliente.rpc("definir_arquivo", { atividade: atividadeId, nome: nomeNovo });
+              if (error) return { ok: false, mensagem: traduzir(error) };
+              return { ok: true };
+            }
+            : null,
+        });
+      } finally {
+        api.trocasPdf.delete(atividadeId);
+      }
+    },
+    async restaurarPdf(atividadeId, arquivoAtual, nomeAnteriorArquivo) {
+      if (api.trocasPdf.has(atividadeId)) {
+        return { ok: false, mensagem: "A substituição deste PDF já está em andamento." };
+      }
+      api.trocasPdf.add(atividadeId);
+      try {
+        const podeApontar = await api.referenciaPdfDisponivel();
+        return await executarRestauracao({
+          storage: api.armazenamentoPdf(),
+          atividadeId,
+          arquivoAtual,
+          nomeAnteriorArquivo,
+          definirArquivo: podeApontar
+            ? async (nomeNovo) => {
+              const { error } = await cliente.rpc("definir_arquivo", { atividade: atividadeId, nome: nomeNovo });
+              if (error) return { ok: false, mensagem: traduzir(error) };
+              return { ok: true };
+            }
+            : null,
+        });
+      } finally {
+        api.trocasPdf.delete(atividadeId);
+      }
     },
   };
+  api.trocasPdf = new Set();
 
   const pedidoPeloEmail = hashDaUrl().get("type") === "recovery";
   const linkVencido = hashDaUrl().get("error_code") === "otp_expired";
@@ -446,6 +569,7 @@ async function iniciar() {
   api.recuperando = Boolean(pedidoPeloEmail && atual);
   api.linkVencido = Boolean(linkVencido || (pedidoPeloEmail && !atual));
   pintarMenu(atual, admin);
+  prepararMenuConta(() => api.sair());
   window.contaLoja = api;
   return api;
 }

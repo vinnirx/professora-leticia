@@ -686,6 +686,18 @@ body[data-pagina="admin"] {
   border-radius: 0.6rem;
 }
 
+#nova-atividade.edicao-plana .passos,
+#nova-atividade.edicao-plana #etapa-seguir,
+#nova-atividade.edicao-plana #etapa-voltar {
+  display: none;
+}
+
+#nova-atividade.edicao-plana [data-etapa] {
+  display: block;
+}
+
+#origem-catalogo { margin-top: 0; }
+
 #revisao-atividade {
   display: grid;
   grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr);
