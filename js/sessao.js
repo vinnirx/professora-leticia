@@ -260,6 +260,17 @@ async function iniciar() {
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true, atividade: data };
     },
+    async editarCampos(atividadeId, mudancas) {
+      const { data, error } = await cliente.rpc("editar_campos", {
+        atividade_id: atividadeId,
+        campos: mudancas,
+      });
+      if (error && /could not find the function|schema cache|does not exist/i.test(String(error.message || ""))) {
+        return { ok: false, ausente: true };
+      }
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      return { ok: true, atividade: data };
+    },
     async editarAtividade(dados) {
       const { data, error } = await cliente.rpc("editar_atividade", {
         atividade_id: dados.id,
@@ -493,18 +504,17 @@ async function iniciar() {
       if (api.trocasPdf.has(atividadeId)) {
         return { ok: false, mensagem: "A substituição deste PDF já está em andamento." };
       }
+      const podeApontar = await api.referenciaPdfDisponivel();
+      if (!podeApontar) {
+        return {
+          ok: false,
+          mensagem: "A substituição do PDF está pendente de validação. O arquivo atual foi mantido.",
+          arquivo: arquivoAtual || "",
+        };
+      }
       api.trocasPdf.add(atividadeId);
       try {
         const bytes = new Uint8Array(await arquivo.arrayBuffer());
-        const podeApontar = await api.referenciaPdfDisponivel();
-        let existeAtual = false;
-        if (arquivoAtual && !podeApontar) {
-          const info = await api.arquivoPdf(atividadeId, arquivoAtual);
-          if (!info.ok) {
-            return { ok: false, mensagem: "Não foi possível conferir o PDF atual. Nada foi substituído.", arquivo: arquivoAtual };
-          }
-          existeAtual = info.pdf?.nome === arquivoAtual;
-        }
         return await executarSubstituicao({
           storage: api.armazenamentoPdf(),
           atividadeId,
@@ -514,14 +524,12 @@ async function iniciar() {
           tamanho: arquivo.size,
           bytes,
           instante: Date.now(),
-          existeAtual,
-          definirArquivo: podeApontar
-            ? async (nomeNovo) => {
-              const { error } = await cliente.rpc("definir_arquivo", { atividade: atividadeId, nome: nomeNovo });
-              if (error) return { ok: false, mensagem: traduzir(error) };
-              return { ok: true };
-            }
-            : null,
+          existeAtual: false,
+          definirArquivo: async (nomeNovo) => {
+            const { error } = await cliente.rpc("definir_arquivo", { atividade: atividadeId, nome: nomeNovo });
+            if (error) return { ok: false, mensagem: traduzir(error) };
+            return { ok: true };
+          },
         });
       } finally {
         api.trocasPdf.delete(atividadeId);
@@ -531,21 +539,22 @@ async function iniciar() {
       if (api.trocasPdf.has(atividadeId)) {
         return { ok: false, mensagem: "A substituição deste PDF já está em andamento." };
       }
+      const podeApontar = await api.referenciaPdfDisponivel();
+      if (!podeApontar) {
+        return { ok: false, mensagem: "A substituição do PDF está pendente de validação. O arquivo atual foi mantido." };
+      }
       api.trocasPdf.add(atividadeId);
       try {
-        const podeApontar = await api.referenciaPdfDisponivel();
         return await executarRestauracao({
           storage: api.armazenamentoPdf(),
           atividadeId,
           arquivoAtual,
           nomeAnteriorArquivo,
-          definirArquivo: podeApontar
-            ? async (nomeNovo) => {
-              const { error } = await cliente.rpc("definir_arquivo", { atividade: atividadeId, nome: nomeNovo });
-              if (error) return { ok: false, mensagem: traduzir(error) };
-              return { ok: true };
-            }
-            : null,
+          definirArquivo: async (nomeNovo) => {
+            const { error } = await cliente.rpc("definir_arquivo", { atividade: atividadeId, nome: nomeNovo });
+            if (error) return { ok: false, mensagem: traduzir(error) };
+            return { ok: true };
+          },
         });
       } finally {
         api.trocasPdf.delete(atividadeId);

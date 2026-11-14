@@ -1,6 +1,6 @@
 import { formatarTamanho, validarPdf } from "../pdf-troca.js";
 import { criarTrava } from "../trava.js";
-import { abrirEdicao, prepararCadastro } from "./cadastro.js";
+import { abrirEdicao, prepararCadastro } from "./cadastro.js?v=4";
 import { prepararEquipe } from "./equipe.js";
 import { aviso, moeda, quando } from "./avisos.js";
 import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
@@ -611,14 +611,19 @@ export async function iniciarAdmin(loja) {
     document.querySelector("#pdf-troca-atual").textContent = nomeAtual
       ? `Arquivo atual: ${nomeAtual}`
       : "Esta atividade ainda não tem PDF.";
-    document.querySelector("#pdf-troca-aviso").hidden = !temArquivo;
+    const avisoTroca = document.querySelector("#pdf-troca-aviso");
+    if (avisoTroca) {
+      avisoTroca.hidden = false;
+      avisoTroca.textContent = "A substituição do PDF está pendente de validação. O arquivo atual foi mantido e o download continua igual.";
+    }
     const entrada = document.querySelector("#pdf-troca-arquivo");
+    entrada.disabled = true;
     entrada.value = "";
-    document.querySelector("#pdf-troca-nome").textContent = "Nenhum arquivo escolhido.";
+    document.querySelector("#pdf-troca-nome").textContent = "Nenhum arquivo será trocado nesta validação.";
     const confirmar = document.querySelector("#pdf-troca-confirmar");
     confirmar.disabled = true;
-    confirmar.textContent = temArquivo ? "Substituir" : "Enviar";
-    confirmar.className = temArquivo ? "botao botao-perigo" : "botao";
+    confirmar.textContent = "Substituição pendente";
+    confirmar.className = "botao";
     dialogo.showModal();
   }
 
@@ -656,7 +661,7 @@ export async function iniciarAdmin(loja) {
               }
             }));
           }
-          acoes.append(botaoAcao(atividade.pdfInfo?.pdf || atividade.arquivo ? "Substituir" : "Enviar", () => abrirPdf(atividade), atividade.pdfInfo?.pdf || atividade.arquivo ? "botao-perigo" : ""));
+          acoes.append(botaoAcao("Ver substituição", () => abrirPdf(atividade)));
           if (atividade.pdfAnterior && atividade.arquivo) {
             acoes.append(botaoAcao("Restaurar anterior", () => restaurarPdf(atividade)));
           }
@@ -1130,9 +1135,9 @@ export async function iniciarAdmin(loja) {
     const bytes = new Uint8Array(await arquivo.slice(0, 5).arrayBuffer());
     const validacao = validarPdf({ nome: arquivo.name, tipo: arquivo.type, tamanho: arquivo.size, bytes });
     nome.textContent = validacao.ok
-      ? `${arquivo.name} · ${formatarTamanho(arquivo.size)}`
+      ? `${arquivo.name} · ${formatarTamanho(arquivo.size)}. A substituição continua pendente e o arquivo atual foi mantido.`
       : validacao.mensagem;
-    confirmar.disabled = !validacao.ok;
+    confirmar.disabled = true;
   });
   document.querySelector("#pdf-troca-cancelar")?.addEventListener("click", () => {
     pdfAlvo = null;

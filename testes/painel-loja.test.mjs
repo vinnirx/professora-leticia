@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+import { validarNovaAtividade } from "../js/cadastro-regras.js";
+
 import { caminhoPdf } from "../js/arquivo-seguro.js";
 import { LIMITE_CAPA, nomeCapa, urlComVersao, validarCapa } from "../js/capa-loja.js";
 import { administra } from "../js/conta/papeis.js";
-import { camposDoCatalogo, fichaInicial, payloadEdicao } from "../js/edicao-atividade.js";
+import { avisoCatalogo, camposDoCatalogo, decidirGravacao, fichaInicial, mensagemFuncaoAusente, payloadEdicao } from "../js/edicao-atividade.js";
 import { opcoesConta } from "../js/menu-conta.js";
 import {
   executarRestauracao,
@@ -82,6 +84,10 @@ const soTitulo = payloadEdicao(formularioDe(ficha, { titulo: "Título novo da at
 assert.equal(soTitulo.ok, true);
 assert.equal(soTitulo.alterouTexto, true);
 assert.equal(soTitulo.atividade.titulo, "Título novo da atividade");
+assert.equal(soTitulo.atividade.resumo, banco.resumo);
+assert.equal(soTitulo.atividade.explicacao, banco.explicacao);
+assert.deepEqual(soTitulo.mudancas, { titulo: "Título novo da atividade" });
+assert.equal(soTitulo.compativel, true);
 assert.equal(soTitulo.atividade.preco, 4.9);
 assert.equal(soTitulo.atividade.area, "");
 assert.equal(soTitulo.atividade.tema, "");
@@ -94,17 +100,67 @@ assert.equal(soPreco.ok, true);
 assert.equal(soPreco.atividade.preco, 12.5);
 assert.equal(soPreco.atividade.titulo, banco.titulo);
 assert.equal(soPreco.atividade.area, "");
+assert.deepEqual(soPreco.mudancas, { preco: 12.5 });
+
+const soResumo = payloadEdicao(formularioDe(ficha, { resumo: "Descrição nova, com mais de dez letras." }), ficha);
+assert.equal(soResumo.ok, true);
+assert.equal(soResumo.atividade.resumo, "Descrição nova, com mais de dez letras.");
+assert.equal(soResumo.atividade.titulo, banco.titulo);
+assert.equal(soResumo.atividade.preco, 4.9);
+assert.deepEqual(Object.keys(soResumo.mudancas), ["resumo"]);
 
 const intacto = payloadEdicao(formularioDe(ficha), ficha);
 assert.equal(intacto.ok, true);
 assert.equal(intacto.alterouTexto, false);
 assert.equal(intacto.atividade.area, "");
 
-const semResumo = fichaInicial({ ...banco, resumo: "" }, catalogo);
-const bloqueado = payloadEdicao(formularioDe(semResumo, { titulo: "Outro título válido" }), semResumo);
-assert.equal(bloqueado.ok, false);
-assert.match(bloqueado.mensagem, /descrição breve/);
-assert.equal(bloqueado.atividade, undefined);
+const semTexto = fichaInicial({ ...banco, resumo: "", explicacao: "" }, catalogo);
+const tituloComCatalogo = payloadEdicao(formularioDe(semTexto, { titulo: "Outro título válido" }), semTexto);
+assert.equal(tituloComCatalogo.ok, true);
+assert.equal(tituloComCatalogo.alterouTexto, true);
+assert.deepEqual(tituloComCatalogo.mudancas, { titulo: "Outro título válido" });
+assert.equal(tituloComCatalogo.atividade.resumo, "");
+assert.equal(tituloComCatalogo.atividade.explicacao, "");
+assert.equal(tituloComCatalogo.atividade.preco, 4.9);
+assert.equal(tituloComCatalogo.atividade.area, "");
+assert.deepEqual(tituloComCatalogo.atividade.informacoes, []);
+assert.equal(tituloComCatalogo.compativel, false);
+assert.equal(JSON.stringify(tituloComCatalogo.mudancas).includes("12 páginas"), false);
+
+const precoComCatalogo = payloadEdicao(formularioDe(semTexto, { preco: "12.5" }), semTexto);
+assert.equal(precoComCatalogo.ok, true);
+assert.deepEqual(precoComCatalogo.mudancas, { preco: 12.5 });
+assert.equal(precoComCatalogo.atividade.titulo, banco.titulo);
+assert.equal(precoComCatalogo.atividade.resumo, "");
+assert.equal(precoComCatalogo.atividade.area, "");
+
+const semPreco = fichaInicial({ ...banco, preco: 0 }, catalogo);
+const tituloComPrecoDoCatalogo = payloadEdicao(formularioDe(semPreco, { titulo: "Outro título válido" }), semPreco);
+assert.equal(tituloComPrecoDoCatalogo.ok, true);
+assert.equal(tituloComPrecoDoCatalogo.atividade.preco, 0);
+assert.equal(tituloComPrecoDoCatalogo.mudancas.preco, undefined);
+assert.equal(tituloComPrecoDoCatalogo.atividade.resumo, banco.resumo);
+
+const semMudanca = payloadEdicao(formularioDe(semTexto), semTexto);
+assert.equal(semMudanca.ok, true);
+assert.equal(semMudanca.alterouTexto, false);
+assert.deepEqual(semMudanca.mudancas, {});
+
+const antes = { titulo: banco.titulo, resumo: "", explicacao: "", area: "", informacoes: [] };
+const falha = { ...antes };
+try {
+  if (!tituloComCatalogo.compativel) throw new Error("recusado");
+  Object.assign(falha, tituloComCatalogo.mudancas);
+} catch {
+  // A gravação recusada não altera o registro.
+}
+assert.equal(falha.titulo, antes.titulo);
+assert.equal(falha.resumo, "");
+assert.deepEqual(falha.informacoes, []);
+
+assert.match(avisoCatalogo(semTexto), /descrição breve/);
+assert.match(avisoCatalogo(semTexto), /não grava/);
+assert.equal(avisoCatalogo(ficha).includes("descrição breve"), false);
 
 const areaEditada = payloadEdicao(formularioDe(ficha, { area: "Ciências", tema: "Células" }), ficha);
 assert.equal(areaEditada.atividade.area, "Ciências");
@@ -249,6 +305,11 @@ const sessao = readFileSync(new URL("../js/sessao.js", import.meta.url), "utf8")
 const baixar = sessao.slice(sessao.indexOf("async baixar"), sessao.indexOf("async painel"));
 assert.equal(baixar.includes("link-download"), true);
 assert.equal(baixar.includes("createSignedUrl"), false);
+const trocaPdf = sessao.slice(sessao.indexOf("async substituirPdf"), sessao.indexOf("async restaurarPdf"));
+const avisoTroca = trocaPdf.indexOf("pendente de validação");
+const gravacaoTroca = trocaPdf.indexOf("executarSubstituicao");
+assert.ok(avisoTroca > -1 && avisoTroca < gravacaoTroca);
+assert.equal(trocaPdf.includes("!podeApontar"), true);
 assert.equal(readFileSync(new URL("../js/loja.js", import.meta.url), "utf8").includes("cobrancaAutomatica: false"), true);
 
 const sql = readFileSync(new URL("../supabase/migracao-arquivo.sql", import.meta.url), "utf8");
@@ -259,8 +320,73 @@ assert.match(sql, /grant execute on function public\.definir_arquivo\(text, text
 assert.doesNotMatch(sql, /delete from storage|drop policy|drop table/i);
 assert.equal((sql.match(/update public\.atividades/g) || []).length, 1);
 
+const parcial = readFileSync(new URL("../supabase/migracao-edicao-parcial.sql", import.meta.url), "utf8");
+assert.match(parcial, /NÃO rode este arquivo agora/);
+assert.match(parcial, /editar_campos\(atividade_id text, campos jsonb\)/);
+assert.match(parcial, /when campos \? 'titulo'/);
+assert.doesNotMatch(parcial, /delete from|drop table|function public\.editar_atividade/i);
+assert.doesNotMatch(parcial.split("update public.atividades")[1] || "", /arquivo|capa/);
+assert.match(sessao, /rpc\("editar_campos"/);
+const erroCampos = "Could not find the function public.editar_campos(atividade_id, campos) in the schema cache";
+const erroAntiga = "Could not find the function public.editar_atividade(atividade_id, atividade_titulo) in the schema cache";
+assert.match(erroCampos, /could not find the function|schema cache|does not exist/i);
+assert.equal(
+  /[áàâãéêíóôõúç]/i.test(erroAntiga) ? erroAntiga : "Não foi possível agora. Tente de novo.",
+  "Não foi possível agora. Tente de novo.",
+);
+const soTituloGravar = decidirGravacao(tituloComCatalogo);
+assert.equal(soTituloGravar.acao, "editar_campos");
+assert.deepEqual(soTituloGravar.campos, { titulo: "Outro título válido" });
+assert.equal(Object.hasOwn(soTituloGravar.campos, "resumo"), false);
+const soPrecoGravar = decidirGravacao(precoComCatalogo);
+assert.deepEqual(soPrecoGravar.campos, { preco: 12.5 });
+const soResumoGravar = decidirGravacao(soResumo);
+assert.deepEqual(Object.keys(soResumoGravar.campos), ["resumo"]);
+const semGravar = decidirGravacao(semMudanca);
+assert.equal(semGravar.acao, "parar");
+assert.equal(semGravar.mensagem, "Nenhuma alteração para salvar");
+assert.equal(semGravar.campos, undefined);
+assert.match(mensagemFuncaoAusente(), /Nada foi alterado/);
+const blocoSalvar = readFileSync(new URL("../js/conta/cadastro.js", import.meta.url), "utf8");
+const salvarEdicao = blocoSalvar.slice(blocoSalvar.indexOf("async function salvarEdicao"), blocoSalvar.indexOf("export function prepararCadastro"));
+assert.equal(salvarEdicao.includes("editarAtividade"), false);
+const reverter = readFileSync(new URL("../supabase/reverter-edicao-parcial.sql", import.meta.url), "utf8");
+assert.match(reverter, /NÃO rode este arquivo agora/);
+assert.match(reverter, /drop function if exists public\.editar_campos\(text, jsonb\)/);
+assert.doesNotMatch(reverter.replace(/--.*$/gm, ""), /editar_atividade|delete from|drop table|update public/i);
+
 const download = readFileSync(new URL("../supabase/functions/link-download/index.ts", import.meta.url), "utf8");
 assert.match(download, /pode_baixar/);
 assert.match(download, /createSignedUrl\(`\$\{atividade\}\/\$\{nome\}`, 120\)/);
+
+const novaCompleta = {
+  titulo: "Atividade fictícia completa",
+  resumo: "Descrição breve com mais de dez letras.",
+  explicacao: "Texto da página com mais de vinte letras.",
+  preco: 8,
+  area: "Ciências",
+  tema: "Células",
+  temasDaArea: ["Células"],
+  capa: true,
+  tipoCapa: "image/png",
+  quantidade: "2 páginas",
+  formato: "PDF para impressão",
+};
+assert.equal(validarNovaAtividade(novaCompleta), "");
+assert.match(validarNovaAtividade({ ...novaCompleta, titulo: "A" }), /atividade/);
+assert.match(validarNovaAtividade({ ...novaCompleta, capa: false }), /capa/);
+assert.match(validarNovaAtividade({ ...novaCompleta, resumo: "curta" }), /descrição/);
+assert.match(validarNovaAtividade({ ...novaCompleta, quantidade: "" }), /quantidade/);
+assert.match(validarNovaAtividade({ ...novaCompleta, formato: "" }), /formato/);
+
+const adminHtml = readFileSync(new URL("../admin.html", import.meta.url), "utf8");
+const criarHtml = adminHtml.slice(adminHtml.indexOf('id="nova-atividade"'), adminHtml.indexOf('id="ficha-edicao"'));
+const editarHtml = adminHtml.slice(adminHtml.indexOf('id="ficha-edicao"'), adminHtml.indexOf('data-painel="arquivos"'));
+assert.match(criarHtml, /Continuar/);
+assert.match(criarHtml, /data-passo="4"/);
+assert.equal(editarHtml.includes("Continuar"), false);
+assert.equal(editarHtml.includes("data-passo"), false);
+assert.match(editarHtml, /Salvar alterações/);
+assert.match(editarHtml, /Cancelar/);
 
 console.log("ok painel da loja");

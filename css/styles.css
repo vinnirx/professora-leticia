@@ -1390,7 +1390,7 @@ main {
 }
 
 .grade {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15.5rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15.5rem), 1fr));
   align-items: stretch;
 }
 
@@ -1426,6 +1426,7 @@ main {
   display: block;
   width: 100%;
   height: auto;
+  object-fit: contain;
 }
 
 .momentos { gap: 0.35rem; }

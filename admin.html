@@ -10,9 +10,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=85" />
+    <link rel="stylesheet" href="css/styles.css?v=86" />
     <link rel="stylesheet" href="css/conta.css?v=9" />
-    <link rel="stylesheet" href="css/painel.css?v=10" />
+    <link rel="stylesheet" href="css/painel.css?v=11" />
   </head>
   <body data-pagina="admin">
     <header class="cabecalho">
@@ -139,7 +139,7 @@
                   </fieldset>
                   <fieldset class="etapa" data-etapa="3" hidden>
                     <legend>Imagens e arquivos</legend>
-                    <p class="texto-secao" id="aviso-arquivos">Na atividade nova, a capa é obrigatória. O PDF pode entrar agora ou depois, em Arquivos PDF.</p>
+                    <p class="texto-secao" id="aviso-arquivos">Na atividade nova, a capa é obrigatória. O envio do PDF está pendente de validação e não substitui nenhum arquivo.</p>
                     <div class="grade-arquivos">
                       <div class="zona-arquivo">
                         <label>Imagem da capa <input name="capa" type="file" accept="image/jpeg,image/png,image/webp" /></label>
@@ -147,7 +147,7 @@
                         <img id="capa-mini" alt="" hidden />
                       </div>
                       <div class="zona-arquivo">
-                        <label>PDF, para colocar ou trocar <input name="pdf" type="file" accept="application/pdf" /></label>
+                        <label>PDF, para colocar ou trocar <input name="pdf" type="file" accept="application/pdf" disabled /></label>
                         <p id="nome-pdf"></p>
                       </div>
                     </div>
@@ -171,13 +171,80 @@
                 </form>
                 <div id="previa-atividade" hidden></div>
               </div>
+              <div id="ficha-edicao" hidden>
+                <div class="secao-cabeca">
+                  <div>
+                    <h2 id="titulo-edicao">Editar atividade</h2>
+                    <p class="texto-secao">Altere só o que precisar e salve. A capa e o PDF continuam se você não escolher outro arquivo.</p>
+                  </div>
+                  <div class="barra-salvar">
+                    <button class="botao" type="submit" form="form-edicao">Salvar alterações</button>
+                    <button class="botao botao-secundario" id="fechar-edicao" type="button">Voltar à lista</button>
+                  </div>
+                </div>
+                <p class="aviso-conta" id="edicao-status" role="status"></p>
+                <p class="texto-secao" id="origem-edicao" hidden></p>
+                <form id="form-edicao">
+                  <fieldset class="etapa">
+                    <legend>Texto e preço</legend>
+                    <div class="grade-campos">
+                      <label class="campo-largo">Título <input name="titulo" type="text" autocomplete="off" /></label>
+                      <label>Preço <input name="preco" type="number" min="0.01" step="0.01" /></label>
+                      <label class="campo-largo">Descrição breve <textarea name="resumo" rows="3"></textarea></label>
+                      <label class="campo-largo">Texto da página <textarea name="explicacao" rows="6"></textarea></label>
+                    </div>
+                  </fieldset>
+                  <fieldset class="etapa">
+                    <legend>Classificação</legend>
+                    <div class="grade-campos">
+                      <label>Área na loja <select name="area" id="area-edicao"></select></label>
+                      <label>Tema <select name="tema" id="tema-edicao"></select></label>
+                      <label>Área do conhecimento <input name="info_area" type="text" /></label>
+                      <label>Categoria <input name="info_categoria" type="text" /></label>
+                      <label>Subcategoria <input name="info_subcategoria" type="text" /></label>
+                      <label>Operação, se houver <input name="info_operacao" type="text" /></label>
+                      <label>Campo numérico, se houver <input name="info_campo" type="text" /></label>
+                      <label>Quantidade <input name="info_quantidade" type="text" /></label>
+                      <label class="campo-largo">Recursos <textarea name="info_recursos" rows="3"></textarea></label>
+                      <label>Formato <input name="info_formato" type="text" /></label>
+                      <label class="campo-largo">Habilidades, uma por linha <textarea name="habilidades" rows="4"></textarea></label>
+                      <label class="campo-largo">O que inclui, um item por linha <textarea name="inclui" rows="3"></textarea></label>
+                    </div>
+                  </fieldset>
+                  <fieldset class="etapa">
+                    <legend>Capa e PDF, se quiser trocar</legend>
+                    <div class="grade-arquivos">
+                      <div class="zona-arquivo">
+                        <p id="capa-edicao-atual"></p>
+                        <img id="capa-edicao-mini" alt="" hidden />
+                        <label>Trocar a capa <input name="capa" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+                        <p id="capa-edicao-nova"></p>
+                      </div>
+                      <div class="zona-arquivo">
+                        <p id="pdf-edicao-atual"></p>
+                        <p class="texto-secao">A troca do PDF está pendente de validação. O arquivo atual permanece.</p>
+                        <label>Substituir o PDF <input name="pdf" type="file" accept="application/pdf" disabled /></label>
+                        <p id="pdf-edicao-nova"></p>
+                      </div>
+                    </div>
+                  </fieldset>
+                  <label class="marca-destaque">
+                    <input name="destaque" type="checkbox" value="sim" />
+                    Mostrar em Materiais em destaque
+                  </label>
+                  <div class="barra-salvar">
+                    <button class="botao" type="submit">Salvar alterações</button>
+                    <button class="botao botao-secundario" id="cancelar-ficha" type="button">Cancelar</button>
+                  </div>
+                </form>
+              </div>
             </section>
 
             <section class="admin-bloco" data-painel="arquivos" hidden aria-labelledby="titulo-arquivos">
               <div class="secao-cabeca">
                 <div>
                   <h2 id="titulo-arquivos">Arquivos PDF</h2>
-                  <p class="texto-secao">O arquivo fica no espaço privado. Trocar pede confirmação e passa a ser o PDF de quem já pagou.</p>
+                  <p class="texto-secao">O arquivo fica no espaço privado. A substituição está pendente de validação: o PDF atual permanece e o download continua igual.</p>
                 </div>
               </div>
               <p class="aviso-conta" id="arquivos-status" role="status"></p>
@@ -300,10 +367,10 @@
           <p id="pdf-troca-atual"></p>
           <label>Arquivo PDF <input id="pdf-troca-arquivo" type="file" accept="application/pdf" /></label>
           <p id="pdf-troca-nome">Nenhum arquivo escolhido.</p>
-          <p class="aviso-conta" id="pdf-troca-aviso" hidden>O PDF atual fica guardado. Quem já pagou passa a baixar o arquivo novo somente depois que o envio terminar.</p>
+          <p class="aviso-conta" id="pdf-troca-aviso">A substituição do PDF está pendente de validação. O arquivo atual foi mantido e o download continua igual.</p>
           <div class="etapas-acoes">
             <button class="botao botao-secundario" id="pdf-troca-cancelar" type="button">Cancelar</button>
-            <button class="botao botao-perigo" id="pdf-troca-confirmar" type="button" disabled>Substituir</button>
+            <button class="botao" id="pdf-troca-confirmar" type="button" disabled>Substituição pendente</button>
           </div>
         </dialog>
       </div>
@@ -311,7 +378,7 @@
 
     <script src="js/loja.js?v=48"></script>
     <script src="js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="js/sessao.js?v=21"></script>
-    <script type="module" src="js/conta.js?v=28"></script>
+    <script type="module" src="js/sessao.js?v=23"></script>
+    <script type="module" src="js/conta.js?v=32"></script>
   </body>
 </html>

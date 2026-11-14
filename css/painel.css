@@ -696,7 +696,24 @@ body[data-pagina="admin"] {
   display: block;
 }
 
-#origem-catalogo { margin-top: 0; }
+#origem-catalogo,
+#origem-edicao { margin-top: 0; }
+
+.barra-salvar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  padding: 0.75rem 0;
+  background: linear-gradient(rgb(255 255 255 / 0%), #fff 28%);
+}
+
+.barra-salvar .botao { flex: 1 1 10rem; }
+
+#ficha-edicao .etapa { margin-top: 0.75rem; }
 
 #revisao-atividade {
   display: grid;

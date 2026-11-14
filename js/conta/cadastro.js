@@ -1,5 +1,6 @@
+import { validarNovaAtividade } from "../cadastro-regras.js";
 import { validarCapa } from "../capa-loja.js";
-import { camposDoCatalogo, fichaInicial, payloadEdicao, rotulosInformacao } from "../edicao-atividade.js";
+import { avisoCatalogo, confirmarFicha, decidirGravacao, fichaInicial, mensagemFuncaoAusente, payloadEdicao, rotulosInformacao } from "../edicao-atividade.js?v=4";
 import { formatarTamanho, validarPdf } from "../pdf-troca.js";
 import { dinheiro, linhas } from "../texto.js";
 import { areas, temasPorArea } from "../temas.js";
@@ -78,11 +79,17 @@ function preencherRevisao(formulario) {
   });
 }
 
-function definirTrabalho(aberto) {
-  const caixa = document.querySelector("#cadastro-atividade");
+function mostrarTrabalho(modo) {
   const lista = document.querySelector("#lista-trabalho");
-  if (caixa) caixa.hidden = !aberto;
-  if (lista) lista.hidden = aberto;
+  const criar = document.querySelector("#cadastro-atividade");
+  const editar = document.querySelector("#ficha-edicao");
+  if (lista) lista.hidden = modo !== "lista";
+  if (criar) criar.hidden = modo !== "criar";
+  if (editar) editar.hidden = modo !== "editar";
+}
+
+function definirTrabalho(aberto) {
+  mostrarTrabalho(aberto ? "criar" : "lista");
 }
 
 function emEdicao(formulario) {
@@ -206,17 +213,65 @@ function mostrarArquivosAtuais(ficha) {
   }
 }
 
+function garantirOpcao(select, valor) {
+  const textoValor = String(valor || "");
+  if (!select || !textoValor || [...select.options].some((opcao) => opcao.value === textoValor)) return;
+  const extra = document.createElement("option");
+  extra.value = textoValor;
+  extra.textContent = textoValor;
+  select.append(extra);
+}
+
+function preencherArea(select) {
+  if (!select || select.options.length) return;
+  const inicial = document.createElement("option");
+  inicial.value = "";
+  inicial.textContent = "Escolha a área";
+  select.append(inicial);
+  areas.forEach((nome) => {
+    const opcao = document.createElement("option");
+    opcao.value = nome;
+    opcao.textContent = nome;
+    select.append(opcao);
+  });
+}
+
+function lerFormularioEdicao(formulario) {
+  const campos = new FormData(formulario);
+  const informacoes = {};
+  rotulosInformacao().forEach(({ campo, rotulo }) => {
+    informacoes[rotulo] = String(campos.get(campo) || "");
+  });
+  return {
+    titulo: campos.get("titulo"),
+    resumo: campos.get("resumo"),
+    explicacao: campos.get("explicacao"),
+    preco: campos.get("preco"),
+    area: campos.get("area"),
+    tema: campos.get("tema"),
+    inclui: campos.get("inclui"),
+    habilidades: campos.get("habilidades"),
+    destaque: campos.get("destaque") === "sim",
+    informacoes,
+  };
+}
+
+function fichaSuja(formulario) {
+  if (!fichaAberta) return false;
+  const plano = payloadEdicao(lerFormularioEdicao(formulario), fichaAberta);
+  const capa = formulario.querySelector('[name="capa"]')?.files?.[0];
+  const pdf = formulario.querySelector('[name="pdf"]')?.files?.[0];
+  return Boolean(capa || pdf || !plano.ok || plano.alterouTexto);
+}
+
 export function abrirEdicao(atividade) {
-  const formulario = document.querySelector("#nova-atividade");
+  const formulario = document.querySelector("#form-edicao");
   const local = catalogoDa(atividade.id);
   atividadeEmEdicao = atividade;
-  fichaAberta = atividade.foraDoBanco ? null : fichaInicial(atividade, local);
-  const ficha = fichaAberta || fichaInicial({ ...atividade, destaque: false }, local);
-  formulario.classList.add("edicao-plana");
+  fichaAberta = fichaInicial(atividade.foraDoBanco ? { ...atividade, destaque: false } : atividade, local);
+  const ficha = fichaAberta;
   formulario.dataset.editando = atividade.id;
   formulario.dataset.destaqueAtual = ficha.destaque ? "sim" : "";
-  formulario.dataset.capaAtual = ficha.capa || "";
-  formulario.dataset.arquivoAtual = ficha.arquivo || "";
   formulario.querySelector('[name="titulo"]').value = ficha.campos.titulo || "";
   formulario.querySelector('[name="preco"]').value = ficha.campos.preco || "";
   formulario.querySelector('[name="destaque"]').checked = ficha.destaque;
@@ -226,29 +281,49 @@ export function abrirEdicao(atividade) {
   formulario.querySelector('[name="inclui"]').value = ficha.campos.inclui || "";
   preencherInformacoes(formulario, ficha.campos.informacoes);
   const area = formulario.querySelector('[name="area"]');
-  area.value = areas.includes(ficha.campos.area) ? ficha.campos.area : "";
-  preencherTemas(area.value, ficha.campos.tema || "");
-  mostrarArquivosAtuais(ficha);
-  const origem = document.querySelector("#origem-catalogo");
-  const complementos = fichaAberta ? camposDoCatalogo(fichaAberta) : [];
-  if (origem) {
-    origem.hidden = complementos.length === 0;
-    origem.textContent = complementos.length
-      ? `Estes dados aparecem no site, mas ainda não estão gravados: ${complementos.join(", ")}. Eles continuam na vitrine e só entram no banco se você alterar o campo.`
-      : "";
+  preencherArea(area);
+  garantirOpcao(area, ficha.campos.area);
+  area.value = ficha.campos.area || "";
+  const tema = formulario.querySelector("#tema-edicao");
+  preencherTemas(area.value, ficha.campos.tema || "", tema);
+  garantirOpcao(tema, ficha.campos.tema);
+  if (ficha.campos.tema) {
+    tema.value = ficha.campos.tema;
+    tema.disabled = false;
   }
-  const avisoArquivos = document.querySelector("#aviso-arquivos");
-  if (avisoArquivos) avisoArquivos.textContent = "A capa e o PDF atuais continuam se você não escolher outro arquivo.";
-  document.querySelector("#titulo-nova").textContent = "Editar atividade";
-  document.querySelector("#cadastro-aviso").textContent = "Altere só o que precisar e salve. Não é preciso refazer a atividade nem enviar de novo a capa ou o PDF.";
-  formulario.querySelector('[type="submit"]').textContent = "Salvar alterações";
-  document.querySelector("#cancelar-edicao").hidden = false;
-  document.querySelector("#previa-atividade").hidden = true;
-  document.querySelector("#nova-status").textContent = "";
-  definirTrabalho(true);
-  mostrarEtapa(formulario, 1);
+  const mini = document.querySelector("#capa-edicao-mini");
+  const capaAtual = document.querySelector("#capa-edicao-atual");
+  const pdfAtual = document.querySelector("#pdf-edicao-atual");
+  if (mini) {
+    if (ficha.capa) {
+      mini.src = ficha.capa;
+      mini.alt = "Capa atual";
+      mini.hidden = false;
+    } else {
+      mini.hidden = true;
+      mini.removeAttribute("src");
+    }
+  }
+  if (capaAtual) capaAtual.textContent = ficha.capa ? "Capa atual da atividade." : "Nenhuma capa gravada.";
+  if (pdfAtual) pdfAtual.textContent = ficha.arquivo ? `PDF atual: ${ficha.arquivo}` : "Nenhum PDF vinculado.";
+  document.querySelector("#capa-edicao-nova").textContent = "";
+  document.querySelector("#pdf-edicao-nova").textContent = "";
+  formulario.querySelector('[name="capa"]').value = "";
+  formulario.querySelector('[name="pdf"]').value = "";
+  const origem = document.querySelector("#origem-edicao");
+  const textoOrigem = atividade.foraDoBanco ? "" : avisoCatalogo(ficha);
+  if (origem) {
+    origem.hidden = textoOrigem === "";
+    origem.textContent = textoOrigem;
+  }
+  const estado = document.querySelector("#edicao-status");
+  if (estado) {
+    estado.className = "aviso-conta";
+    estado.textContent = "";
+  }
+  mostrarTrabalho("editar");
   if (location.hash !== "#atividades") location.hash = "atividades";
-  document.querySelector("#cadastro-atividade")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  document.querySelector("#ficha-edicao")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function slugAtividade(titulo, existentes) {
@@ -268,8 +343,8 @@ function slugAtividade(titulo, existentes) {
   return id;
 }
 
-function preencherTemas(area, temaAtual) {
-  const tema = document.querySelector("#tema-atividade");
+function preencherTemas(area, temaAtual, select) {
+  const tema = select || document.querySelector("#tema-atividade");
   tema.replaceChildren();
   if (!area) {
     const aguarda = document.createElement("option");
@@ -327,17 +402,23 @@ function lerCadastro(formulario, existentes, idAtual = "") {
   const tema = String(campos.get("tema") || "");
   const capa = formulario.querySelector('[name="capa"]').files[0];
   const temas = temasPorArea[area] || [];
-  if (titulo.length < 3) return { erro: "Diga qual é a atividade." };
-  if (!idAtual && !capa) return { erro: "Escolha a imagem da capa." };
-  if (capa && !/^image\/(jpeg|png|webp)$/.test(capa.type)) return { erro: "A capa precisa ser JPG, PNG ou WebP." };
-  if (!area) return { erro: "Escolha a área da loja." };
-  if (temas.length && !temas.includes(tema)) return { erro: "Escolha o tema dessa área." };
-  if (resumo.length < 10) return { erro: "Escreva uma descrição breve, com pelo menos 10 letras." };
-  if (explicacao.length < 20) return { erro: "Escreva o texto da página, com pelo menos 20 letras." };
-  if (!preco || preco <= 0) return { erro: "O valor precisa ser maior que zero." };
   const informacoes = informacoesDe(campos);
-  if (!informacoes.some(([rotulo]) => rotulo === "Quantidade")) return { erro: "Diga a quantidade do material." };
-  if (!informacoes.some(([rotulo]) => rotulo === "Formato")) return { erro: "Diga o formato do material." };
+  if (!idAtual) {
+    const erroNova = validarNovaAtividade({
+      titulo,
+      resumo,
+      explicacao,
+      preco,
+      area,
+      tema,
+      temasDaArea: temas,
+      capa: Boolean(capa),
+      tipoCapa: capa?.type || "",
+      quantidade: informacoes.find(([rotulo]) => rotulo === "Quantidade")?.[1] || "",
+      formato: informacoes.find(([rotulo]) => rotulo === "Formato")?.[1] || "",
+    });
+    if (erroNova) return { erro: erroNova };
+  }
   return {
     erro: "",
     atividade: {
@@ -447,6 +528,142 @@ function mostrarPrevia(atividade) {
   previa.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+async function salvarEdicao(evento, formulario, loja) {
+  evento.preventDefault();
+  if (!travaSalvar.entrar()) return;
+  const botoes = [
+    ...formulario.querySelectorAll('[type="submit"]'),
+    ...document.querySelectorAll('[form="form-edicao"]'),
+  ];
+  botoes.forEach((botao) => {
+    botao.disabled = true;
+  });
+  const estado = document.querySelector("#edicao-status");
+  try {
+    if (!fichaAberta) return;
+    const plano = payloadEdicao(lerFormularioEdicao(formulario), fichaAberta);
+    if (!plano.ok) {
+      aviso(estado, plano.mensagem);
+      return;
+    }
+    const capaNova = formulario.querySelector('[name="capa"]').files[0] || null;
+    const pdfNovo = formulario.querySelector('[name="pdf"]').files[0] || null;
+    if (capaNova) {
+      const validacao = validarCapa({
+        tipo: capaNova.type,
+        tamanho: capaNova.size,
+        bytes: await bytesDoArquivo(capaNova, 16),
+      });
+      if (!validacao.ok) {
+        aviso(estado, validacao.mensagem);
+        return;
+      }
+    }
+    if (pdfNovo) {
+      const validacao = validarPdf({
+        nome: pdfNovo.name,
+        tipo: pdfNovo.type,
+        tamanho: pdfNovo.size,
+        bytes: await bytesDoArquivo(pdfNovo, 5),
+      });
+      if (!validacao.ok) {
+        aviso(estado, validacao.mensagem);
+        return;
+      }
+    }
+    const decisao = decidirGravacao(plano, { capa: Boolean(capaNova), pdf: Boolean(pdfNovo) });
+    if (decisao.acao === "parar" || decisao.acao === "erro") {
+      aviso(estado, decisao.mensagem);
+      return;
+    }
+    if (!loja?.configurada) {
+      aviso(estado, "Nada foi salvo. A atividade só entra na loja quando o banco de dados estiver ligado.");
+      return;
+    }
+    const jaEraDestaque = formulario.dataset.destaqueAtual === "sim";
+    if (plano.atividade.destaque && !jaEraDestaque && document.querySelectorAll("#lista-atividades [data-destaque]:checked").length >= 4) {
+      aviso(estado, "A vitrine mostra no máximo 4. Tire uma do destaque antes.");
+      return;
+    }
+    if (decisao.acao === "editar_campos") {
+      const resultado = loja.editarCampos
+        ? await loja.editarCampos(fichaAberta.id, decisao.campos)
+        : { ok: false, ausente: true };
+      if (resultado?.ausente) {
+        aviso(estado, mensagemFuncaoAusente());
+        return;
+      }
+      if (!resultado?.ok) {
+        aviso(estado, resultado?.mensagem || "Não foi possível salvar. Os dados anteriores foram mantidos.");
+        return;
+      }
+      confirmarFicha(fichaAberta, plano.mudancas);
+      formulario.dataset.destaqueAtual = fichaAberta.destaque ? "sim" : "";
+    }
+    let capaUrlSalva = "";
+    if (capaNova) {
+      const capaEnviada = await loja.enviarCapa(fichaAberta.id, capaNova);
+      if (!capaEnviada.ok) {
+        aviso(estado, plano.alterouTexto ? `O texto foi salvo, mas a capa não entrou. ${capaEnviada.mensagem}` : capaEnviada.mensagem);
+        return;
+      }
+      const definida = await loja.definirCapa(fichaAberta.id, capaEnviada.url);
+      if (!definida?.ok) {
+        aviso(estado, "A imagem foi enviada, mas a atividade ainda mostra a capa anterior.");
+        return;
+      }
+      capaUrlSalva = capaEnviada.url;
+      fichaAberta.capa = capaUrlSalva;
+      fichaAberta.capaDoBanco = true;
+    }
+    let arquivoSalvo = fichaAberta.arquivo || "";
+    if (pdfNovo) {
+      const envio = await (loja.substituirPdf
+        ? loja.substituirPdf(fichaAberta.id, pdfNovo, arquivoSalvo)
+        : loja.enviarPdf(fichaAberta.id, pdfNovo, arquivoSalvo));
+      if (!envio.ok) {
+        aviso(estado, plano.alterouTexto || capaNova ? `O restante foi salvo, mas o PDF não entrou. ${envio.mensagem}` : envio.mensagem);
+        return;
+      }
+      arquivoSalvo = envio.arquivo || arquivoSalvo;
+      fichaAberta.arquivo = arquivoSalvo;
+      if (atividadeEmEdicao && envio.anterior) atividadeEmEdicao.pdfAnterior = envio.anterior;
+      const pdfAtual = document.querySelector("#pdf-edicao-atual");
+      if (pdfAtual) pdfAtual.textContent = `PDF atual: ${arquivoSalvo}`;
+    }
+    if (atividadeEmEdicao) {
+      Object.assign(atividadeEmEdicao, {
+        titulo: fichaAberta.banco.titulo,
+        preco: fichaAberta.banco.preco,
+        resumo: fichaAberta.banco.resumo,
+        explicacao: fichaAberta.banco.explicacao,
+        area: fichaAberta.banco.area,
+        tema: fichaAberta.banco.tema,
+        inclui: fichaAberta.banco.inclui,
+        habilidades: fichaAberta.banco.habilidades,
+        destaque: fichaAberta.destaque,
+        arquivo: arquivoSalvo,
+        capa: capaUrlSalva || atividadeEmEdicao.capa,
+        foraDoBanco: false,
+      });
+      document.dispatchEvent(new CustomEvent("atividade-salva", { detail: { ...atividadeEmEdicao } }));
+    }
+    atualizarCartao({ id: fichaAberta.id, titulo: fichaAberta.banco.titulo, preco: fichaAberta.banco.preco, destaque: fichaAberta.destaque });
+    formulario.querySelector('[name="capa"]').value = "";
+    formulario.querySelector('[name="pdf"]').value = "";
+    const novaCapa = document.querySelector("#capa-edicao-nova");
+    const novoPdf = document.querySelector("#pdf-edicao-nova");
+    if (novaCapa) novaCapa.textContent = "";
+    if (novoPdf) novoPdf.textContent = "";
+    aviso(estado, "Alterações salvas.", true);
+  } finally {
+    travaSalvar.sair();
+    botoes.forEach((botao) => {
+      botao.disabled = false;
+    });
+  }
+}
+
 export function prepararCadastro(loja, existentes, aoCriar) {
   const formulario = document.querySelector("#nova-atividade");
   const area = formulario.querySelector('[name="area"]');
@@ -464,6 +681,69 @@ export function prepararCadastro(loja, existentes, aoCriar) {
   }
   area.addEventListener("change", () => preencherTemas(area.value, ""));
   preencherTemas("", "");
+
+  const ficha = document.querySelector("#form-edicao");
+  const areaEdicao = ficha?.querySelector('[name="area"]');
+  if (areaEdicao) {
+    preencherArea(areaEdicao);
+    areaEdicao.addEventListener("change", () => preencherTemas(areaEdicao.value, "", ficha.querySelector("#tema-edicao")));
+  }
+  ficha?.querySelector('[name="capa"]')?.addEventListener("change", async () => {
+    const arquivo = ficha.querySelector('[name="capa"]').files[0];
+    const nome = document.querySelector("#capa-edicao-nova");
+    const mini = document.querySelector("#capa-edicao-mini");
+    if (!arquivo) {
+      if (nome) nome.textContent = "";
+      return;
+    }
+    const validacao = validarCapa({
+      tipo: arquivo.type,
+      tamanho: arquivo.size,
+      bytes: await bytesDoArquivo(arquivo, 16),
+    });
+    if (!validacao.ok) {
+      ficha.querySelector('[name="capa"]').value = "";
+      if (nome) nome.textContent = validacao.mensagem;
+      return;
+    }
+    if (nome) nome.textContent = `Nova capa: ${arquivo.name} · ${formatarTamanho(arquivo.size)}`;
+    if (mini) {
+      if (capaUrl) URL.revokeObjectURL(capaUrl);
+      capaUrl = URL.createObjectURL(arquivo);
+      mini.src = capaUrl;
+      mini.alt = "Nova capa";
+      mini.hidden = false;
+    }
+  });
+  ficha?.querySelector('[name="pdf"]')?.addEventListener("change", async () => {
+    const arquivo = ficha.querySelector('[name="pdf"]').files[0];
+    const nome = document.querySelector("#pdf-edicao-nova");
+    if (!arquivo) {
+      if (nome) nome.textContent = "";
+      return;
+    }
+    const validacao = validarPdf({
+      nome: arquivo.name,
+      tipo: arquivo.type,
+      tamanho: arquivo.size,
+      bytes: await bytesDoArquivo(arquivo, 5),
+    });
+    if (!validacao.ok) {
+      ficha.querySelector('[name="pdf"]').value = "";
+      if (nome) nome.textContent = validacao.mensagem;
+      return;
+    }
+    if (nome) nome.textContent = `Novo PDF: ${arquivo.name} · ${formatarTamanho(arquivo.size)}`;
+  });
+  const fecharFicha = () => {
+    if (ficha && fichaSuja(ficha) && !window.confirm("Descartar o que foi alterado?")) return;
+    atividadeEmEdicao = null;
+    fichaAberta = null;
+    mostrarTrabalho("lista");
+  };
+  document.querySelector("#fechar-edicao")?.addEventListener("click", fecharFicha);
+  document.querySelector("#cancelar-ficha")?.addEventListener("click", fecharFicha);
+  ficha?.addEventListener("submit", (evento) => salvarEdicao(evento, ficha, loja));
 
   const capa = formulario.querySelector('[name="capa"]');
   capa.addEventListener("change", async () => {
@@ -673,7 +953,7 @@ export function prepararCadastro(loja, existentes, aoCriar) {
         return;
       }
       let salva = {};
-      if (plano.alterouTexto) {
+      if (decisao.acao === "editar_campos") {
         const resultado = await loja.editarAtividade(plano.atividade);
         if (!resultado.ok) {
           aviso(estado, resultado.mensagem);

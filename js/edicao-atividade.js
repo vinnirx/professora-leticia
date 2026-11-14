@@ -115,6 +115,8 @@ export function fichaInicial(banco, catalogo) {
   };
 }
 
+const EXIGIDOS = new Set(["titulo", "resumo", "explicacao", "preco"]);
+
 export function camposDoCatalogo(ficha) {
   const nomes = [];
   Object.entries(ficha?.origem || {}).forEach(([chave, valor]) => {
@@ -127,11 +129,36 @@ export function camposDoCatalogo(ficha) {
   return nomes;
 }
 
-function escolher(ficha, chave, atual) {
-  const mostrado = String(ficha.campos[chave] ?? "").trim();
-  const digitado = String(atual ?? "").trim();
-  if (ficha.origem[chave] === "catalogo" && digitado === mostrado) return "";
-  return digitado;
+export function avisoCatalogo(ficha) {
+  const exigidos = [];
+  const opcionais = [];
+  Object.entries(ficha?.origem || {}).forEach(([chave, valor]) => {
+    if (chave === "informacoes" || valor !== "catalogo" || !ROTULOS[chave]) return;
+    (EXIGIDOS.has(chave) ? exigidos : opcionais).push(ROTULOS[chave]);
+  });
+  Object.entries(ficha?.origem?.informacoes || {}).forEach(([rotulo, valor]) => {
+    if (valor === "catalogo") opcionais.push(rotulo.toLowerCase());
+  });
+  if (!exigidos.length && !opcionais.length) return "";
+  const nomes = [...exigidos, ...opcionais];
+  return `Estes dados aparecem na loja a partir do catálogo e ainda não estão gravados: ${juntar(nomes)}. Salvar outro campo não grava esses dados.`;
+}
+
+function juntar(nomes) {
+  if (nomes.length === 1) return nomes[0];
+  return `${nomes.slice(0, -1).join(", ")} e ${nomes.at(-1)}`;
+}
+
+function textoMudou(ficha, chave, atual) {
+  return String(atual ?? "").trim() !== String(ficha.campos[chave] ?? "").trim();
+}
+
+function informacoesDoBanco(ficha) {
+  try {
+    return normalizarInformacoes(JSON.parse(ficha.banco.informacoes || "[]"));
+  } catch {
+    return [];
+  }
 }
 
 function informacoesParaGravar(ficha, atuais) {
@@ -151,68 +178,112 @@ function informacoesParaGravar(ficha, atuais) {
   return lista;
 }
 
-export function payloadEdicao(atual, ficha) {
-  const titulo = escolher(ficha, "titulo", atual.titulo);
-  const resumo = escolher(ficha, "resumo", atual.resumo);
-  const explicacao = escolher(ficha, "explicacao", atual.explicacao);
-  const area = escolher(ficha, "area", atual.area);
-  const tema = escolher(ficha, "tema", atual.tema);
-  const inclui = escolher(ficha, "inclui", atual.inclui);
-  const habilidades = escolher(ficha, "habilidades", atual.habilidades);
-  const precoDigitado = String(atual.preco ?? "").trim();
-  const precoCatalogoIntacto = ficha.origem.preco === "catalogo" && centavos(precoDigitado) === centavos(ficha.campos.preco);
-  const preco = precoCatalogoIntacto ? 0 : Number(precoDigitado);
-  const faltam = [];
-  if (titulo.length < 3) faltam.push("título");
-  if (resumo.length < 10) faltam.push("descrição breve");
-  if (explicacao.length < 20) faltam.push("texto da página");
-  if (!(preco > 0)) faltam.push("preço");
-  if (faltam.length) {
-    return {
-      ok: false,
-      mensagem: `Estes campos ainda não estão gravados e continuam só no catálogo: ${faltam.join(", ")}. Altere o que quiser salvar. O restante do catálogo não foi gravado.`,
-    };
-  }
-  const informacoes = informacoesParaGravar(ficha, atual.informacoes);
-  const destaque = atual.destaque === true;
-  const informacoesNormais = normalizarInformacoes(informacoes);
-  const bancoInformacoes = normalizarInformacoes(JSON.parse(bancoSeguro(ficha)));
-  const atividade = {
-    id: ficha.id,
-    titulo,
-    resumo,
-    explicacao,
-    preco,
-    uso: ficha.uso,
-    inclui,
-    habilidades,
-    destaque,
-    area,
-    tema,
-    informacoes: informacoesNormais,
-  };
-  const banco = ficha.banco;
-  const alterouTexto = titulo !== banco.titulo
-    || resumo !== banco.resumo
-    || explicacao !== banco.explicacao
-    || inclui !== banco.inclui
-    || habilidades !== banco.habilidades
-    || area !== banco.area
-    || tema !== banco.tema
-    || centavos(preco) !== centavos(banco.preco)
-    || destaque !== banco.destaque
-    || JSON.stringify(informacoesNormais) !== JSON.stringify(bancoInformacoes);
-  return { ok: true, alterouTexto, atividade };
+function informacoesEditadas(ficha, atuais) {
+  const mudou = INFORMACOES.some(([, rotulo]) => {
+    return String(atuais?.[rotulo] || "").trim() !== String(ficha.campos.informacoes[rotulo] || "").trim();
+  });
+  if (!mudou) return null;
+  return informacoesParaGravar(ficha, atuais);
 }
 
-function bancoSeguro(ficha) {
-  const textoBanco = ficha?.banco?.informacoes || "[]";
-  try {
-    JSON.parse(textoBanco);
-    return textoBanco;
-  } catch {
-    return "[]";
+export function payloadEdicao(atual, ficha) {
+  const mudancas = {};
+  const erros = [];
+  const registrar = (chave, minimo, rotulo) => {
+    if (!textoMudou(ficha, chave, atual[chave])) return;
+    const valor = String(atual[chave] ?? "").trim();
+    if (minimo && valor.length < minimo) erros.push(rotulo);
+    else mudancas[chave] = valor;
+  };
+  registrar("titulo", 3, "título");
+  registrar("resumo", 10, "descrição breve");
+  registrar("explicacao", 20, "texto da página");
+  registrar("area", 0, "");
+  registrar("tema", 0, "");
+  registrar("inclui", 0, "");
+  registrar("habilidades", 0, "");
+  if (centavos(atual.preco) !== centavos(ficha.campos.preco)) {
+    const preco = Number(atual.preco);
+    if (!(preco > 0)) erros.push("preço");
+    else mudancas.preco = preco;
   }
+  if ((atual.destaque === true) !== (ficha.destaque === true)) mudancas.destaque = atual.destaque === true;
+  const informacoes = informacoesEditadas(ficha, atual.informacoes);
+  if (informacoes) mudancas.informacoes = informacoes;
+  if (erros.length) {
+    return { ok: false, mensagem: `Corrija ${erros.join(", ")} antes de salvar. Os outros campos não foram alterados.` };
+  }
+  const banco = ficha.banco;
+  const completo = {
+    id: ficha.id,
+    titulo: mudancas.titulo ?? banco.titulo,
+    resumo: mudancas.resumo ?? banco.resumo,
+    explicacao: mudancas.explicacao ?? banco.explicacao,
+    preco: mudancas.preco ?? banco.preco,
+    uso: ficha.uso,
+    inclui: mudancas.inclui ?? banco.inclui,
+    habilidades: mudancas.habilidades ?? banco.habilidades,
+    destaque: Object.hasOwn(mudancas, "destaque") ? mudancas.destaque : banco.destaque,
+    area: mudancas.area ?? banco.area,
+    tema: mudancas.tema ?? banco.tema,
+    informacoes: mudancas.informacoes ?? informacoesDoBanco(ficha),
+  };
+  const compativel = completo.titulo.length >= 3
+    && completo.resumo.length >= 10
+    && completo.explicacao.length >= 20
+    && Number(completo.preco) > 0;
+  return {
+    ok: true,
+    alterouTexto: Object.keys(mudancas).length > 0,
+    mudancas,
+    compativel,
+    atividade: completo,
+  };
+}
+
+export function decidirGravacao(plano, arquivos = {}) {
+  if (!plano?.ok) {
+    return { acao: "erro", mensagem: plano?.mensagem || "Não foi possível salvar. Os dados anteriores foram mantidos." };
+  }
+  if (!plano.alterouTexto && !arquivos.capa && !arquivos.pdf) {
+    return { acao: "parar", mensagem: "Nenhuma alteração para salvar" };
+  }
+  if (!plano.alterouTexto) return { acao: "arquivos" };
+  return { acao: "editar_campos", campos: plano.mudancas };
+}
+
+export function mensagemFuncaoAusente() {
+  return "Não consegui salvar. A gravação de um campo só ainda não está instalada no banco. Nada foi alterado.";
+}
+
+export function confirmarFicha(ficha, mudancas) {
+  Object.entries(mudancas).forEach(([chave, valor]) => {
+    if (chave === "informacoes") {
+      ficha.banco.informacoes = JSON.stringify(valor);
+      ficha.campos.informacoes = {};
+      ficha.origem.informacoes = {};
+      INFORMACOES.forEach(([, rotulo]) => {
+        const achado = valor.find((par) => par[0] === rotulo);
+        ficha.campos.informacoes[rotulo] = achado ? achado[1] : "";
+        ficha.origem.informacoes[rotulo] = achado ? "banco" : "vazio";
+      });
+      return;
+    }
+    if (chave === "preco") {
+      ficha.banco.preco = Number(valor);
+      ficha.campos.preco = String(valor);
+      ficha.origem.preco = "banco";
+      return;
+    }
+    if (chave === "destaque") {
+      ficha.banco.destaque = valor === true;
+      ficha.destaque = valor === true;
+      return;
+    }
+    ficha.banco[chave] = valor;
+    ficha.campos[chave] = valor;
+    ficha.origem[chave] = String(valor || "").trim() ? "banco" : "vazio";
+  });
 }
 
 function normalizarInformacoes(lista) {
