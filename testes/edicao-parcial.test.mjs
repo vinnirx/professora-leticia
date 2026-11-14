@@ -214,15 +214,49 @@ assert.deepEqual(await foto(), reaisAntes);
 await sql(arquivo("migracao-arquivo.sql"));
 await como("authenticated", adminId);
 assert.match(await falha(`select public.definir_arquivo('material-ficticio', 'versao-10.pdf')`), /ainda não está guardado/);
-assert.equal((await um(`select arquivo from public.atividades where id = 'material-ficticio'`)).arquivo, "material-ficticio.pdf");
+assert.match(await falha(`select public.definir_arquivo('material-ficticio', '../atividade-vizinha/vizinha.pdf')`), /nome seguro/);
+assert.equal((await um(`select arquivo, arquivo_anterior from public.atividades where id = 'material-ficticio'`)).arquivo, "material-ficticio.pdf");
 await sql("reset role");
-await sql(`insert into storage.objects (bucket_id, name) values ('atividades', 'material-ficticio/versao-10.pdf')`);
+await sql(`
+  insert into public.atividades (id, titulo, preco, arquivo) values ('atividade-vizinha', 'Vizinha ficticia', 1.00, 'vizinha.pdf');
+  insert into storage.objects (bucket_id, name) values
+    ('atividades', 'material-ficticio/material-ficticio.pdf'),
+    ('atividades', 'material-ficticio/versao-10.pdf'),
+    ('atividades', 'atividade-vizinha/vizinha.pdf');
+`);
+const objetosAntes = Number((await um(`select count(*)::int as total from storage.objects`)).total);
 await como("authenticated", adminId);
+assert.match(await falha(`select public.definir_arquivo('material-ficticio', 'vizinha.pdf')`), /ainda não está guardado/);
+assert.equal((await um(`select arquivo from public.atividades where id = 'material-ficticio'`)).arquivo, "material-ficticio.pdf");
 await sql(`select public.definir_arquivo('material-ficticio', 'versao-10.pdf')`);
-const apontado = await um(`select titulo, arquivo from public.atividades where id = 'material-ficticio'`);
+const apontado = await um(`select titulo, arquivo, arquivo_anterior from public.atividades where id = 'material-ficticio'`);
 assert.equal(apontado.arquivo, "versao-10.pdf");
+assert.equal(apontado.arquivo_anterior, "material-ficticio.pdf");
 assert.equal(apontado.titulo, "Título com área nula");
+const recarregado = await um(`select arquivo, arquivo_anterior from public.atividades where id = 'material-ficticio'`);
+assert.equal(recarregado.arquivo, "versao-10.pdf");
+assert.equal(recarregado.arquivo_anterior, "material-ficticio.pdf");
+await como("authenticated", clienteId);
+assert.match(await falha(`select public.definir_arquivo('material-ficticio', 'material-ficticio.pdf')`), /Sem permissão/);
+await como("authenticated", dona);
+await sql(`select public.definir_arquivo('material-ficticio', 'material-ficticio.pdf')`);
+const restaurado = await um(`select arquivo, arquivo_anterior from public.atividades where id = 'material-ficticio'`);
+assert.equal(restaurado.arquivo, "material-ficticio.pdf");
+assert.equal(restaurado.arquivo_anterior, "versao-10.pdf");
+const recarregadoDeNovo = await um(`select arquivo, arquivo_anterior from public.atividades where id = 'material-ficticio'`);
+assert.deepEqual(recarregadoDeNovo, restaurado);
 await sql("reset role");
+assert.equal(Number((await um(`select count(*)::int as total from storage.objects`)).total), objetosAntes);
+assert.equal((await um(`select arquivo from public.atividades where id = 'atividade-vizinha'`)).arquivo, "vizinha.pdf");
+await sql(`delete from public.atividades where id = 'atividade-vizinha'`);
+assert.deepEqual(await foto(), reaisAntes);
+await sql(arquivo("reverter-arquivo.sql"));
+assert.equal(Number((await um(`
+  select count(*)::int as total
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname = 'definir_arquivo'
+`)).total), 0);
+assert.equal((await um(`select arquivo from public.atividades where id = 'material-ficticio'`)).arquivo, "material-ficticio.pdf");
 assert.deepEqual(await foto(), reaisAntes);
 
 const antesDaReversao = await foto();

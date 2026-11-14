@@ -139,7 +139,7 @@
                   </fieldset>
                   <fieldset class="etapa" data-etapa="3" hidden>
                     <legend>Imagens e arquivos</legend>
-                    <p class="texto-secao" id="aviso-arquivos">Na atividade nova, a capa é obrigatória. Substituição de PDF temporariamente indisponível.</p>
+                    <p class="texto-secao" id="aviso-arquivos">Na atividade nova, a capa é obrigatória. O PDF entra numa versão privada e o arquivo anterior, se existir, permanece guardado.</p>
                     <div class="grade-arquivos">
                       <div class="zona-arquivo">
                         <label>Imagem da capa <input name="capa" type="file" accept="image/jpeg,image/png,image/webp" /></label>
@@ -147,7 +147,7 @@
                         <img id="capa-mini" alt="" hidden />
                       </div>
                       <div class="zona-arquivo">
-                        <label>PDF, para colocar ou trocar <input name="pdf" type="file" accept="application/pdf" disabled /></label>
+                        <label>PDF, para colocar ou trocar <input name="pdf" type="file" accept="application/pdf" /></label>
                         <p id="nome-pdf"></p>
                       </div>
                     </div>
@@ -222,8 +222,8 @@
                       </div>
                       <div class="zona-arquivo">
                         <p id="pdf-edicao-atual"></p>
-                        <p class="texto-secao">Substituição de PDF temporariamente indisponível.</p>
-                        <label>Substituir o PDF <input name="pdf" type="file" accept="application/pdf" disabled /></label>
+                        <p class="texto-secao">O PDF atual permanece até a nova versão ser confirmada.</p>
+                        <label>Substituir o PDF <input name="pdf" type="file" accept="application/pdf" /></label>
                         <p id="pdf-edicao-nova"></p>
                       </div>
                     </div>
@@ -244,7 +244,7 @@
               <div class="secao-cabeca">
                 <div>
                   <h2 id="titulo-arquivos">Arquivos PDF</h2>
-                  <p class="texto-secao">O arquivo fica no espaço privado. Substituição de PDF temporariamente indisponível. O nome continua visível e o download segue igual.</p>
+                  <p class="texto-secao">O arquivo fica no espaço privado. A troca envia uma versão nova e só então aponta a loja para ela. O PDF anterior continua guardado.</p>
                 </div>
               </div>
               <p class="aviso-conta" id="arquivos-status" role="status"></p>
@@ -367,10 +367,10 @@
           <p id="pdf-troca-atual"></p>
           <label>Arquivo PDF <input id="pdf-troca-arquivo" type="file" accept="application/pdf" /></label>
           <p id="pdf-troca-nome">Nenhum arquivo escolhido.</p>
-          <p class="aviso-conta" id="pdf-troca-aviso">Substituição de PDF temporariamente indisponível.</p>
+          <p class="aviso-conta" id="pdf-troca-aviso" hidden>O PDF atual permanece guardado. Quem já pagou passa a baixar o arquivo novo somente depois da confirmação.</p>
           <div class="etapas-acoes">
             <button class="botao botao-secundario" id="pdf-troca-cancelar" type="button">Cancelar</button>
-            <button class="botao" id="pdf-troca-confirmar" type="button" disabled>Substituição de PDF temporariamente indisponível</button>
+            <button class="botao botao-perigo" id="pdf-troca-confirmar" type="button" disabled>Substituir</button>
           </div>
         </dialog>
       </div>
@@ -378,7 +378,7 @@
 
     <script src="js/loja.js?v=48"></script>
     <script src="js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="js/sessao.js?v=24"></script>
-    <script type="module" src="js/conta.js?v=33"></script>
+    <script type="module" src="js/sessao.js?v=25"></script>
+    <script type="module" src="js/conta.js?v=34"></script>
   </body>
 </html>

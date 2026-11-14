@@ -1,8 +1,11 @@
-import { PDF_INDISPONIVEL } from "../pdf-troca.js";
-import { abrirEdicao, prepararCadastro } from "./cadastro.js?v=5";
+import { formatarTamanho, validarPdf } from "../pdf-troca.js";
+import { criarTrava } from "../trava.js";
+import { abrirEdicao, prepararCadastro } from "./cadastro.js?v=6";
 import { prepararEquipe } from "./equipe.js";
 import { aviso, moeda, quando } from "./avisos.js";
 import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
+
+const travaPdf = criarTrava();
 
 const SECOES = ["visao", "atividades", "arquivos", "pedidos", "financeiro", "clientes", "equipe", "configuracoes"];
 
@@ -361,13 +364,17 @@ export async function iniciarAdmin(loja) {
     periodo: "dia",
   };
 
-  const idsBanco = memoria.atividades.filter((item) => !item.foraDoBanco).map((item) => ({ id: item.id, arquivo: item.arquivo || "" }));
+  const idsBanco = memoria.atividades.filter((item) => !item.foraDoBanco).map((item) => ({
+    id: item.id,
+    arquivo: item.arquivo || "",
+    arquivo_anterior: item.arquivo_anterior || "",
+  }));
   if (loja.arquivosPdf) {
     loja.arquivosPdf(idsBanco).then((mapa) => {
       memoria.atividades.forEach((item) => {
         if (item.foraDoBanco || !Object.hasOwn(mapa, item.id)) return;
         item.pdfInfo = mapa[item.id];
-        if (mapa[item.id].anterior) item.pdfAnterior = mapa[item.id].anterior;
+        item.pdfAnterior = mapa[item.id].ok ? (mapa[item.id].anterior || "") : (item.arquivo_anterior || "");
       });
       pintarArquivos();
     }).catch(() => {
@@ -603,24 +610,24 @@ export async function iniciarAdmin(loja) {
     const dialogo = document.querySelector("#pdf-troca");
     const nomeAtual = atividade.arquivo || atividade.pdfInfo?.pdf?.nome || "";
     const temArquivo = Boolean(nomeAtual);
-    document.querySelector("#pdf-troca-titulo").textContent = "PDF atual";
+    document.querySelector("#pdf-troca-titulo").textContent = temArquivo ? "Substituir PDF" : "Enviar PDF";
     document.querySelector("#pdf-troca-atividade").textContent = atividade.titulo;
     document.querySelector("#pdf-troca-atual").textContent = nomeAtual
       ? `Arquivo atual: ${nomeAtual}`
       : "Esta atividade ainda não tem PDF.";
     const avisoTroca = document.querySelector("#pdf-troca-aviso");
     if (avisoTroca) {
-      avisoTroca.hidden = false;
-      avisoTroca.textContent = PDF_INDISPONIVEL;
+      avisoTroca.hidden = !temArquivo;
+      avisoTroca.textContent = "O PDF atual permanece guardado. Quem já pagou passa a baixar o arquivo novo somente depois da confirmação.";
     }
     const entrada = document.querySelector("#pdf-troca-arquivo");
-    entrada.disabled = true;
+    entrada.disabled = false;
     entrada.value = "";
-    document.querySelector("#pdf-troca-nome").textContent = "Nenhum arquivo será trocado nesta validação.";
+    document.querySelector("#pdf-troca-nome").textContent = "Nenhum arquivo escolhido.";
     const confirmar = document.querySelector("#pdf-troca-confirmar");
     confirmar.disabled = true;
-    confirmar.textContent = PDF_INDISPONIVEL;
-    confirmar.className = "botao";
+    confirmar.textContent = temArquivo ? "Substituir" : "Enviar";
+    confirmar.className = temArquivo ? "botao botao-perigo" : "botao";
     dialogo.showModal();
   }
 
@@ -658,7 +665,10 @@ export async function iniciarAdmin(loja) {
               }
             }));
           }
-          acoes.append(botaoAcao("Ver PDF", () => abrirPdf(atividade)));
+          acoes.append(botaoAcao(atividade.pdfInfo?.pdf || atividade.arquivo ? "Substituir PDF" : "Enviar PDF", () => abrirPdf(atividade), atividade.pdfInfo?.pdf || atividade.arquivo ? "botao-perigo" : ""));
+          if (atividade.pdfAnterior && atividade.arquivo && atividade.pdfAnterior !== atividade.arquivo) {
+            acoes.append(botaoAcao("Restaurar anterior", () => restaurarPdf(atividade)));
+          }
         }
         acoes.classList.add("acoes-pdf");
         const situacaoPdf = selo(info.situacao === "PDF no espaço privado" ? "Privado" : info.situacao, info.situacao === "PDF no espaço privado" ? "ok" : "neutro");
@@ -1099,21 +1109,81 @@ export async function iniciarAdmin(loja) {
   });
   document.addEventListener("click", fecharMenus);
   document.querySelector("#busca-cliente")?.addEventListener("input", pintarClientes);
+  async function restaurarPdf(atividade) {
+    if (!loja.restaurarPdf || !atividade.pdfAnterior || atividade.pdfAnterior === atividade.arquivo) return;
+    if (!window.confirm("Voltar ao PDF anterior? O arquivo novo permanece guardado, mas os downloads passam a usar o anterior.")) return;
+    if (!travaPdf.entrar()) return;
+    const status = document.querySelector("#arquivos-status");
+    try {
+      const resultado = await loja.restaurarPdf(atividade.id, atividade.arquivo, atividade.pdfAnterior);
+      aviso(status, resultado.mensagem, Boolean(resultado.ok));
+      if (!resultado.ok) return;
+      const deixado = atividade.arquivo;
+      atividade.arquivo = resultado.arquivo || atividade.pdfAnterior;
+      atividade.arquivo_anterior = deixado;
+      atividade.pdfAnterior = deixado;
+      pintarArquivos();
+    } finally {
+      travaPdf.sair();
+    }
+  }
+
   const entradaPdf = document.querySelector("#pdf-troca-arquivo");
-  entradaPdf?.addEventListener("change", () => {
+  entradaPdf?.addEventListener("change", async () => {
+    const arquivo = entradaPdf.files?.[0];
+    const nome = document.querySelector("#pdf-troca-nome");
     const confirmar = document.querySelector("#pdf-troca-confirmar");
-    if (confirmar) confirmar.disabled = true;
-    if (entradaPdf) entradaPdf.value = "";
-    aviso(document.querySelector("#arquivos-status"), PDF_INDISPONIVEL);
+    if (!arquivo) {
+      nome.textContent = "Nenhum arquivo escolhido.";
+      confirmar.disabled = true;
+      return;
+    }
+    const bytes = new Uint8Array(await arquivo.slice(0, 5).arrayBuffer());
+    const validacao = validarPdf({ nome: arquivo.name, tipo: arquivo.type, tamanho: arquivo.size, bytes });
+    nome.textContent = validacao.ok
+      ? `${arquivo.name} · ${formatarTamanho(arquivo.size)}`
+      : validacao.mensagem;
+    confirmar.disabled = !validacao.ok;
   });
   document.querySelector("#pdf-troca-cancelar")?.addEventListener("click", () => {
     pdfAlvo = null;
     document.querySelector("#pdf-troca").close();
   });
-  document.querySelector("#pdf-troca-confirmar")?.addEventListener("click", () => {
+  document.querySelector("#pdf-troca-confirmar")?.addEventListener("click", async () => {
+    const atividade = pdfAlvo;
+    const arquivo = entradaPdf.files?.[0];
+    if (!atividade || !arquivo || !loja.substituirPdf) return;
+    if (!travaPdf.entrar()) return;
     const confirmar = document.querySelector("#pdf-troca-confirmar");
-    if (confirmar) confirmar.disabled = true;
-    aviso(document.querySelector("#arquivos-status"), PDF_INDISPONIVEL);
+    confirmar.disabled = true;
+    const nome = atividade.arquivo || "";
+    try {
+      const bytes = new Uint8Array(await arquivo.slice(0, 5).arrayBuffer());
+      const validacao = validarPdf({ nome: arquivo.name, tipo: arquivo.type, tamanho: arquivo.size, bytes });
+      if (!validacao.ok) {
+        aviso(document.querySelector("#arquivos-status"), validacao.mensagem);
+        confirmar.disabled = false;
+        return;
+      }
+      const resultado = await loja.substituirPdf(atividade.id, arquivo, nome);
+      if (!resultado.ok) {
+        aviso(document.querySelector("#arquivos-status"), resultado.mensagem);
+        confirmar.disabled = false;
+        return;
+      }
+      if (resultado.anterior) {
+        atividade.arquivo_anterior = resultado.anterior;
+        atividade.pdfAnterior = resultado.anterior;
+      }
+      atividade.arquivo = resultado.arquivo || nome;
+      atividade.pdfInfo = { ok: true, pdf: { nome: atividade.arquivo, atualizado: new Date().toISOString() } };
+      pdfAlvo = null;
+      document.querySelector("#pdf-troca").close();
+      aviso(document.querySelector("#arquivos-status"), resultado.mensagem || "PDF substituído. O arquivo anterior continua guardado.", true);
+      pintarArquivos();
+    } finally {
+      travaPdf.sair();
+    }
   });
   ["#busca-pedido", "#pedidos-status", "#pedidos-inicio", "#pedidos-fim"].forEach((seletor) => {
     document.querySelector(seletor).addEventListener("input", pintarPedidos);

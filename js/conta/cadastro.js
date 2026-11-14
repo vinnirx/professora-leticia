@@ -1,7 +1,7 @@
 import { validarNovaAtividade } from "../cadastro-regras.js";
 import { validarCapa } from "../capa-loja.js";
 import { avisoCatalogo, confirmarFicha, decidirGravacao, fichaInicial, mensagemFuncaoAusente, payloadEdicao, rotulosInformacao } from "../edicao-atividade.js?v=4";
-import { formatarTamanho, PDF_INDISPONIVEL, validarPdf } from "../pdf-troca.js";
+import { formatarTamanho, validarPdf } from "../pdf-troca.js";
 import { dinheiro, linhas } from "../texto.js";
 import { areas, temasPorArea } from "../temas.js";
 import { criarTrava } from "../trava.js";
@@ -616,10 +616,22 @@ async function salvarEdicao(evento, formulario, loja) {
       fichaAberta.capa = capaUrlSalva;
       fichaAberta.capaDoBanco = true;
     }
-    const arquivoSalvo = fichaAberta.arquivo || "";
+    let arquivoSalvo = fichaAberta.arquivo || "";
     if (pdfNovo) {
-      aviso(estado, plano.alterouTexto || capaNova ? `O restante foi salvo. ${PDF_INDISPONIVEL}` : PDF_INDISPONIVEL);
-      return;
+      const envio = await loja.substituirPdf(fichaAberta.id, pdfNovo, arquivoSalvo);
+      if (!envio?.ok) {
+        aviso(estado, plano.alterouTexto || capaNova ? `O restante foi salvo. ${envio?.mensagem || "O PDF atual foi mantido."}` : (envio?.mensagem || "O PDF atual foi mantido."));
+        return;
+      }
+      arquivoSalvo = envio.arquivo || arquivoSalvo;
+      fichaAberta.arquivo = arquivoSalvo;
+      if (envio.anterior) fichaAberta.arquivoAnterior = envio.anterior;
+      if (atividadeEmEdicao && envio.anterior) {
+        atividadeEmEdicao.pdfAnterior = envio.anterior;
+        atividadeEmEdicao.arquivo_anterior = envio.anterior;
+      }
+      const pdfAtual = document.querySelector("#pdf-edicao-atual");
+      if (pdfAtual) pdfAtual.textContent = `PDF atual: ${arquivoSalvo}`;
     }
     if (atividadeEmEdicao) {
       Object.assign(atividadeEmEdicao, {
@@ -965,10 +977,15 @@ export function prepararCadastro(loja, existentes, aoCriar) {
         }
         capaUrlSalva = capaEnviada.url;
       }
-      const arquivoSalvo = salva.arquivo || fichaAberta.arquivo || "";
+      let arquivoSalvo = salva.arquivo || fichaAberta.arquivo || "";
       if (pdfNovo) {
-        aviso(estado, plano.alterouTexto || capaNova ? `O restante foi salvo. ${PDF_INDISPONIVEL}` : PDF_INDISPONIVEL);
-        return;
+        const envio = await loja.substituirPdf(plano.atividade.id, pdfNovo, arquivoSalvo);
+        if (!envio?.ok) {
+          aviso(estado, plano.alterouTexto || capaNova ? `O restante foi salvo. ${envio?.mensagem || "O PDF atual foi mantido."}` : (envio?.mensagem || "O PDF atual foi mantido."));
+          return;
+        }
+        arquivoSalvo = envio.arquivo || arquivoSalvo;
+        if (atividadeEmEdicao && envio.anterior) atividadeEmEdicao.pdfAnterior = envio.anterior;
       }
       if (atividadeEmEdicao) {
         Object.assign(atividadeEmEdicao, plano.atividade, {
@@ -1026,8 +1043,11 @@ export function prepararCadastro(loja, existentes, aoCriar) {
         await loja.definirCapa(atividade.id, capaEnviada.url);
       }
       if (atividade.pdf) {
-        aviso(estado, `O texto foi salvo. ${PDF_INDISPONIVEL}`);
-        return;
+        const envio = await loja.substituirPdf(atividade.id, atividade.pdf, salva.arquivo || atividadeEmEdicao?.arquivo || "");
+        if (!envio?.ok) {
+          aviso(estado, `O texto foi salvo. ${envio?.mensagem || "O PDF atual foi mantido."}`);
+          return;
+        }
       }
       if (atividadeEmEdicao) {
         Object.assign(atividadeEmEdicao, {
@@ -1093,8 +1113,11 @@ export function prepararCadastro(loja, existentes, aoCriar) {
     };
     if (aoCriar) aoCriar(registro);
     if (atividade.pdf) {
-      aviso(estado, `A atividade foi criada. ${PDF_INDISPONIVEL}`);
-      return;
+      const envio = await loja.substituirPdf(atividade.id, atividade.pdf, criada.arquivo || "");
+      if (!envio?.ok) {
+        aviso(estado, `A atividade foi criada. ${envio?.mensagem || "O PDF atual foi mantido."}`);
+        return;
+      }
     }
     formulario.reset();
     formulario.querySelector('[name="preco"]').value = "10";

@@ -15,7 +15,7 @@ import {
   nomeAnterior,
   nomeVersao,
   pdfAnteriorDisponivel,
-  PDF_INDISPONIVEL,
+  PDF_AINDA_NAO_INSTALADO,
   validarPdf,
 } from "../js/pdf-troca.js";
 import { criarTrava } from "../js/trava.js";
@@ -176,8 +176,10 @@ assert.equal(validarPdf({ nome: "novo.pdf", tipo: "image/png", tamanho: 10, byte
 assert.equal(validarPdf({ nome: "novo.pdf", tipo: "application/pdf", tamanho: LIMITE_PDF + 1, bytes: pdfNovo }).ok, false);
 assert.equal(validarPdf({ nome: "novo.pdf", tipo: "application/pdf", tamanho: 10, bytes: new Uint8Array([1, 2, 3, 4, 5]) }).ok, false);
 assert.equal(pdfAnteriorDisponivel(["material-ficticio.pdf", "versao-10.pdf"], "versao-10.pdf"), "material-ficticio.pdf");
+assert.equal(pdfAnteriorDisponivel(["material-ficticio.pdf", "versao-10.pdf", "versao-20.pdf"], "versao-20.pdf", "versao-10.pdf"), "versao-10.pdf");
 assert.equal(pdfAnteriorDisponivel(["material-ficticio.pdf", "material-ficticio-anterior-10.pdf"], "material-ficticio.pdf"), "material-ficticio-anterior-10.pdf");
-assert.equal(PDF_INDISPONIVEL, "Substituição de PDF temporariamente indisponível");
+assert.equal(pdfAnteriorDisponivel(["somente-outra.pdf"], "versao-20.pdf", "versao-10.pdf"), "");
+assert.match(PDF_AINDA_NAO_INSTALADO, /ainda não está instalada/);
 assert.equal(caminhoPdf("material-ficticio", nomeVersao(10)), "material-ficticio/versao-10.pdf");
 assert.equal(caminhoPdf("material-ficticio", nomeAnterior("material-ficticio.pdf", 10)).includes("/"), true);
 assert.equal(nomeAnterior("material-ficticio.pdf", 10).includes("/"), false);
@@ -285,6 +287,24 @@ assert.equal(semReferencia.ok, false);
 assert.equal(semReferencia.arquivo, "material-ficticio.pdf");
 assert.equal(quebrada.objetos.get("material-ficticio/material-ficticio.pdf"), pdfOriginal);
 
+const envioQuebrado = memoria({ "material-ficticio/material-ficticio.pdf": pdfOriginal });
+envioQuebrado.enviar = async () => {
+  throw new Error("falha");
+};
+let apontouEnvio = false;
+const semEnvio = await executarSubstituicao({
+  storage: envioQuebrado,
+  ...basePdf,
+  definirArquivo: async () => {
+    apontouEnvio = true;
+    return { ok: true };
+  },
+});
+assert.equal(semEnvio.ok, false);
+assert.equal(apontouEnvio, false);
+assert.equal(semEnvio.arquivo, "material-ficticio.pdf");
+assert.equal(envioQuebrado.objetos.get("material-ficticio/material-ficticio.pdf"), pdfOriginal);
+
 const trava = criarTrava();
 assert.equal(trava.entrar(), true);
 assert.equal(trava.entrar(), false);
@@ -311,22 +331,25 @@ const baixar = sessao.slice(sessao.indexOf("async baixar"), sessao.indexOf("asyn
 assert.equal(baixar.includes("link-download"), true);
 assert.equal(baixar.includes("createSignedUrl"), false);
 const trocaPdf = sessao.slice(sessao.indexOf("async substituirPdf"), sessao.indexOf("async restaurarPdf"));
-assert.match(trocaPdf, /PDF_INDISPONIVEL/);
-assert.equal(trocaPdf.includes("executarSubstituicao"), false);
-assert.equal(trocaPdf.includes("upload"), false);
-const restaurarPdf = sessao.slice(sessao.indexOf("async restaurarPdf"), sessao.indexOf("api.trocasPdf"));
-assert.match(restaurarPdf, /PDF_INDISPONIVEL/);
-assert.equal(restaurarPdf.includes("executarRestauracao"), false);
+const avisoTroca = trocaPdf.indexOf("PDF_AINDA_NAO_INSTALADO");
+const gravacaoTroca = trocaPdf.indexOf("executarSubstituicao");
+assert.ok(avisoTroca > -1 && avisoTroca < gravacaoTroca);
+assert.equal(trocaPdf.includes("upsert: true"), false);
+assert.match(trocaPdf, /definir_arquivo/);
+const restaurarPdf = sessao.slice(sessao.indexOf("async restaurarPdf"), sessao.indexOf("api.trocasPdf = new Set()"));
+assert.ok(restaurarPdf.indexOf("PDF_AINDA_NAO_INSTALADO") < restaurarPdf.indexOf("executarRestauracao"));
+assert.equal(restaurarPdf.includes("upsert: true"), false);
 const adminJs = readFileSync(new URL("../js/conta/admin.js", import.meta.url), "utf8");
-assert.equal(adminJs.includes("Restaurar anterior"), false);
-assert.equal(adminJs.includes("substituirPdf"), false);
-assert.equal(adminJs.includes("enviarPdf"), false);
+assert.match(adminJs, /Restaurar anterior/);
+assert.match(adminJs, /substituirPdf/);
+assert.equal(adminJs.includes("upsert: true"), false);
 assert.equal(readFileSync(new URL("../js/loja.js", import.meta.url), "utf8").includes("cobrancaAutomatica: false"), true);
 
 const sql = readFileSync(new URL("../supabase/migracao-arquivo.sql", import.meta.url), "utf8");
 assert.match(sql, /NÃO rode este arquivo agora/);
 assert.match(sql, /sou_admin\(\)/);
-assert.match(sql, /set arquivo = nome/);
+assert.match(sql, /arquivo = nome/);
+assert.match(sql, /arquivo_anterior/);
 assert.match(sql, /grant execute on function public\.definir_arquivo\(text, text\) to authenticated/);
 assert.match(sql, /storage\.objects/);
 assert.match(sql, /notify pgrst, 'reload schema'/);
@@ -393,7 +416,8 @@ assert.match(validarNovaAtividade({ ...novaCompleta, quantidade: "" }), /quantid
 assert.match(validarNovaAtividade({ ...novaCompleta, formato: "" }), /formato/);
 
 const adminHtml = readFileSync(new URL("../admin.html", import.meta.url), "utf8");
-assert.match(adminHtml, /Substituição de PDF temporariamente indisponível/);
+assert.match(adminHtml, /Substituir PDF/);
+assert.match(adminHtml, /id="pdf-troca-confirmar"/);
 const criarHtml = adminHtml.slice(adminHtml.indexOf('id="nova-atividade"'), adminHtml.indexOf('id="ficha-edicao"'));
 const editarHtml = adminHtml.slice(adminHtml.indexOf('id="ficha-edicao"'), adminHtml.indexOf('data-painel="arquivos"'));
 assert.match(criarHtml, /Continuar/);

@@ -1,7 +1,7 @@
 import { caminhoPdf } from "./arquivo-seguro.js";
 import { nomeCapa, urlComVersao, validarCapa } from "./capa-loja.js";
 import { administra } from "./conta/papeis.js";
-import { PDF_INDISPONIVEL, pdfAnteriorDisponivel } from "./pdf-troca.js";
+import { executarRestauracao, executarSubstituicao, PDF_AINDA_NAO_INSTALADO, pdfAnteriorDisponivel } from "./pdf-troca.js";
 
 const destinos = new Set(["minhas.html", "admin.html", "index.html", "index.html#atividades", "atividade.html"]);
 
@@ -139,6 +139,23 @@ async function iniciar() {
     return data;
   }
 
+  const CAMPOS_ATIVIDADE = "id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades, destaque, area, tema, capa, informacoes";
+
+  async function lerCadastroAtividades(id = "") {
+    const pedir = (campos) => {
+      let consulta = cliente.from("atividades").select(campos);
+      if (id) consulta = consulta.eq("id", id);
+      else consulta = consulta.order("titulo");
+      return consulta;
+    };
+    let consulta = await pedir(`${CAMPOS_ATIVIDADE}, arquivo_anterior`);
+    if (consulta.error && /arquivo_anterior|schema cache|column/i.test(String(consulta.error.message || ""))) {
+      consulta = await pedir(CAMPOS_ATIVIDADE);
+    }
+    if (consulta.error) throw consulta.error;
+    return (consulta.data || []).map((item) => ({ ...item, arquivo_anterior: item.arquivo_anterior || "" }));
+  }
+
   const api = {
     configurada: Boolean(cliente),
     traduzir,
@@ -226,21 +243,11 @@ async function iniciar() {
       return data?.arquivo || "";
     },
     async atividades() {
-      const { data, error } = await cliente
-        .from("atividades")
-        .select("id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades, destaque, area, tema, capa, informacoes")
-        .order("titulo");
-      if (error) throw error;
-      return data || [];
+      return lerCadastroAtividades();
     },
     async atividade(id) {
-      const { data, error } = await cliente
-        .from("atividades")
-        .select("id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades, destaque, area, tema, capa, informacoes")
-        .eq("id", id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
+      const lista = await lerCadastroAtividades(id);
+      return lista[0] || null;
     },
     async criarAtividade(dados) {
       const { data, error } = await cliente.rpc("criar_atividade", {
@@ -451,11 +458,11 @@ async function iniciar() {
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true };
     },
-    async arquivoPdf(atividadeId, nomePreferido = "") {
+    async arquivoPdf(atividadeId, nomePreferido = "", anteriorGravado = "") {
       const { data, error } = await cliente.storage.from("atividades").list(atividadeId, { limit: 100 });
       if (error) return { ok: false };
       const pdfs = (data || []).filter((item) => /\.pdf$/i.test(item.name || ""));
-      const nomeAnteriorArquivo = pdfAnteriorDisponivel(pdfs.map((item) => item.name), nomePreferido);
+      const nomeAnteriorArquivo = pdfAnteriorDisponivel(pdfs.map((item) => item.name), nomePreferido, anteriorGravado);
       const anterior = pdfs.find((item) => item.name === nomeAnteriorArquivo);
       const preferido = pdfs.find((item) => item.name === nomePreferido);
       const pdf = preferido || pdfs.find((item) => !/-anterior-\d+\.pdf$/i.test(item.name || "") && !/^versao-\d+\.pdf$/i.test(item.name || ""));
@@ -470,7 +477,8 @@ async function iniciar() {
       await Promise.all(ids.map(async (item) => {
         const id = typeof item === "string" ? item : item.id;
         const nome = typeof item === "string" ? "" : item.arquivo || "";
-        const resultado = await api.arquivoPdf(id, nome);
+        const anteriorGravado = typeof item === "string" ? "" : item.arquivo_anterior || "";
+        const resultado = await api.arquivoPdf(id, nome, anteriorGravado);
         saida[id] = resultado.ok ? { ok: true, pdf: resultado.pdf, anterior: resultado.anterior || "" } : { ok: false };
       }));
       return saida;
@@ -500,14 +508,56 @@ async function iniciar() {
       };
     },
     async substituirPdf(atividadeId, arquivo, arquivoAtual) {
-      return {
-        ok: false,
-        mensagem: PDF_INDISPONIVEL,
-        arquivo: arquivoAtual || "",
-      };
+      if (api.trocasPdf.has(atividadeId)) {
+        return { ok: false, mensagem: "A substituição deste PDF já está em andamento.", arquivo: arquivoAtual || "" };
+      }
+      const podeApontar = await api.referenciaPdfDisponivel();
+      if (!podeApontar) return { ok: false, mensagem: PDF_AINDA_NAO_INSTALADO, arquivo: arquivoAtual || "" };
+      api.trocasPdf.add(atividadeId);
+      try {
+        const bytes = new Uint8Array(await arquivo.arrayBuffer());
+        return await executarSubstituicao({
+          storage: api.armazenamentoPdf(),
+          atividadeId,
+          arquivoAtual,
+          nome: arquivo.name,
+          tipo: arquivo.type,
+          tamanho: arquivo.size,
+          bytes,
+          instante: Date.now(),
+          existeAtual: false,
+          definirArquivo: async (nomeNovo) => {
+            const { error } = await cliente.rpc("definir_arquivo", { atividade: atividadeId, nome: nomeNovo });
+            if (error) return { ok: false, mensagem: traduzir(error) };
+            return { ok: true };
+          },
+        });
+      } finally {
+        api.trocasPdf.delete(atividadeId);
+      }
     },
-    async restaurarPdf() {
-      return { ok: false, mensagem: PDF_INDISPONIVEL };
+    async restaurarPdf(atividadeId, arquivoAtual, nomeAnteriorArquivo) {
+      if (api.trocasPdf.has(atividadeId)) {
+        return { ok: false, mensagem: "A substituição deste PDF já está em andamento." };
+      }
+      const podeApontar = await api.referenciaPdfDisponivel();
+      if (!podeApontar) return { ok: false, mensagem: PDF_AINDA_NAO_INSTALADO };
+      api.trocasPdf.add(atividadeId);
+      try {
+        return await executarRestauracao({
+          storage: api.armazenamentoPdf(),
+          atividadeId,
+          arquivoAtual,
+          nomeAnteriorArquivo,
+          definirArquivo: async (nomeNovo) => {
+            const { error } = await cliente.rpc("definir_arquivo", { atividade: atividadeId, nome: nomeNovo });
+            if (error) return { ok: false, mensagem: traduzir(error) };
+            return { ok: true };
+          },
+        });
+      } finally {
+        api.trocasPdf.delete(atividadeId);
+      }
     },
   };
   api.trocasPdf = new Set();

@@ -1,14 +1,13 @@
--- NÃO rode este arquivo agora.
--- Ele só cria a função que aponta a atividade para um PDF já enviado.
--- Não apaga arquivo, não mexe em pedido, direito, capa nem permissão.
--- O painel publicado não chama esta função. Substituir e restaurar ficam
--- indisponíveis até uma autorização posterior.
--- Três correções já estão preparadas aqui e no painel:
--- 1. o catálogo do PostgREST é recarregado no fim;
--- 2. a referência só muda se o PDF novo já estiver no espaço privado;
--- 3. o painel reconhece o arquivo anterior mesmo depois de recarregar a página.
+-- NÃO rode este arquivo agora. Pronto para autorização.
+-- Cria a função que aponta a atividade para um PDF já enviado no espaço privado.
+-- Guarda o nome anterior na própria atividade, para a restauração sobreviver
+-- a uma saída do painel. Não apaga arquivo e não mexe em pedido, direito,
+-- capa nem permissão. O download continua lendo o nome vigente.
 
 begin;
+
+alter table public.atividades
+  add column if not exists arquivo_anterior text not null default '';
 
 create or replace function public.definir_arquivo(atividade text, nome text)
 returns void
@@ -16,6 +15,8 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  vigente text;
 begin
   if not public.sou_admin() then
     raise exception 'Sem permissão.';
@@ -26,8 +27,15 @@ begin
   if nome is null or nome !~ '^[A-Za-z0-9._-]{1,180}$' or right(nome, 4) <> '.pdf' then
     raise exception 'O PDF precisa de um nome seguro.';
   end if;
-  if not exists (select 1 from public.atividades where id = atividade) then
+  select arquivo into vigente
+  from public.atividades
+  where id = atividade
+  for update;
+  if not found then
     raise exception 'Atividade não encontrada.';
+  end if;
+  if vigente = nome then
+    return;
   end if;
   if not exists (
     select 1
@@ -38,7 +46,9 @@ begin
     raise exception 'O PDF novo ainda não está guardado.';
   end if;
   update public.atividades
-  set arquivo = nome
+  set
+    arquivo_anterior = case when vigente <> '' then vigente else arquivo_anterior end,
+    arquivo = nome
   where id = atividade;
 end;
 $$;

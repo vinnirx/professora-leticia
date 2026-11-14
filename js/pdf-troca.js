@@ -2,7 +2,7 @@ import { caminhoPdf } from "./arquivo-seguro.js";
 
 export const LIMITE_PDF = 20 * 1024 * 1024;
 
-export const PDF_INDISPONIVEL = "Substituição de PDF temporariamente indisponível";
+export const PDF_AINDA_NAO_INSTALADO = "A substituição segura do PDF ainda não está instalada. O arquivo atual foi mantido.";
 
 export function formatarTamanho(bytes) {
   const valor = Number(bytes) || 0;
@@ -44,16 +44,23 @@ export function nomeAnterior(arquivoAtual, instante) {
   return nome;
 }
 
-export function pdfAnteriorDisponivel(nomes, atual) {
+export function pdfAnteriorDisponivel(nomes, atual, gravado = "") {
   const lista = (Array.isArray(nomes) ? nomes : [])
     .map((nome) => String(nome || ""))
     .filter((nome) => /\.pdf$/i.test(nome));
+  const vigente = String(atual || "");
+  const informados = (Array.isArray(gravado) ? gravado : [gravado])
+    .map((nome) => String(nome || ""))
+    .filter(Boolean);
+  if (informados.length) {
+    const registrados = informados.filter((nome) => nome !== vigente && lista.includes(nome) && !nome.includes("/"));
+    return registrados.at(-1) || "";
+  }
   const copia = lista
     .filter((nome) => /-anterior-\d+\.pdf$/i.test(nome))
     .sort((a, b) => a.localeCompare(b))
     .at(-1);
-  if (copia) return copia;
-  const vigente = String(atual || "");
+  if (copia && copia !== vigente) return copia;
   if (!/^versao-\d+\.pdf$/i.test(vigente)) return "";
   return lista.find((nome) => (
     nome !== vigente
