@@ -20,7 +20,8 @@ await db.exec(`
   create schema if not exists auth;
   create table auth.sessions (
     id uuid primary key,
-    user_id uuid not null
+    user_id uuid not null,
+    not_after timestamptz
   );
   insert into auth.sessions (id, user_id) values
     ('${sessaoDona}', '${dona}'),
@@ -55,6 +56,11 @@ assert.equal(await ativa({ sub: dona, aal: "aal2", session_id: sessaoDona }), tr
 assert.equal(await ativa({ sub: dona, aal: "aal1", session_id: sessaoAntiga }), false);
 assert.equal(await ativa({ sub: cliente, aal: "aal1", session_id: sessaoDona }), false);
 assert.equal(await ativa({ sub: dona, aal: "aal2" }), false);
+await db.exec(`update auth.sessions set not_after = now() - interval '1 minute' where id = '${sessaoCliente}'`);
+assert.equal(await ativa({ sub: cliente, aal: "aal1", session_id: sessaoCliente }), false);
+await db.exec(`update auth.sessions set not_after = now() + interval '1 hour' where id = '${sessaoCliente}'`);
+assert.equal(await ativa({ sub: cliente, aal: "aal1", session_id: sessaoCliente }), true);
+await db.exec(`update auth.sessions set not_after = null where id = '${sessaoCliente}'`);
 assert.equal(await ativa({ aal: "aal1", session_id: sessaoDona }), false);
 
 await db.exec(`delete from auth.sessions where id = '${sessaoAdmin}'`);

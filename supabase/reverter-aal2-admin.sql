@@ -1,0 +1,3 @@
+-- Rode novamente supabase/migracao-exigir-sessao-admin.sql.
+-- Isso devolve sou_admin, o financeiro e os cargos para a regra de sessão ativa, sem aal2.
+-- Não apaga sessão, pedido, PDF nem conta.

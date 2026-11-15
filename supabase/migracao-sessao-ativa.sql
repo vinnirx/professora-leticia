@@ -32,6 +32,7 @@ begin
     from auth.sessions
     where id = sessao
       and user_id = usuario
+      and (not_after is null or not_after > now())
   );
 end;
 $$;

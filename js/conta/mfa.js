@@ -32,7 +32,7 @@ export function montarSegundoFator(loja, raiz) {
   titulo.textContent = "Segundo fator";
   const explicacao = document.createElement("p");
   explicacao.className = "texto-secao";
-  explicacao.textContent = "O aplicativo autenticador protege esta conta. Cadastrá-lo não altera cargo nem permissão. O Supabase não gera código de recuperação: se o aplicativo for perdido, o fator é removido no painel do projeto, em Authentication, na conta correspondente.";
+  explicacao.textContent = "O aplicativo autenticador protege esta conta. Cadastrá-lo não altera cargo nem permissão. No próximo login, a loja pede o código de 6 números. O Supabase não gera código de recuperação: com a sessão ainda aberta, use Remover autenticador. Sem sessão, o fator é removido no painel do projeto, em Authentication, na conta correspondente.";
   const nivel = document.createElement("p");
   nivel.className = "texto-secao";
   const corpo = document.createElement("div");
@@ -167,4 +167,57 @@ export function montarSegundoFator(loja, raiz) {
   }
 
   carregar();
+}
+
+export async function desafiarFator(loja, ancora, aoConcluir) {
+  if (!loja?.nivelAcesso || !ancora) return false;
+  const nivel = await loja.nivelAcesso();
+  if (!nivel?.ok) return false;
+  if (nivel.atual === "aal2" || nivel.proximo !== "aal2") return false;
+  const fatores = await loja.fatorAtual();
+  if (!fatores?.ok || !fatores.fator) return false;
+
+  const caixa = document.createElement("form");
+  caixa.className = "form-codigo";
+  const titulo = document.createElement("p");
+  titulo.className = "texto-secao";
+  titulo.textContent = "Informe o código do autenticador para continuar.";
+  const rotulo = document.createElement("label");
+  rotulo.textContent = "Código de 6 números";
+  const campo = document.createElement("input");
+  campo.inputMode = "numeric";
+  campo.autocomplete = "one-time-code";
+  campo.maxLength = 6;
+  campo.required = true;
+  campo.setAttribute("aria-label", "Código do autenticador");
+  rotulo.append(campo);
+  const botao = document.createElement("button");
+  botao.className = "botao";
+  botao.type = "submit";
+  botao.textContent = "Confirmar código";
+  const estado = document.createElement("p");
+  estado.className = "aviso-conta";
+  estado.hidden = true;
+  const perda = document.createElement("p");
+  perda.className = "texto-secao";
+  perda.textContent = "O código errado não entra. Se o aplicativo foi perdido, o Supabase não oferece outro código. A remoção do fator é feita no painel do projeto, em Authentication, na conta correspondente.";
+  caixa.append(titulo, rotulo, botao, estado, perda);
+  campo.addEventListener("input", () => {
+    campo.value = String(campo.value || "").replace(/\D/g, "").slice(0, 6);
+  });
+  caixa.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    botao.disabled = true;
+    const resultado = await loja.confirmarFator({ factorId: fatores.fator.id, codigo: campo.value });
+    botao.disabled = false;
+    if (!resultado?.ok) {
+      estado.hidden = false;
+      estado.textContent = resultado?.mensagem || "O código não confere.";
+      estado.classList.remove("aviso-ok");
+      return;
+    }
+    await aoConcluir();
+  });
+  ancora.insertAdjacentElement("afterend", caixa);
+  return true;
 }

@@ -44,8 +44,13 @@ assert.doesNotMatch(admin, /aal2/);
 assert.doesNotMatch(ler("supabase/migracao-permissoes.sql"), /sessao_ainda_valida/);
 
 assert.ok(admin.indexOf("usuarioConfirmado") < admin.indexOf("loja.perfil()"));
-assert.ok(admin.indexOf("if (!administra(dados?.papel))") < admin.indexOf("montarSegundoFator(loja"));
-assert.ok(admin.indexOf("montarSegundoFator") < admin.indexOf("loja.painel()"));
+assert.ok(admin.indexOf("if (!administra(dados?.papel))") < admin.indexOf("desafiarFator(loja"));
+assert.ok(admin.indexOf("desafiarFator(loja") < admin.indexOf("loja.painel()"));
+const entrar = ler("js/conta/entrar.js");
+const login = entrar.slice(entrar.indexOf("loja.entrar"), entrar.indexOf("criar.addEventListener"));
+assert.ok(login.indexOf("desafiarFator") < login.lastIndexOf("destinoDepois"));
+assert.equal(mfa.includes("console.log"), false);
+assert.match(mfa, /não oferece outro código/);
 
 assert.equal(origemDoQr("javascript:alert(1)"), "");
 assert.equal(origemDoQr("data:image/svg+xml;utf-8,<svg><script>alert(1)</script></svg>"), "");
