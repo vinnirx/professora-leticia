@@ -259,6 +259,36 @@ export async function iniciarAdmin(loja) {
   const bloqueio = document.querySelector("#admin-bloqueio");
   const status = document.querySelector("#admin-status");
   const app = document.querySelector("#painel-app");
+
+  if (!loja?.configurada) {
+    app.hidden = false;
+    document.querySelector("#lista-trabalho").hidden = true;
+    document.querySelector("#cadastro-atividade").hidden = false;
+    location.hash = "atividades";
+    bloqueio.hidden = false;
+    bloqueio.textContent = "Você pode preencher o cadastro e ver a prévia. A atividade só é salva na loja quando o banco de dados estiver ligado.";
+    prepararCadastro(loja, new Set());
+    return;
+  }
+
+  const sessao = await loja.sessao();
+  if (!sessao) {
+    location.href = `${rota("entrar/")}?depois=${encodeURIComponent("admin.html")}`;
+    return;
+  }
+  const dados = await loja.perfil();
+  if (!administra(dados?.papel)) {
+    app?.remove();
+    bloqueio.hidden = false;
+    bloqueio.textContent = "Esta área é só de quem administra a loja.";
+    const volta = document.createElement("a");
+    volta.className = "botao";
+    volta.href = rota("minha-conta/");
+    volta.textContent = "Voltar à Minha conta";
+    bloqueio.insertAdjacentElement("afterend", volta);
+    return;
+  }
+
   document.querySelectorAll("[data-secao]").forEach((botao) => {
     botao.addEventListener("click", () => {
       if (botao.dataset.secao === "atividades") document.dispatchEvent(new CustomEvent("mostrar-lista-atividades"));
@@ -295,29 +325,6 @@ export async function iniciarAdmin(loja) {
   const aplicarSecao = () => mostrarSecao(secaoAtual());
   window.addEventListener("hashchange", aplicarSecao);
   aplicarSecao();
-
-  if (!loja?.configurada) {
-    app.hidden = false;
-    document.querySelector("#lista-trabalho").hidden = true;
-    document.querySelector("#cadastro-atividade").hidden = false;
-    location.hash = "atividades";
-    bloqueio.hidden = false;
-    bloqueio.textContent = "Você pode preencher o cadastro e ver a prévia. A atividade só é salva na loja quando o banco de dados estiver ligado.";
-    prepararCadastro(loja, new Set());
-    return;
-  }
-
-  const sessao = await loja.sessao();
-  if (!sessao) {
-    location.href = `${rota("entrar/")}?depois=${encodeURIComponent("admin.html")}`;
-    return;
-  }
-  const dados = await loja.perfil();
-  if (!administra(dados?.papel)) {
-    bloqueio.hidden = false;
-    bloqueio.textContent = "Esta área é só de quem administra a loja.";
-    return;
-  }
 
   app.hidden = false;
   const cargo = document.querySelector("#painel-cargo");

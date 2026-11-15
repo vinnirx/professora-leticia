@@ -6,7 +6,9 @@ export function destinoAposEntrar(perfil) {
 
 export function pedidoDeEntrada(perfil, explicito) {
   const pedido = String(explicito || "").trim();
-  return pedido || destinoAposEntrar(perfil);
+  const administrativo = /^(admin\.html|gerenciar\/?)$/.test(pedido);
+  if (!pedido || (administrativo && !administra(perfil?.papel))) return destinoAposEntrar(perfil);
+  return pedido;
 }
 
 function agruparPedidos(pedidos) {

@@ -1,5 +1,5 @@
 import { aviso, moeda } from "./avisos.js";
-import { resumoAdministrativo } from "./apresentacao.js";
+import { resumoAdministrativo } from "./apresentacao.js?v=2";
 import { administra } from "./papeis.js";
 import { rota } from "../rotas.js";
 import { linkAjuda } from "../texto.js";

@@ -1,5 +1,5 @@
 import { aviso, faltaBanco } from "./avisos.js";
-import { pedidoDeEntrada } from "./apresentacao.js";
+import { pedidoDeEntrada } from "./apresentacao.js?v=2";
 import { MENSAGEM_CONFIRMACAO } from "../endereco-publico.js";
 import { codigoNumerico } from "./codigo.js";
 import { rota } from "../rotas.js";
