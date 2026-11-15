@@ -2,6 +2,7 @@ import { documentoValido } from "./documento.js";
 import { rota } from "./rotas.js";
 import { dinheiro, escapar, linkAjuda } from "./texto.js";
 import { itemOficial, limparCarrinho } from "./carrinho.js?v=2";
+import { totalConfirmado } from "./valor-pedido.js";
 
 let pixAtual = "";
 let pixManual = true;
@@ -186,14 +187,20 @@ export async function abrirPix(atividade) {
         aviso.textContent = gravado.mensagem;
         return;
       }
-      if (gravado.pedidos?.length) {
-        const valorServidor = Number(gravado.pedidos.reduce((soma, item) => soma + Number(item.valor), 0).toFixed(2));
-        const titulos = gravado.pedidos.map((item) => item.titulo).filter(Boolean);
-        if (Number.isFinite(valorServidor) && valorServidor > 0) total = valorServidor;
-        if (titulos.length === 1) document.querySelector("#pix-titulo").textContent = titulos[0];
-        else if (titulos.length > 1) document.querySelector("#pix-titulo").textContent = `${titulos.length} atividades`;
-        document.querySelector("#pix-preco").textContent = dinheiro(total);
+      const oficial = totalConfirmado(ids, gravado.pedidos);
+      if (!oficial) {
+        marcarEstado("problema", "Problema no pagamento", linkAjuda({
+          txid,
+          email,
+          motivo: "O preço oficial da compra não voltou do servidor.",
+        }));
+        aviso.textContent = "Não foi possível confirmar o preço desta compra. Atualize a página antes de gerar o Pix.";
+        return;
       }
+      total = oficial.total;
+      if (oficial.titulos.length === 1) document.querySelector("#pix-titulo").textContent = oficial.titulos[0];
+      else if (oficial.titulos.length > 1) document.querySelector("#pix-titulo").textContent = `${oficial.titulos.length} atividades`;
+      document.querySelector("#pix-preco").textContent = dinheiro(total);
     }
     const caixa = document.querySelector("#pix-imagem");
     try {
