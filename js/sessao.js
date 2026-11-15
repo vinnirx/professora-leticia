@@ -363,7 +363,7 @@ async function iniciar() {
       }
       const { data: pedidos, error: erroPedidos } = await cliente
         .from("pedidos")
-        .select("id, usuario_id, atividade_id, titulo, valor, txid, status, criado_em, perfis(nome, email)")
+        .select("id, usuario_id, atividade_id, titulo, valor, txid, status, confirmacao, criado_em, perfis(nome, email)")
         .order("criado_em", { ascending: false });
       if (contasConsulta.error) throw contasConsulta.error;
       if (erroPedidos) throw erroPedidos;

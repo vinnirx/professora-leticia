@@ -5,6 +5,7 @@ import { prepararEquipe } from "./equipe.js";
 import { aviso, moeda, quando } from "./avisos.js";
 import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
 import { agruparPedidos, resumirVendas } from "./grupos-pedido.js";
+import { fecharCaixa, linhaExportada, origemFinanceira } from "./caixa.js";
 import { paginaAtividade, rota } from "../rotas.js";
 
 const travaPdf = criarTrava();
@@ -71,9 +72,9 @@ function celula(rotulo, conteudo, classe) {
   return td;
 }
 
-function montarTabela(colunas, linhas, larguras) {
+function montarTabela(colunas, linhas, larguras, extraClasse) {
   const tabela = document.createElement("table");
-  tabela.className = "tabela-admin";
+  tabela.className = extraClasse ? `tabela-admin ${extraClasse}` : "tabela-admin";
   if (larguras?.length) {
     const grupo = document.createElement("colgroup");
     larguras.forEach((largura) => {
@@ -240,6 +241,29 @@ function materiaisDe(grupo) {
   return grupo.itens.map((item) => item.titulo).join(", ");
 }
 
+function listaMateriais(grupo) {
+  const lista = document.createElement("div");
+  lista.className = "materiais-lista";
+  grupo.itens.forEach((item) => {
+    const linha = document.createElement("span");
+    linha.textContent = item.titulo || "Atividade";
+    lista.append(linha);
+  });
+  return lista;
+}
+
+function leituraFinanceira(grupo, memoria) {
+  const encontradas = memoria.cobrancasDisponiveis
+    ? memoria.cobrancas.filter((item) => item.txid === grupo.txid)
+    : [];
+  const cobranca = encontradas.find((item) => item.taxa != null && item.valor_liquido != null) || encontradas[0] || null;
+  return origemFinanceira(grupo, cobranca, memoria.cobrancasDisponiveis);
+}
+
+function dinheiroOuAviso(valor) {
+  return valor == null ? selo(indisponivel(), "neutro") : moeda.format(valor);
+}
+
 function filtrarGrupos(grupos, { inicio, fim, status, busca }) {
   const termo = (busca || "").trim().toLocaleLowerCase("pt-BR");
   return grupos.filter((grupo) => {
@@ -261,6 +285,7 @@ export async function iniciarAdmin(loja) {
   const app = document.querySelector("#painel-app");
 
   if (!loja?.configurada) {
+    app.classList.add("liberado");
     app.hidden = false;
     document.querySelector("#lista-trabalho").hidden = true;
     document.querySelector("#cadastro-atividade").hidden = false;
@@ -426,12 +451,13 @@ export async function iniciarAdmin(loja) {
   function pintarVisao() {
     const pagos = grupos().filter((grupo) => grupo.status === "pago");
     const unidades = memoria.pedidos.filter((pedido) => pedido.status === "pago").length;
+    const caixaVisao = fecharCaixa(pagos, memoria.cobrancas, memoria.cobrancasDisponiveis);
     const caixa = document.querySelector("#indicadores-visao");
     const apoioVisao = document.querySelector("#indicadores-visao-apoio");
     if (podeFinanceiro(dados)) {
       caixa.replaceChildren(
         indicador("Receita bruta", moeda.format(pagos.reduce((soma, grupo) => soma + grupo.valor, 0)), "Só pedidos pagos"),
-        indicador("Receita líquida", indisponivel(), "A taxa do Asaas ainda não é gravada"),
+        indicador("Receita líquida", caixaVisao.liquido == null ? indisponivel() : moeda.format(caixaVisao.liquido), caixaVisao.motivo),
       );
     } else caixa.replaceChildren();
     if (apoioVisao) {
@@ -747,27 +773,32 @@ export async function iniciarAdmin(loja) {
               return;
             }
             memoria.pedidos.forEach((pedido) => {
-              if (pedido.txid === grupo.txid && (pedido.usuario_id || "") === (grupo.usuario_id || "")) pedido.status = "pago";
+              if (pedido.txid === grupo.txid && (pedido.usuario_id || "") === (grupo.usuario_id || "")) {
+                pedido.status = "pago";
+                pedido.confirmacao = "admin";
+              }
             });
             aviso(document.querySelector("#pedidos-status-aviso"), "Pix confirmado. O download já está na conta de quem comprou.", true);
             pintarTudo();
           }));
         }
+        const leitura = leituraFinanceira(grupo, memoria);
         return {
           tr: document.createElement("tr"),
           celulas: [
             celula("Data", quando.format(new Date(grupo.criado_em))),
             celula("Pedido", grupo.txid, "sem-quebra"),
             celula("Cliente", pessoa(nomeCliente(grupo), grupo.perfis?.email || "")),
-            celula("Materiais", tituloDuas(materiaisDe(grupo))),
+            celula("Materiais", listaMateriais(grupo)),
             celula("Valor", moeda.format(grupo.valor), "numero"),
             celula("Status", selo(...rotuloStatus(grupo.status))),
-            celula("Asaas", selo(indisponivel(), "neutro")),
-            celula("Ações", acoes),
+            celula("Asaas", leitura.asaas === "Pix manual" || leitura.asaas === "Não disponível" ? selo(leitura.asaas, "neutro") : Object.assign(document.createElement("span"), { className: "texto-quebra", textContent: leitura.asaas })),
+            celula("Ações", acoes, "celula-acoes"),
           ],
         };
       }),
-      ["8.6rem", "7.4rem", "16%", "20%", "6.2rem", "7.2rem", "8rem", "11.2rem"],
+      ["7.2rem", "9.4rem", "13rem", "14rem", "7.4rem", "6.6rem", "7.4rem", "10.5rem"],
+      "tabela-larga",
     ));
   }
 
@@ -816,31 +847,21 @@ export async function iniciarAdmin(loja) {
     const resumo = resumirVendas(noPeriodo);
     const pagos = noPeriodo.filter((pedido) => pedido.status === "pago");
     const gruposPagos = agruparPedidos(pagos);
-    const cobrancaDo = (txid) => memoria.cobrancas.find((item) => item.txid === txid) || null;
-    const taxasConhecidas = memoria.cobrancasDisponiveis && gruposPagos.length > 0 && gruposPagos.every((grupo) => {
-      const cobranca = cobrancaDo(grupo.txid);
-      return cobranca && cobranca.taxa != null && cobranca.valor_liquido != null;
-    });
-    const taxaTotal = taxasConhecidas
-      ? gruposPagos.reduce((soma, grupo) => soma + Number(cobrancaDo(grupo.txid).taxa), 0)
-      : null;
-    const liquidoTotal = taxasConhecidas
-      ? gruposPagos.reduce((soma, grupo) => soma + Number(cobrancaDo(grupo.txid).valor_liquido), 0)
-      : null;
+    const caixaPeriodo = fecharCaixa(gruposPagos, memoria.cobrancas, memoria.cobrancasDisponiveis);
     const estornos = memoria.cobrancasDisponiveis
       ? memoria.cobrancas.filter((item) => item.status === "estornada" && dentroDoIntervalo(item.atualizado_em, inicio, fim))
       : null;
     document.querySelector("#indicadores-financeiro").replaceChildren(
       indicador("Receita bruta", moeda.format(resumo.bruto), "Soma dos pedidos em que todos os materiais estão pagos. Pendente não entra."),
-      indicador("Receita líquida", liquidoTotal == null ? indisponivel() : moeda.format(liquidoTotal), liquidoTotal == null ? "A taxa do Asaas ainda não é conhecida. O líquido não é estimado." : "Soma do líquido gravado em cada cobrança."),
+      indicador("Receita líquida", caixaPeriodo.liquido == null ? indisponivel() : moeda.format(caixaPeriodo.liquido), caixaPeriodo.motivo),
       indicador("Vendas confirmadas", String(resumo.pedidosPagos), "Um código com várias atividades conta uma venda. O valor soma todos os materiais pagos."),
       indicador("Aguardando pagamento", String(resumo.aguardando), "Pedidos ainda não confirmados. Não entram na receita."),
     );
     apoio.replaceChildren(
       indicador("Atividades vendidas", String(resumo.unidadesPagas), "Cada material pago conta uma unidade."),
       indicador("Cancelados ou estornados", String(resumo.encerrados), "Não entram na receita bruta."),
-      indicador("Taxas Asaas", taxaTotal == null ? indisponivel() : moeda.format(taxaTotal), taxaTotal == null ? "Enquanto o Pix for manual, a taxa efetiva não é gravada." : "Soma da tarifa gravada pelo Asaas."),
-      indicador("Estornos", estornos == null ? indisponivel() : moeda.format(estornos.reduce((soma, item) => soma + (Number(item.valor_bruto) || 0), 0)), estornos == null ? "O valor do estorno só aparece quando o Asaas gravar a cobrança." : "Soma do bruto das cobranças estornadas neste intervalo."),
+      indicador("Taxas Asaas", caixaPeriodo.taxa == null ? indisponivel() : moeda.format(caixaPeriodo.taxa), caixaPeriodo.taxa == null ? "Há venda sem tarifa gravada. Nenhuma taxa é presumida." : "Pix manual entra com taxa zero. Cobrança Asaas soma a tarifa gravada."),
+      indicador("Estornos", estornos == null ? indisponivel() : moeda.format(estornos.reduce((soma, item) => soma + (Number(item.valor_bruto) || 0), 0)), estornos == null ? "O valor do estorno só aparece quando o Asaas gravar a cobrança." : "Soma do bruto das cobranças estornadas neste intervalo. Esses pedidos não entram na receita."),
     );
     const ranking = new Map();
     pagos.forEach((pedido) => {
@@ -903,24 +924,23 @@ export async function iniciarAdmin(loja) {
     else {
       tabela.replaceChildren(montarTabela(
         ["Data", "Pedido", "Cliente", "Valor bruto", "Taxa Asaas", "Valor líquido", "Status"],
-        gruposPagos.map((grupo) => ({
-          tr: document.createElement("tr"),
-          celulas: [
-            celula("Data", quando.format(new Date(grupo.criado_em))),
-            celula("Pedido", grupo.txid),
-            celula("Cliente", nomeCliente(grupo)),
-            celula("Valor bruto", moeda.format(grupo.valor), "numero"),
-            celula("Taxa Asaas", (() => {
-              const cobranca = cobrancaDo(grupo.txid);
-              return cobranca?.taxa == null ? selo(indisponivel(), "neutro") : moeda.format(Number(cobranca.taxa));
-            })()),
-            celula("Valor líquido", (() => {
-              const cobranca = cobrancaDo(grupo.txid);
-              return cobranca?.valor_liquido == null ? selo(indisponivel(), "neutro") : moeda.format(Number(cobranca.valor_liquido));
-            })()),
-            celula("Status", selo("Pago", "ok")),
-          ],
-        })),
+        gruposPagos.map((grupo) => {
+          const leitura = caixaPeriodo.linhas.find((linha) => linha.grupo === grupo);
+          return {
+            tr: document.createElement("tr"),
+            celulas: [
+              celula("Data", quando.format(new Date(grupo.criado_em))),
+              celula("Pedido", grupo.txid, "sem-quebra"),
+              celula("Cliente", pessoa(nomeCliente(grupo), grupo.perfis?.email || "")),
+              celula("Valor bruto", moeda.format(grupo.valor), "numero"),
+              celula("Taxa Asaas", dinheiroOuAviso(leitura?.taxa), leitura?.taxa == null ? "" : "numero"),
+              celula("Valor líquido", dinheiroOuAviso(leitura?.liquido), leitura?.liquido == null ? "" : "numero"),
+              celula("Status", selo("Pago", "ok")),
+            ],
+          };
+        }),
+        ["7.2rem", "9.4rem", "14rem", "7rem", "7rem", "7.4rem", "6.4rem"],
+        "tabela-larga",
       ));
     }
   }
@@ -1346,16 +1366,20 @@ export async function iniciarAdmin(loja) {
     if (!podeFinanceiro(dados)) return;
     const { inicio, fim } = intervalosFinanceiro();
     const pagos = agruparPedidos(memoria.pedidos.filter((pedido) => pedido.status === "pago" && dentroDoIntervalo(pedido.criado_em, inicio, fim)));
-    const linhas = [["Data", "Pedido", "Cliente", "Valor bruto", "Taxa Asaas", "Valor líquido", "Status"]];
-    pagos.forEach((grupo) => {
+    const caixaExportada = fecharCaixa(pagos, memoria.cobrancas, memoria.cobrancasDisponiveis);
+    const linhas = [["Data", "Pedido", "Cliente", "E-mail", "Valor bruto", "Taxa Asaas", "Valor líquido", "Status", "Asaas"]];
+    caixaExportada.linhas.forEach((linha) => {
+      const [taxa, liquido] = linhaExportada(linha, (valor) => moeda.format(valor));
       linhas.push([
-        quando.format(new Date(grupo.criado_em)),
-        grupo.txid,
-        nomeCliente(grupo),
-        moeda.format(grupo.valor),
-        indisponivel(),
-        indisponivel(),
+        quando.format(new Date(linha.grupo.criado_em)),
+        linha.grupo.txid,
+        nomeCliente(linha.grupo),
+        linha.grupo.perfis?.email || "",
+        moeda.format(linha.grupo.valor),
+        taxa,
+        liquido,
         "Pago",
+        linha.asaas,
       ]);
     });
     const texto = linhas.map((colunas) => colunas.map(celulaCsv).join(";")).join("\n");

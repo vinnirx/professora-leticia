@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="../css/styles.css?v=87" />
     <link rel="stylesheet" href="../css/conta.css?v=12" />
-    <link rel="stylesheet" href="../css/painel.css?v=14" />
+    <link rel="stylesheet" href="../css/painel.css?v=15" />
   </head>
   <body data-pagina="admin">
     <header class="cabecalho">
@@ -92,8 +92,8 @@
                   <button class="botao" id="abrir-cadastro" type="button">Nova atividade</button>
                 </div>
                 <p class="aviso-conta" id="atividades-status" role="status"></p>
-                <div class="filtros-painel">
-                  <label class="campo-largo">Buscar pelo nome <input id="busca-atividade" type="search" /></label>
+                <div class="filtros-painel filtros-quarta">
+                  <label>Buscar pelo nome <input id="busca-atividade" type="search" /></label>
                   <label>Área <select id="filtro-area-lista"><option value="">Todas</option></select></label>
                   <label>Categoria <select id="filtro-categoria-lista"><option value="">Todas</option></select></label>
                   <label>Destaque <select id="filtro-destaque-lista"><option value="">Todos</option><option value="sim">Em destaque</option><option value="nao">Sem destaque</option></select></label>
@@ -261,8 +261,8 @@
                   <p class="texto-secao">Cada compra pode reunir mais de uma atividade no mesmo código. Confirmar o Pix libera o download de todas elas.</p>
                 </div>
               </div>
-              <div class="filtros-painel">
-                <label class="campo-largo">Buscar <input id="busca-pedido" type="search" placeholder="Nome, e-mail ou código" /></label>
+              <div class="filtros-painel filtros-quarta">
+                <label>Buscar <input id="busca-pedido" type="search" placeholder="Nome, e-mail ou código" /></label>
                 <label>Situação <select id="pedidos-status"><option value="">Todas</option><option value="pago">Pago</option><option value="aguardando">Aguardando</option><option value="cancelado">Cancelado</option><option value="estornado">Estornado</option></select></label>
                 <label>De <input id="pedidos-inicio" type="date" /></label>
                 <label>Até <input id="pedidos-fim" type="date" /></label>
@@ -276,10 +276,10 @@
               <div class="secao-cabeca">
                 <div>
                   <h2 id="titulo-financeiro">Financeiro</h2>
-                  <p class="texto-secao">Receita bruta é a soma dos pedidos pagos. Taxa e receita líquida só aparecem quando o Asaas gravar esses valores. Nada aqui é estimativa.</p>
+                  <p class="texto-secao">A receita bruta soma os pedidos pagos. No Pix manual, a taxa Asaas é zero e o líquido acompanha o bruto. Na cobrança Asaas, taxa e líquido só aparecem com os valores gravados. Nada é estimado.</p>
                 </div>
               </div>
-              <div class="filtros-painel">
+              <div class="filtros-painel filtros-financeiro">
                 <label class="campo-periodo">Agrupar
                   <span class="filtros" role="group" aria-label="Agrupar a receita bruta">
                     <button class="filtro" type="button" data-periodo="dia" aria-pressed="true">Dia</button>
@@ -393,7 +393,7 @@
 
     <script src="../js/loja.js?v=48"></script>
     <script src="../js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="../js/sessao.js?v=31"></script>
-    <script type="module" src="../js/conta.js?v=40"></script>
+    <script type="module" src="../js/sessao.js?v=32"></script>
+    <script type="module" src="../js/conta.js?v=41"></script>
   </body>
 </html>
