@@ -6,6 +6,7 @@ import { aviso, moeda, quando } from "./avisos.js";
 import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
 import { agruparPedidos, resumirVendas } from "./grupos-pedido.js";
 import { fecharCaixa, linhaExportada, origemFinanceira } from "./caixa.js";
+import { celulaCsv } from "./csv.js";
 import { paginaAtividade, rota } from "../rotas.js";
 
 const travaPdf = criarTrava();
@@ -273,10 +274,6 @@ function filtrarGrupos(grupos, { inicio, fim, status, busca }) {
     const texto = `${nomeCliente(grupo)} ${grupo.perfis?.email || ""} ${grupo.txid} ${materiaisDe(grupo)}`.toLocaleLowerCase("pt-BR");
     return texto.includes(termo);
   });
-}
-
-function celulaCsv(valor) {
-  return `"${String(valor ?? "").replaceAll('"', '""')}"`;
 }
 
 export async function iniciarAdmin(loja) {
