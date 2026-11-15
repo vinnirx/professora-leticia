@@ -92,6 +92,11 @@
                   <button class="botao" id="abrir-cadastro" type="button">Nova atividade</button>
                 </div>
                 <p class="aviso-conta" id="atividades-status" role="status"></p>
+                <div class="acoes" id="abas-atividades" role="tablist" aria-label="Situação das atividades">
+                  <button class="botao" type="button" data-situacao="ativas" aria-selected="true">Ativas</button>
+                  <button class="botao botao-secundario" type="button" data-situacao="arquivadas" aria-selected="false">Arquivadas</button>
+                  <button class="botao botao-secundario" type="button" data-situacao="todas" aria-selected="false">Todas</button>
+                </div>
                 <div class="filtros-painel filtros-quarta">
                   <label>Buscar pelo nome <input id="busca-atividade" type="search" /></label>
                   <label>Área <select id="filtro-area-lista"><option value="">Todas</option></select></label>
@@ -394,7 +399,7 @@
 
     <script src="../js/loja.js?v=48"></script>
     <script src="../js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="../js/sessao.js?v=37"></script>
-    <script type="module" src="../js/conta.js?v=48"></script>
+    <script type="module" src="../js/sessao.js?v=38"></script>
+    <script type="module" src="../js/conta.js?v=49"></script>
   </body>
 </html>

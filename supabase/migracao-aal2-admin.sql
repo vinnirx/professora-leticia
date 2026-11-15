@@ -201,3 +201,26 @@ begin
   return jsonb_build_object('ok', true, 'mensagem', '');
 end;
 $$;
+
+create or replace function public.motivo_dona_atividade()
+returns text
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null or auth.uid() is distinct from public.id_proprietaria() then
+    return 'Só a proprietária pode retirar ou repor uma atividade.';
+  end if;
+  if coalesce(auth.jwt() ->> 'aal', '') is distinct from 'aal2' then
+    return 'Confirme o segundo fator para continuar.';
+  end if;
+  if not public.sessao_ainda_valida() then
+    return 'Esta sessão não está mais ativa.';
+  end if;
+  return '';
+end;
+$$;
+
+revoke all on function public.motivo_dona_atividade() from public, anon, authenticated;

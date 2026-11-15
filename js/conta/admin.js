@@ -10,6 +10,7 @@ import { celulaCsv } from "./csv.js";
 import { desafiarFator, montarSegundoFator } from "./mfa.js?v=5";
 import { acionarSaida } from "./saida.js";
 import { paginaAtividade, rota } from "../rotas.js";
+import { podeVoltarALoja, semVenda } from "../vitrine.js";
 
 const travaPdf = criarTrava();
 
@@ -547,12 +548,105 @@ export async function iniciarAdmin(loja) {
     }
   }
 
+  let situacaoAtividade = "ativas";
+
+  function pedirConfirmacao({ titulo, texto, confirmar, perigo }) {
+    return new Promise((resolve) => {
+      const dialogo = document.createElement("dialog");
+      const cabeca = document.createElement("h3");
+      cabeca.textContent = titulo;
+      const corpo = document.createElement("p");
+      corpo.textContent = texto;
+      const acoes = document.createElement("div");
+      acoes.className = "acoes";
+      const cancelar = document.createElement("button");
+      cancelar.type = "button";
+      cancelar.className = "botao botao-secundario";
+      cancelar.textContent = "Cancelar";
+      const aceitar = document.createElement("button");
+      aceitar.type = "button";
+      aceitar.className = perigo ? "botao botao-perigo" : "botao";
+      aceitar.textContent = confirmar;
+      const fechar = (valor) => {
+        dialogo.close();
+        dialogo.remove();
+        resolve(valor);
+      };
+      cancelar.addEventListener("click", () => fechar(false));
+      aceitar.addEventListener("click", () => fechar(true));
+      dialogo.addEventListener("cancel", (evento) => {
+        evento.preventDefault();
+        fechar(false);
+      });
+      acoes.append(cancelar, aceitar);
+      dialogo.append(cabeca, corpo, acoes);
+      document.body.append(dialogo);
+      dialogo.showModal();
+    });
+  }
+
+  async function retirarAtividade(atividade) {
+    const confirmou = await pedirConfirmacao({
+      titulo: "Retirar da loja",
+      texto: `${atividade.titulo} sai do catálogo e não poderá ser comprada. Pedidos, financeiro e PDFs de quem já comprou permanecem.`,
+      confirmar: "Arquivar",
+      perigo: true,
+    });
+    if (!confirmou) return;
+    const resultado = await loja.arquivarAtividade(atividade.id);
+    aviso(document.querySelector("#atividades-status"), resultado.mensagem, resultado.ok);
+    if (!resultado.ok) return;
+    atividade.arquivada_em = new Date().toISOString();
+    pintarAtividades();
+  }
+
+  async function reporAtividade(atividade) {
+    const impedimento = podeVoltarALoja(atividade);
+    if (impedimento) {
+      aviso(document.querySelector("#atividades-status"), impedimento);
+      return;
+    }
+    const confirmou = await pedirConfirmacao({
+      titulo: "Voltar a vender",
+      texto: `${atividade.titulo} volta ao catálogo com o preço e o PDF atuais.`,
+      confirmar: "Restaurar",
+      perigo: false,
+    });
+    if (!confirmou) return;
+    const resultado = await loja.restaurarAtividade(atividade.id);
+    aviso(document.querySelector("#atividades-status"), resultado.mensagem, resultado.ok);
+    if (!resultado.ok) return;
+    atividade.arquivada_em = null;
+    pintarAtividades();
+  }
+
+  async function apagarCadastro(atividade) {
+    if (!semVenda(memoria.pedidos, atividade.id)) {
+      aviso(document.querySelector("#atividades-status"), "Esta atividade já tem venda. O cadastro e o PDF permanecem.");
+      return;
+    }
+    const confirmou = await pedirConfirmacao({
+      titulo: "Apagar cadastro",
+      texto: `${atividade.titulo} nunca foi vendida. O cadastro sai da lista. O PDF no espaço privado não é apagado.`,
+      confirmar: "Apagar cadastro",
+      perigo: true,
+    });
+    if (!confirmou) return;
+    const resultado = await loja.apagarAtividadeSemVenda(atividade.id);
+    aviso(document.querySelector("#atividades-status"), resultado.mensagem, resultado.ok);
+    if (!resultado.ok) return;
+    memoria.atividades = memoria.atividades.filter((item) => item.id !== atividade.id);
+    pintarAtividades();
+  }
+
   function atividadesFiltradas() {
     const termo = document.querySelector("#busca-atividade").value.trim().toLocaleLowerCase("pt-BR");
     const area = filtroArea.value;
     const categoria = filtroCategoria.value;
     const destaque = document.querySelector("#filtro-destaque-lista").value;
     return memoria.atividades.filter((item) => {
+      if (situacaoAtividade === "ativas" && item.arquivada_em) return false;
+      if (situacaoAtividade === "arquivadas" && !item.arquivada_em) return false;
       if (termo && !item.titulo.toLocaleLowerCase("pt-BR").includes(termo)) return false;
       if (area && item.area !== area) return false;
       if (categoria && categoriaDe(item) !== categoria) return false;
@@ -633,8 +727,18 @@ export async function iniciarAdmin(loja) {
         destaque.append(caixa, trilho, leitor);
         const acoes = document.createElement("div");
         acoes.className = "acoes";
+        acoes.append(botaoAcao("Editar", () => abrirEdicao(atividade)));
+        if (dados?.papel === "owner" && !atividade.foraDoBanco) {
+          if (atividade.arquivada_em) {
+            acoes.append(botaoAcao("Restaurar", () => reporAtividade(atividade)));
+            if (semVenda(memoria.pedidos, atividade.id)) {
+              acoes.append(botaoAcao("Excluir cadastro", () => apagarCadastro(atividade), "botao-perigo"));
+            }
+          } else {
+            acoes.append(botaoAcao("Arquivar", () => retirarAtividade(atividade), "botao-perigo"));
+          }
+        }
         acoes.append(
-          botaoAcao("Editar", () => abrirEdicao(atividade)),
           menuAcoes([
             { texto: "Ver na loja", href: paginaAtividade(atividade.id) },
             { texto: "Gerenciar PDF", aoClicar: () => {
@@ -1221,6 +1325,17 @@ export async function iniciarAdmin(loja) {
     completarContas();
   }
 
+  document.querySelectorAll("#abas-atividades [data-situacao]").forEach((botao) => {
+    botao.addEventListener("click", () => {
+      situacaoAtividade = botao.dataset.situacao || "ativas";
+      document.querySelectorAll("#abas-atividades [data-situacao]").forEach((item) => {
+        const escolhido = item === botao;
+        item.className = escolhido ? "botao" : "botao botao-secundario";
+        item.setAttribute("aria-selected", String(escolhido));
+      });
+      pintarAtividades();
+    });
+  });
   ["#busca-atividade", "#filtro-area-lista", "#filtro-categoria-lista", "#filtro-destaque-lista"].forEach((seletor) => {
     document.querySelector(seletor).addEventListener("input", pintarAtividades);
     document.querySelector(seletor).addEventListener("change", pintarAtividades);

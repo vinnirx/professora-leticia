@@ -164,12 +164,28 @@ async function iniciar() {
       else consulta = consulta.order("titulo");
       return consulta;
     };
-    let consulta = await pedir(`${CAMPOS_ATIVIDADE}, arquivo_anterior`);
-    if (consulta.error && /arquivo_anterior|schema cache|column/i.test(String(consulta.error.message || ""))) {
-      consulta = await pedir(CAMPOS_ATIVIDADE);
+    const tentativas = [
+      `${CAMPOS_ATIVIDADE}, arquivo_anterior, arquivada_em`,
+      `${CAMPOS_ATIVIDADE}, arquivo_anterior`,
+      CAMPOS_ATIVIDADE,
+    ];
+    let consulta = null;
+    let autoridade = false;
+    for (const campos of tentativas) {
+      consulta = await pedir(campos);
+      if (!consulta.error) {
+        autoridade = campos.includes("arquivada_em");
+        break;
+      }
+      if (!/arquivo_anterior|arquivada_em|schema cache|column/i.test(String(consulta.error.message || ""))) break;
     }
     if (consulta.error) throw consulta.error;
-    return (consulta.data || []).map((item) => ({ ...item, arquivo_anterior: item.arquivo_anterior || "" }));
+    api.vitrineAutoritativa = autoridade;
+    return (consulta.data || []).map((item) => ({
+      ...item,
+      arquivo_anterior: item.arquivo_anterior || "",
+      arquivada_em: item.arquivada_em || null,
+    }));
   }
 
   async function usuarioConfirmado() {
@@ -354,16 +370,16 @@ async function iniciar() {
         code: token,
       });
       if (verificado.error) return { ok: false, mensagem: mensagemFator(verificado.error) };
-      const [lista, acesso] = await Promise.all([
+      const [lista, nivel] = await Promise.all([
         cliente.auth.mfa.listFactors(),
         cliente.auth.mfa.getAuthenticatorAssuranceLevel(),
       ]);
-      if (lista.error || acesso.error) {
+      if (lista.error || nivel.error) {
         return { ok: false, mensagem: "O código foi enviado, mas não consegui ler a confirmação no servidor." };
       }
       return resultadoDaConfirmacao({
         fatores: (lista.data?.all || []).filter((fator) => fator.id === factorId),
-        nivel: acesso.data?.currentLevel,
+        nivel: nivel.data?.currentLevel,
       });
     },
     async removerFator(factorId) {
@@ -421,6 +437,26 @@ async function iniciar() {
       });
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true, atividade: data };
+    },
+    async operacaoAtividade(funcao, atividade) {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
+      const { data, error } = await cliente.rpc(funcao, { atividade });
+      if (error && /could not find the function|schema cache|does not exist/i.test(String(error.message || ""))) {
+        return { ok: false, mensagem: "A retirada de atividades ainda não está no banco." };
+      }
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      if (data && data.ok === false) return { ok: false, mensagem: data.mensagem || "Não foi possível agora. Tente de novo." };
+      return { ok: true, mensagem: data?.mensagem || "" };
+    },
+    async arquivarAtividade(atividade) {
+      return api.operacaoAtividade("arquivar_atividade", atividade);
+    },
+    async restaurarAtividade(atividade) {
+      return api.operacaoAtividade("restaurar_atividade", atividade);
+    },
+    async apagarAtividadeSemVenda(atividade) {
+      return api.operacaoAtividade("apagar_atividade_sem_venda", atividade);
     },
     async editarCampos(atividadeId, mudancas) {
       const acesso = await usuarioConfirmado();

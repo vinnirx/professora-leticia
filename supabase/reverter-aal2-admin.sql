@@ -1,3 +1,5 @@
 -- Rode novamente supabase/migracao-exigir-sessao-admin.sql.
 -- Isso devolve sou_admin, o financeiro e os cargos para a regra de sessão ativa, sem aal2.
+-- Se a exclusão lógica de atividades já estiver aplicada, rode também supabase/migracao-arquivar-atividade.sql.
+-- Isso devolve o arquivamento à proprietária sem exigir aal2. Não apaga atividade, pedido nem PDF.
 -- Não apaga sessão, pedido, PDF nem conta.

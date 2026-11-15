@@ -110,6 +110,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!conta?.configurada) return;
   try {
     const remota = await conta.atividade(id);
+    if (conta.vitrineAutoritativa && (!remota || remota.arquivada_em)) {
+      const comprar = document.querySelector("#comprar");
+      if (comprar) comprar.hidden = true;
+      const aviso = document.querySelector("#ficha-extra");
+      if (aviso) aviso.textContent = "Esta atividade não está à venda.";
+      return;
+    }
     if (remota) {
       const atual = mesclarOferta({
         ...local,

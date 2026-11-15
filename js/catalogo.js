@@ -1,5 +1,6 @@
 import { abrirCarrinho, guardarNoCarrinho, pintarCarrinho } from "./carrinho.js?v=2";
 import { mesclarOferta, publicarOfertas } from "./ofertas.js";
+import { montarVitrine } from "./vitrine.js";
 import { dinheiro, escapar, linhas } from "./texto.js";
 import { paginaAtividade } from "./rotas.js";
 
@@ -176,14 +177,11 @@ export async function iniciarCatalogo() {
     const conta = await window.contaPronta;
     if (!conta?.configurada) return;
     const remotas = await conta.atividades();
-    if (!remotas.length) return;
-    const vindas = remotas.map(paraCartao);
+    const autoridade = Boolean(conta.vitrineAutoritativa);
+    if (!remotas.length && !autoridade) return;
+    const vindas = remotas.filter((item) => !item.arquivada_em).map(paraCartao);
     const locaisPorId = new Map(locais.map((item) => [item.id, item]));
-    const ids = new Set(vindas.map((item) => item.id));
-    catalogo = [
-      ...vindas.map((item) => mesclarOferta(item, locaisPorId.get(item.id))),
-      ...locais.filter((item) => !ids.has(item.id)),
-    ];
+    catalogo = montarVitrine(locais, vindas, autoridade).map((item) => mesclarOferta(item, locaisPorId.get(item.id)));
     publicarOfertas(catalogo);
     mostrarCatalogo();
   } catch {

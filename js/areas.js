@@ -1,4 +1,4 @@
-import { definirFiltro, filtroAtual, mostrarCatalogo } from "./catalogo.js?v=2";
+import { definirFiltro, filtroAtual, mostrarCatalogo } from "./catalogo.js?v=3";
 import { temasPorArea } from "./temas.js";
 
 export function prepararAreas() {
