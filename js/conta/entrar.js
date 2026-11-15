@@ -2,7 +2,7 @@ import { aviso, faltaBanco } from "./avisos.js";
 import { pedidoDeEntrada } from "./apresentacao.js?v=2";
 import { MENSAGEM_CONFIRMACAO } from "../endereco-publico.js";
 import { codigoNumerico } from "./codigo.js";
-import { desafiarFator } from "./mfa.js?v=2";
+import { desafiarFator } from "./mfa.js?v=3";
 import { rota } from "../rotas.js";
 
 async function destinoDepois(loja) {

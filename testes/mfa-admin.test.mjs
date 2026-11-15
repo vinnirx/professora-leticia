@@ -55,7 +55,13 @@ assert.match(mfa, /não oferece outro código/);
 assert.equal(origemDoQr("javascript:alert(1)"), "");
 assert.equal(origemDoQr("data:image/svg+xml;utf-8,<svg><script>alert(1)</script></svg>"), "");
 assert.equal(origemDoQr('data:image/svg+xml;utf-8,<svg onload=alert(1)></svg>'), "");
-assert.match(origemDoQr("data:image/svg+xml;utf-8,<svg></svg>"), /svg/);
+const qr = origemDoQr('data:image/svg+xml;utf-8,<svg fill="%23000"></svg>');
+assert.match(qr, /^data:image\/svg\+xml;base64,/);
+assert.doesNotMatch(qr, /utf-8|fill=/);
+assert.match(atob(qr.slice(qr.indexOf(",") + 1)), /<svg/);
+assert.match(mfa, /Cancelar cadastro/);
+assert.equal(mfa.includes("innerHTML"), false);
+assert.match(inscricao, /Remova o atual/);
 assert.match(mensagemFator({ message: "MFA enroll is disabled" }), /ainda não está ligado/);
 assert.match(mensagemFator({ message: "Invalid TOTP code" }), /não confere/);
 

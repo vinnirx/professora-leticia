@@ -4,6 +4,30 @@
 -- mesmo que cadastre um fator na própria conta.
 -- Não altera pedidos, PDFs, preços nem cargos existentes.
 -- Reversão: supabase/reverter-aal2-admin.sql
+-- Depende de public.motivo_proprietaria(), criada em migracao-exigir-sessao-admin.sql.
+
+create or replace function public.motivo_proprietaria()
+returns text
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null or auth.uid() is distinct from public.id_proprietaria() then
+    return 'Sem permissão.';
+  end if;
+  if coalesce(auth.jwt() ->> 'aal', '') is distinct from 'aal2' then
+    return 'Confirme o segundo fator para continuar.';
+  end if;
+  if not public.sessao_ainda_valida() then
+    return 'Esta sessão não está mais ativa.';
+  end if;
+  return '';
+end;
+$$;
+
+revoke all on function public.motivo_proprietaria() from public, anon, authenticated;
 
 create or replace function public.sou_admin()
 returns boolean

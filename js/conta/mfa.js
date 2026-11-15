@@ -11,17 +11,34 @@ export function mensagemFator(erro) {
   return "Não foi possível agora. Tente de novo.";
 }
 
-export function origemDoQr(valor) {
-  const texto = String(valor || "");
+function svgDoQr(valor) {
+  const texto = String(valor || "").trim();
   if (!texto.startsWith("data:image/svg+xml")) return "";
-  let legivel = texto;
+  const virgula = texto.indexOf(",");
+  if (virgula < 0) return "";
+  const cabecalho = texto.slice(0, virgula).toLowerCase();
+  const corpo = texto.slice(virgula + 1);
   try {
-    legivel = decodeURIComponent(texto);
+    if (cabecalho.includes(";base64")) {
+      const binario = atob(corpo);
+      const bytes = Uint8Array.from(binario, (caractere) => caractere.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    }
+    return decodeURIComponent(corpo);
   } catch {
     return "";
   }
-  if (/<script|javascript:|on\w+\s*=/i.test(legivel)) return "";
-  return texto;
+}
+
+export function origemDoQr(valor) {
+  const svg = svgDoQr(valor);
+  if (!svg.includes("<svg") || /<script|javascript:|on\w+\s*=/i.test(svg)) return "";
+  const bytes = new TextEncoder().encode(svg);
+  let binario = "";
+  bytes.forEach((byte) => {
+    binario += String.fromCharCode(byte);
+  });
+  return `data:image/svg+xml;base64,${btoa(binario)}`;
 }
 
 export function montarSegundoFator(loja, raiz) {
@@ -98,19 +115,41 @@ export function montarSegundoFator(loja, raiz) {
       const origem = origemDoQr(inscricao.qr);
       if (origem) {
         const imagem = document.createElement("img");
+        imagem.className = "qr-fator";
         imagem.alt = "QR Code do autenticador";
         imagem.width = 180;
         imagem.height = 180;
         imagem.src = origem;
         corpo.append(imagem);
+      } else {
+        const avisoQr = document.createElement("p");
+        avisoQr.className = "texto-secao";
+        avisoQr.textContent = "O QR Code não pôde ser exibido. Use a chave manual ou cancele para gerar outra.";
+        corpo.append(avisoQr);
       }
       const manual = document.createElement("p");
       manual.className = "texto-secao";
-      manual.textContent = "Se o QR Code não abrir, digite esta chave no aplicativo. Ela aparece só agora.";
+      manual.textContent = "Se o QR Code não abrir, digite esta chave no aplicativo. Ela aparece só agora. Ao cancelar, essa chave deixa de valer.";
       const chave = document.createElement("p");
-      chave.className = "texto-secao";
+      chave.className = "chave-fator";
       chave.textContent = inscricao.segredo || "";
-      corpo.append(manual, chave, formulario(async (codigo) => loja.confirmarFator({ factorId: inscricao.id, codigo })));
+      const cancelar = document.createElement("button");
+      cancelar.type = "button";
+      cancelar.className = "botao botao-secundario";
+      cancelar.textContent = "Cancelar cadastro";
+      cancelar.addEventListener("click", async () => {
+        cancelar.disabled = true;
+        chave.textContent = "";
+        const resultado = await loja.removerFator(inscricao.id);
+        if (!resultado?.ok) {
+          mostrarEstado(resultado?.mensagem);
+          cancelar.disabled = false;
+          return;
+        }
+        mostrarEstado("O cadastro foi cancelado. A chave anterior não vale mais.", true);
+        await carregar();
+      });
+      corpo.append(manual, chave, formulario(async (codigo) => loja.confirmarFator({ factorId: inscricao.id, codigo })), cancelar);
     });
     corpo.append(botao);
   };

@@ -33,3 +33,57 @@ as $$
       )
   );
 $$;
+
+create or replace function public.historico_permissoes()
+returns table (
+  id uuid,
+  executado_por uuid,
+  afetado uuid,
+  papel_anterior text,
+  papel_novo text,
+  operacao text,
+  resultado text,
+  detalhe text,
+  criado_em timestamptz
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is distinct from public.id_proprietaria() then
+    raise exception 'Sem permissão.';
+  end if;
+  return query
+  select
+    registro.id,
+    registro.executado_por,
+    registro.afetado,
+    registro.papel_anterior,
+    registro.papel_novo,
+    registro.operacao,
+    registro.resultado,
+    registro.detalhe,
+    registro.criado_em
+  from public.auditoria_permissoes as registro
+  order by registro.criado_em desc
+  limit 100;
+end;
+$$;
+
+create or replace function public.motivo_proprietaria()
+returns text
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null or auth.uid() is distinct from public.id_proprietaria() then
+    return 'Sem permissão.';
+  end if;
+  return '';
+end;
+$$;
+
+revoke all on function public.motivo_proprietaria() from public, anon, authenticated;

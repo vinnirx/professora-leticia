@@ -284,6 +284,9 @@ async function iniciar() {
         const removido = await cliente.auth.mfa.unenroll({ factorId: fator.id });
         if (removido.error) return { ok: false, mensagem: mensagemFator(removido.error) };
       }
+      if ((lista.data?.totp || []).length > 0) {
+        return { ok: false, mensagem: "Já existe um autenticador nesta conta. Remova o atual antes de cadastrar outro." };
+      }
       const inscricao = await cliente.auth.mfa.enroll({
         factorType: "totp",
         friendlyName: "Autenticador da loja",

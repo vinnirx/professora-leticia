@@ -135,6 +135,19 @@ assert.equal(promocao.rows[0].resultado.mensagem, "Confirme sua senha de novo pa
 assert.equal(await papel(alvo), "cliente");
 
 await entrar({ sub: dona, aal: "aal1", session_id: sessaoDona, iat: agora });
+assert.equal((await db.query("select public.motivo_proprietaria() as motivo")).rows[0].motivo, "");
+const historico = await db.query("select count(*)::int as total from public.historico_permissoes()");
+assert.equal(historico.rows[0].total >= 0, true);
+let listaNegada = false;
+try {
+  await entrar({ sub: cliente, aal: "aal2", session_id: sessaoCliente, iat: agora });
+  await db.query("select * from public.listar_conciliacao()");
+} catch (erro) {
+  listaNegada = /Sem permissão/.test(String(erro.message || erro));
+}
+assert.equal(listaNegada, true);
+
+await entrar({ sub: dona, aal: "aal1", session_id: sessaoDona, iat: agora });
 promocao = await db.query(`select public.definir_papel('${alvo}', 'admin') as resultado`);
 assert.equal(promocao.rows[0].resultado.ok, true);
 assert.equal(await papel(alvo), "admin");
@@ -145,6 +158,18 @@ await db.exec(`
 `);
 
 await db.exec(arquivo("migracao-aal2-admin.sql"));
+await entrar({ sub: dona, aal: "aal1", session_id: sessaoDona, iat: agora });
+assert.equal((await db.query("select public.motivo_proprietaria() as motivo")).rows[0].motivo, "Confirme o segundo fator para continuar.");
+let historicoNegado = false;
+try {
+  await db.query("select * from public.historico_permissoes()");
+} catch (erro) {
+  historicoNegado = /Confirme o segundo fator/.test(String(erro.message || erro));
+}
+assert.equal(historicoNegado, true);
+await entrar({ sub: gestor, aal: "aal2", session_id: sessaoGestor, iat: agora });
+assert.equal((await db.query("select public.motivo_proprietaria() as motivo")).rows[0].motivo, "Sem permissão.");
+
 await entrar({ sub: gestor, aal: "aal1", session_id: sessaoGestor, iat: agora });
 assert.equal((await db.query("select public.sou_admin() as ok")).rows[0].ok, false);
 assert.equal((await db.query("select public.pode_ver_financeiro() as ok")).rows[0].ok, false);
@@ -184,6 +209,13 @@ assert.equal(await papel(alvo), "admin");
 await db.exec(`insert into auth.sessions (id, user_id) values ('${sessaoDona}', '${dona}')`);
 await db.exec(arquivo("migracao-exigir-sessao-admin.sql"));
 await entrar({ sub: gestor, aal: "aal1", session_id: sessaoGestor, iat: agora });
+assert.equal((await db.query("select public.sou_admin() as ok")).rows[0].ok, true);
+await entrar({ sub: dona, aal: "aal1", session_id: sessaoDona, iat: agora });
+assert.equal((await db.query("select public.motivo_proprietaria() as motivo")).rows[0].motivo, "");
+await db.exec(arquivo("reverter-exigir-sessao-admin.sql"));
+await db.exec(`delete from auth.sessions where id = '${sessaoDona}'`);
+await entrar({ sub: dona, aal: "aal1", session_id: sessaoDona, iat: agora });
+assert.equal((await db.query("select public.motivo_proprietaria() as motivo")).rows[0].motivo, "");
 assert.equal((await db.query("select public.sou_admin() as ok")).rows[0].ok, true);
 
 console.log("ok defesa administrativa isolada");
