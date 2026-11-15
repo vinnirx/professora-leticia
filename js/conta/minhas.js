@@ -118,6 +118,7 @@ function mostrarAdministracao(dados, resumo) {
   const bloco = document.querySelector("#conta-admin");
   const compras = document.querySelector("#area-compras");
   compras.hidden = true;
+  bloco.classList.add("liberado");
   bloco.hidden = false;
   document.querySelector("#topo-cliente").hidden = true;
   document.querySelector("#titulo-compras").hidden = false;

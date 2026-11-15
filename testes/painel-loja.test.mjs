@@ -5,7 +5,7 @@ import { validarNovaAtividade } from "../js/cadastro-regras.js";
 
 import { caminhoPdf } from "../js/arquivo-seguro.js";
 import { LIMITE_CAPA, nomeCapa, urlComVersao, validarCapa } from "../js/capa-loja.js";
-import { administra } from "../js/conta/papeis.js";
+import { administra, perfilDaSessao } from "../js/conta/papeis.js";
 import { avisoCatalogo, camposDoCatalogo, decidirGravacao, fichaInicial, mensagemFuncaoAusente, payloadEdicao } from "../js/edicao-atividade.js";
 import { opcoesConta } from "../js/menu-conta.js";
 import {
@@ -317,6 +317,12 @@ assert.deepEqual(opcoesConta({ logado: false, administraLoja: false }), ["Entrar
 assert.equal(administra("cliente"), false);
 assert.equal(administra("owner"), true);
 assert.equal(administra("admin"), true);
+const clienteId = "cliente-ficticio";
+assert.equal(perfilDaSessao(clienteId, { id: "dona-ficticia", papel: "owner" }), null);
+assert.equal(perfilDaSessao(clienteId, { id: clienteId, papel: "admin" })?.papel, "admin");
+assert.equal(perfilDaSessao(clienteId, { id: clienteId, papel: "cliente" })?.papel, "cliente");
+assert.equal(perfilDaSessao(clienteId, { id: clienteId, papel: "proprietaria" }), null);
+assert.equal(administra(perfilDaSessao(clienteId, { id: clienteId, papel: "cliente" })?.papel), false);
 
 const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0x00]);
 assert.equal(validarCapa({ tipo: "image/jpeg", tamanho: jpeg.length, bytes: jpeg }).ok, true);

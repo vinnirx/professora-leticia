@@ -326,6 +326,7 @@ export async function iniciarAdmin(loja) {
   window.addEventListener("hashchange", aplicarSecao);
   aplicarSecao();
 
+  app.classList.add("liberado");
   app.hidden = false;
   const cargo = document.querySelector("#painel-cargo");
   const saudacao = document.querySelector("#painel-saudacao");

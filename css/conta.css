@@ -110,6 +110,7 @@
   box-shadow: var(--sombra);
 }
 
+#conta-admin:not(.liberado),
 .conta-admin[hidden],
 #area-compras[hidden],
 #topo-cliente[hidden],

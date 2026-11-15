@@ -1,6 +1,6 @@
 import { caminhoPdf } from "./arquivo-seguro.js";
 import { nomeCapa, urlComVersao, validarCapa } from "./capa-loja.js";
-import { administra } from "./conta/papeis.js";
+import { administra, perfilDaSessao } from "./conta/papeis.js";
 import { mensagemOtp, TIPO_OTP_CADASTRO, codigoNumerico } from "./conta/codigo.js";
 import { pedidoRepetido } from "./tentativa-compra.js";
 import { enderecoDeConfirmacao, enderecoDeRecuperacao } from "./endereco-publico.js";
@@ -133,12 +133,12 @@ async function iniciar() {
   async function perfil() {
     const atual = await sessao();
     if (!atual) return null;
-    let { data, error } = await cliente.from("perfis").select("nome, email, papel, acesso_financeiro").eq("id", atual.user.id).maybeSingle();
+    let { data, error } = await cliente.from("perfis").select("id, nome, email, papel, acesso_financeiro").eq("id", atual.user.id).maybeSingle();
     if (error) {
-      const basico = await cliente.from("perfis").select("nome, email, papel").eq("id", atual.user.id).maybeSingle();
+      const basico = await cliente.from("perfis").select("id, nome, email, papel").eq("id", atual.user.id).maybeSingle();
       data = basico.data ? { ...basico.data, acesso_financeiro: basico.data.papel === "admin" } : null;
     }
-    return data;
+    return perfilDaSessao(atual.user.id, data);
   }
 
   const CAMPOS_ATIVIDADE = "id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades, destaque, area, tema, capa, informacoes";

@@ -11,6 +11,8 @@ body[data-pagina="admin"] {
   background: var(--adm-fundo);
 }
 
+#painel-app:not(.liberado) { display: none !important; }
+
 .painel {
   width: min(1240px, calc(100% - clamp(1rem, 3vw, 2.5rem)));
   margin: 0.85rem auto 2.5rem;
