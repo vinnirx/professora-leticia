@@ -156,6 +156,34 @@
 
 #titulo-compras { margin: 0 0 0.8rem; font-size: 1.35rem; }
 
+.ajuda-conta {
+  display: grid;
+  gap: 0.7rem;
+  max-width: 36rem;
+  margin-top: 1rem;
+}
+
+.ajuda-conta[hidden],
+#abrir-ajuda[hidden] { display: none; }
+
+.ajuda-conta label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.ajuda-conta input,
+.ajuda-conta select,
+.ajuda-conta textarea {
+  width: 100%;
+  border: 1.5px solid var(--azul);
+  border-radius: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  font-weight: 600;
+}
+
 .lista-conta {
   display: grid;
   gap: 0.8rem;

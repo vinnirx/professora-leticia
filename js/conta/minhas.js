@@ -173,6 +173,43 @@ export async function iniciarMinhas(loja) {
     escrever(vazio, "Entre para ver os materiais que você comprou.", rota("entrar/"), "Entrar");
     return;
   }
+  const ajuda = document.querySelector("#abrir-ajuda");
+  const painelAjuda = document.querySelector("#ajuda-conta");
+  ajuda.hidden = false;
+  ajuda.addEventListener("click", () => {
+    painelAjuda.hidden = false;
+    ajuda.hidden = true;
+  });
+  document.querySelector("#form-ajuda")?.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    const formulario = evento.currentTarget;
+    const campos = new FormData(formulario);
+    const assunto = String(campos.get("assunto") || "outro");
+    const pedido = String(campos.get("pedido") || "").trim();
+    const texto = String(campos.get("texto") || "").trim();
+    const estado = document.querySelector("#ajuda-aviso");
+    if (texto.length < 8) {
+      aviso(estado, "Escreva a mensagem com um pouco mais de detalhe.");
+      return;
+    }
+    const relato = pedido ? `Pedido informado: ${pedido}\n${texto}` : texto;
+    const resultado = loja.abrirSolicitacao
+      ? await loja.abrirSolicitacao({ assunto, txid: pedido, texto: relato })
+      : { ok: false, ausente: true };
+    if (resultado.ok) {
+      aviso(estado, "Pedido de ajuda registrado. A Letícia consegue acompanhá-lo no painel.", true);
+      formulario.reset();
+      return;
+    }
+    if (resultado.ausente) {
+      const link = document.createElement("a");
+      link.href = linkAjuda({ txid: pedido, motivo: texto });
+      link.textContent = "Abrir e-mail para a Letícia";
+      estado.replaceChildren(document.createTextNode("A central ainda não está instalada no banco. "), link);
+      return;
+    }
+    aviso(estado, resultado.mensagem || "Não foi possível registrar agora.");
+  });
   const dados = await loja.perfil();
   saudacao.textContent = dados?.nome ? `Olá, ${dados.nome}` : "Minha conta";
   document.querySelector("#sair").hidden = false;

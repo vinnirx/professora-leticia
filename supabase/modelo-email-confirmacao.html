@@ -1,0 +1,11 @@
+<!-- Modelo para colar no Supabase somente depois da autorização.
+     O código vem de {{ .Token }}, gerado pelo Auth. Não há senha nem código inventado.
+     O link {{ .ConfirmationURL }} fica como alternativa. -->
+<p>Olá!</p>
+<p>Recebemos uma solicitação de cadastro no Inclusão no Cotidiano.</p>
+<p>Para confirmar seu e-mail, digite este código na loja:</p>
+<p><strong>{{ .Token }}</strong></p>
+<p>Se preferir, também pode abrir o link seguro:</p>
+<p><a href="{{ .ConfirmationURL }}">Confirmar meu e-mail</a></p>
+<p>Se você não solicitou esse cadastro, pode ignorar esta mensagem.</p>
+<p>Equipe Inclusão no Cotidiano.</p>

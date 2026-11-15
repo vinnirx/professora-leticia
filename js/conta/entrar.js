@@ -1,5 +1,7 @@
 import { aviso, faltaBanco } from "./avisos.js";
 import { pedidoDeEntrada } from "./apresentacao.js";
+import { MENSAGEM_CONFIRMACAO } from "../endereco-publico.js";
+import { codigoNumerico } from "./codigo.js";
 import { rota } from "../rotas.js";
 
 async function destinoDepois(loja) {
@@ -15,6 +17,68 @@ async function destinoDepois(loja) {
     }
   }
   location.href = loja.destinoSeguro(pedidoDeEntrada(dados, depois));
+}
+
+function prepararReenvio(loja, status) {
+  const botao = document.createElement("button");
+  botao.type = "button";
+  botao.className = "botao botao-secundario";
+  botao.textContent = "Reenviar e-mail de confirmação";
+  botao.hidden = true;
+  status?.insertAdjacentElement("afterend", botao);
+  botao.addEventListener("click", async () => {
+    const email = (sessionStorage.getItem("email-conta") || document.querySelector("#form-criar [name=email]")?.value || "").trim();
+    const destino = botao.previousElementSibling;
+    if (!email || !loja?.reenviarConfirmacao) {
+      aviso(destino, "Escreva o e-mail para reenviar a confirmação.");
+      return;
+    }
+    const espera = Number(sessionStorage.getItem("reenvio-confirmacao") || 0);
+    if (Date.now() < espera) {
+      aviso(destino, "Espere um pouco e peça o código de novo.");
+      return;
+    }
+    botao.disabled = true;
+    const resultado = await loja.reenviarConfirmacao(email);
+    sessionStorage.setItem("reenvio-confirmacao", String(Date.now() + 60000));
+    botao.disabled = false;
+    aviso(destino, resultado.ok ? MENSAGEM_CONFIRMACAO : resultado.mensagem, resultado.ok);
+  });
+  return botao;
+}
+
+function prepararCodigo(loja, status) {
+  const caixa = document.createElement("form");
+  caixa.hidden = true;
+  const campo = document.createElement("input");
+  campo.name = "codigo";
+  campo.inputMode = "numeric";
+  campo.autocomplete = "one-time-code";
+  campo.maxLength = 6;
+  campo.required = true;
+  campo.setAttribute("aria-label", "Código de 6 números");
+  const botao = document.createElement("button");
+  botao.className = "botao";
+  botao.type = "submit";
+  botao.textContent = "Confirmar código";
+  caixa.append(campo, botao);
+  status?.insertAdjacentElement("afterend", caixa);
+  campo.addEventListener("input", () => {
+    campo.value = codigoNumerico(campo.value);
+  });
+  caixa.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    const email = (sessionStorage.getItem("email-conta") || "").trim();
+    const resultado = await loja.confirmarCodigo({ email, codigo: campo.value });
+    if (!resultado.ok) {
+      aviso(status, resultado.mensagem);
+      return;
+    }
+    aviso(status, "Sua conta foi verificada. Você já pode entrar e comprar.", true);
+    caixa.hidden = true;
+    destinoDepois(loja);
+  });
+  return caixa;
 }
 
 function mostrarPainel(nome) {
@@ -47,7 +111,16 @@ export function iniciarEntrar(loja) {
   });
 
   const pedido = document.body.dataset.painel || "";
-  if (loja?.linkVencido) {
+  const reenvio = prepararReenvio(loja, criar?.querySelector(".aviso-conta"));
+  const codigo = prepararCodigo(loja, criar?.querySelector(".aviso-conta"));
+  if (loja?.confirmacaoVencida) {
+    mostrarPainel("painel-criar");
+    aviso(criar.querySelector(".aviso-conta"), "Esse link expirou. Peça outro e-mail de confirmação.");
+    reenvio.hidden = false;
+  } else if (loja?.contaVerificada) {
+    mostrarPainel("painel-entrar");
+    aviso(entrar.querySelector(".aviso-conta"), "Sua conta foi verificada. Você já pode entrar e comprar.", true);
+  } else if (loja?.linkVencido) {
     mostrarPainel("painel-senha");
     aviso(senha.querySelector(".aviso-conta"), "Esse link expirou. Peça outro.");
   } else if (loja?.recuperando) {
@@ -83,6 +156,12 @@ export function iniciarEntrar(loja) {
     });
     if (!resultado.ok) {
       aviso(status, resultado.mensagem);
+      if (/confirme o e-mail/i.test(resultado.mensagem || "")) {
+        sessionStorage.setItem("email-conta", String(dados.get("email") || "").trim());
+        status.insertAdjacentElement("afterend", reenvio);
+        reenvio.hidden = false;
+        codigo.hidden = false;
+      }
       return;
     }
     destinoDepois(loja);
@@ -113,10 +192,17 @@ export function iniciarEntrar(loja) {
     });
     if (!resultado.ok) {
       aviso(status, resultado.mensagem);
+      if (/já existe uma conta/i.test(resultado.mensagem || "")) {
+        sessionStorage.setItem("email-conta", String(dados.get("email") || "").trim());
+        reenvio.hidden = false;
+      }
       return;
     }
     if (resultado.confirmarEmail) {
-      aviso(status, "Conta criada. Confirme o e-mail e depois entre.", true);
+      sessionStorage.setItem("email-conta", String(dados.get("email") || "").trim());
+      aviso(status, MENSAGEM_CONFIRMACAO, true);
+      reenvio.hidden = false;
+      codigo.hidden = false;
       return;
     }
     destinoDepois(loja);

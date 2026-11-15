@@ -10,9 +10,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="../css/styles.css?v=86" />
-    <link rel="stylesheet" href="../css/conta.css?v=10" />
-    <link rel="stylesheet" href="../css/painel.css?v=12" />
+    <link rel="stylesheet" href="../css/styles.css?v=87" />
+    <link rel="stylesheet" href="../css/conta.css?v=11" />
+    <link rel="stylesheet" href="../css/painel.css?v=13" />
   </head>
   <body data-pagina="admin">
     <header class="cabecalho">
@@ -60,6 +60,7 @@
             <button type="button" data-secao="pedidos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>Pedidos</button>
             <button type="button" data-secao="financeiro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18V6M4 18h16"/><path d="m7 14 3-4 3 2 4-6"/></svg>Financeiro</button>
             <button type="button" data-secao="clientes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16.5 11a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M3.5 19c.4-2.4 2.3-4 4.5-4s4.1 1.6 4.5 4M14 15.2c1.4-.1 2.8.5 3.6 1.8"/></svg>Clientes</button>
+            <button type="button" data-secao="suporte"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v9H8l-3 3V6Z"/></svg>Suporte</button>
             <button type="button" data-secao="equipe"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 14 8l5 .4-3.8 3.2 1.2 4.9L12 14.2 7.6 16.5 8.8 11.6 5 8.4 10 8Z"/></svg>Equipe e permissões</button>
             <button type="button" data-secao="configuracoes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18"/></svg>Configurações</button>
           </nav>
@@ -85,13 +86,13 @@
                 <div class="secao-cabeca">
                   <div>
                     <h2 id="titulo-atividades-admin">Atividades</h2>
-                    <p class="texto-secao">A página inicial mostra no máximo 4 em Materiais em destaque. O preço e o texto mudam em Editar.</p>
+                    <p class="texto-secao" id="atividades-resumo">Os materiais cadastrados aparecem nesta lista.</p>
                   </div>
                   <button class="botao" id="abrir-cadastro" type="button">Nova atividade</button>
                 </div>
                 <p class="aviso-conta" id="atividades-status" role="status"></p>
-                <div class="barra-ferramentas">
-                  <label class="campo-busca">Buscar pelo nome <input id="busca-atividade" type="search" /></label>
+                <div class="filtros-painel">
+                  <label class="campo-largo">Buscar pelo nome <input id="busca-atividade" type="search" /></label>
                   <label>Área <select id="filtro-area-lista"><option value="">Todas</option></select></label>
                   <label>Categoria <select id="filtro-categoria-lista"><option value="">Todas</option></select></label>
                   <label>Destaque <select id="filtro-destaque-lista"><option value="">Todos</option><option value="sim">Em destaque</option><option value="nao">Sem destaque</option></select></label>
@@ -259,9 +260,9 @@
                   <p class="texto-secao">Cada compra pode reunir mais de uma atividade no mesmo código. Confirmar o Pix libera o download de todas elas.</p>
                 </div>
               </div>
-              <div class="barra-ferramentas barra-filtros">
-                <label>Buscar <input id="busca-pedido" type="search" placeholder="Nome, e-mail ou código" /></label>
-                <label>Situação <select id="pedidos-status"><option value="">Todas</option><option value="pago">Pago</option><option value="aguardando">Aguardando</option></select></label>
+              <div class="filtros-painel">
+                <label class="campo-largo">Buscar <input id="busca-pedido" type="search" placeholder="Nome, e-mail ou código" /></label>
+                <label>Situação <select id="pedidos-status"><option value="">Todas</option><option value="pago">Pago</option><option value="aguardando">Aguardando</option><option value="cancelado">Cancelado</option><option value="estornado">Estornado</option></select></label>
                 <label>De <input id="pedidos-inicio" type="date" /></label>
                 <label>Até <input id="pedidos-fim" type="date" /></label>
               </div>
@@ -277,7 +278,7 @@
                   <p class="texto-secao">Receita bruta é a soma dos pedidos pagos. Taxa e receita líquida só aparecem quando o Asaas gravar esses valores. Nada aqui é estimativa.</p>
                 </div>
               </div>
-              <div class="barra-ferramentas">
+              <div class="filtros-painel">
                 <label class="campo-periodo">Agrupar
                   <span class="filtros" role="group" aria-label="Agrupar a receita bruta">
                     <button class="filtro" type="button" data-periodo="dia" aria-pressed="true">Dia</button>
@@ -308,11 +309,23 @@
                   <p class="texto-secao">Aparecem o nome, o e-mail e as compras registradas. Senha e outros segredos não ficam neste painel.</p>
                 </div>
               </div>
-              <div class="barra-ferramentas">
-                <label>Buscar <input id="busca-cliente" type="search" placeholder="Nome ou e-mail" /></label>
+              <div class="filtros-painel">
+                <label class="campo-largo">Buscar <input id="busca-cliente" type="search" placeholder="Nome ou e-mail" /></label>
+                <label>Mostrar <select id="filtro-cliente"><option value="">Todas as contas</option><option value="compra">Com compra</option><option value="sem">Sem compra</option></select></label>
               </div>
               <div class="tabela-rolagem" id="lista-clientes"></div>
               <div id="cliente-aberto"></div>
+            </section>
+
+            <section class="admin-bloco" data-painel="suporte" hidden aria-labelledby="titulo-suporte">
+              <div class="secao-cabeca">
+                <div>
+                  <h2 id="titulo-suporte">Suporte</h2>
+                  <p class="texto-secao">As solicitações gravadas pela Central de Ajuda aparecem aqui, com o cliente, o pedido e o assunto. A instalação no banco ainda depende de autorização.</p>
+                </div>
+              </div>
+              <p class="aviso-conta" id="suporte-aviso" role="status"></p>
+              <div id="lista-suporte"></div>
             </section>
 
             <section class="admin-bloco" data-painel="equipe" hidden aria-labelledby="titulo-equipe">
@@ -379,7 +392,7 @@
 
     <script src="../js/loja.js?v=48"></script>
     <script src="../js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="../js/sessao.js?v=27"></script>
-    <script type="module" src="../js/conta.js?v=35"></script>
+    <script type="module" src="../js/sessao.js?v=29"></script>
+    <script type="module" src="../js/conta.js?v=38"></script>
   </body>
 </html>

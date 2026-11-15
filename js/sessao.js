@@ -1,7 +1,8 @@
 import { caminhoPdf } from "./arquivo-seguro.js";
 import { nomeCapa, urlComVersao, validarCapa } from "./capa-loja.js";
 import { administra } from "./conta/papeis.js";
-import { enderecoDeRecuperacao } from "./endereco-publico.js";
+import { mensagemOtp, TIPO_OTP_CADASTRO, codigoNumerico } from "./conta/codigo.js";
+import { enderecoDeConfirmacao, enderecoDeRecuperacao } from "./endereco-publico.js";
 import { destinoInterno, rota } from "./rotas.js";
 import { executarRestauracao, executarSubstituicao, PDF_AINDA_NAO_INSTALADO, pdfAnteriorDisponivel } from "./pdf-troca.js";
 
@@ -104,6 +105,9 @@ function levarParaNovaSenha() {
 }
 
 async function iniciar() {
+  const hashInicial = hashDaUrl();
+  const tipoLink = hashInicial.get("type") || "";
+  const erroLink = hashInicial.get("error_code") || "";
   const config = await carregarConfig();
   let cliente = null;
   if (config) {
@@ -163,13 +167,36 @@ async function iniciar() {
       const { data, error } = await cliente.auth.signUp({
         email,
         password: senha,
-        options: { data: { nome } },
+        options: {
+          data: { nome },
+          emailRedirectTo: enderecoDeConfirmacao(location.href),
+        },
       });
       if (error) return { ok: false, mensagem: traduzir(error) };
-      if (!data.session) {
-        return { ok: true, confirmarEmail: true };
-      }
+      if (!data.session) return { ok: true, confirmarEmail: true };
       return { ok: true, confirmarEmail: false };
+    },
+    async reenviarConfirmacao(email) {
+      const { error } = await cliente.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: enderecoDeConfirmacao(location.href) },
+      });
+      if (error && !/user not found|already/i.test(error.message || "")) {
+        return { ok: false, mensagem: traduzir(error) };
+      }
+      return { ok: true };
+    },
+    async confirmarCodigo({ email, codigo }) {
+      const token = codigoNumerico(codigo);
+      if (!/^\d{6}$/.test(token)) return { ok: false, mensagem: "O código tem 6 números." };
+      const { error } = await cliente.auth.verifyOtp({
+        email,
+        token,
+        type: TIPO_OTP_CADASTRO,
+      });
+      if (error) return { ok: false, mensagem: mensagemOtp(error) };
+      return { ok: true };
     },
     async entrar({ email, senha }) {
       const { error } = await cliente.auth.signInWithPassword({ email, password: senha });
@@ -348,6 +375,73 @@ async function iniciar() {
         cobrancas: cobrancasConsulta.error ? [] : cobrancasConsulta.data || [],
         cobrancasDisponiveis: !cobrancasConsulta.error,
       };
+    },
+    async listarContas() {
+      const { data, error } = await cliente.rpc("listar_contas", { busca: "", limite: 50, pagina: 0 });
+      if (error && /could not find|schema cache|does not exist/i.test(String(error.message || ""))) {
+        return { ok: false, ausente: true };
+      }
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      return { ok: true, contas: data || [] };
+    },
+    async abrirSolicitacao({ assunto, txid, texto }) {
+      const atual = await sessao();
+      if (!atual) return { ok: false, mensagem: "Entre na conta para pedir ajuda." };
+      const criada = await cliente.from("solicitacoes").insert({
+        usuario_id: atual.user.id,
+        txid: String(txid || ""),
+        assunto,
+      }).select("id").maybeSingle();
+      if (criada.error && /schema cache|does not exist|could not find/i.test(String(criada.error.message || ""))) {
+        return { ok: false, ausente: true };
+      }
+      if (criada.error || !criada.data) return { ok: false, mensagem: traduzir(criada.error) };
+      const mensagem = await cliente.from("solicitacao_mensagens").insert({
+        solicitacao_id: criada.data.id,
+        autor_id: atual.user.id,
+        texto: String(texto || "").slice(0, 2000),
+      });
+      if (mensagem.error) return { ok: false, mensagem: traduzir(mensagem.error) };
+      return { ok: true };
+    },
+    async listarSolicitacoes() {
+      const { data, error } = await cliente
+        .from("solicitacoes")
+        .select("id, txid, assunto, status, criado_em, perfis(nome, email)")
+        .order("criado_em", { ascending: false });
+      if (error && /schema cache|does not exist|could not find/i.test(String(error.message || ""))) {
+        return { ok: false, ausente: true };
+      }
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      return {
+        ok: true,
+        solicitacoes: (data || []).map((item) => ({
+          ...item,
+          nome: item.perfis?.nome || "",
+          email: item.perfis?.email || "",
+        })),
+      };
+    },
+    async atualizarSolicitacao(id, status, texto) {
+      const atual = await sessao();
+      if (!atual) return { ok: false, mensagem: "Entre na conta para responder." };
+      const gravado = await cliente.from("solicitacoes").update({
+        status,
+        atualizado_em: new Date().toISOString(),
+      }).eq("id", id);
+      if (gravado.error && /schema cache|does not exist|could not find/i.test(String(gravado.error.message || ""))) {
+        return { ok: false, ausente: true };
+      }
+      if (gravado.error) return { ok: false, mensagem: traduzir(gravado.error) };
+      if (texto) {
+        const mensagem = await cliente.from("solicitacao_mensagens").insert({
+          solicitacao_id: id,
+          autor_id: atual.user.id,
+          texto: String(texto).slice(0, 2000),
+        });
+        if (mensagem.error) return { ok: false, mensagem: traduzir(mensagem.error) };
+      }
+      return { ok: true };
     },
     async situacaoPedido(txid) {
       const cobranca = await cliente.from("cobrancas").select("status").eq("txid", txid).maybeSingle();
@@ -553,8 +647,8 @@ async function iniciar() {
   };
   api.trocasPdf = new Set();
 
-  const pedidoPeloEmail = hashDaUrl().get("type") === "recovery";
-  const linkVencido = hashDaUrl().get("error_code") === "otp_expired";
+  const pedidoPeloEmail = tipoLink === "recovery";
+  const linkVencido = erroLink === "otp_expired";
   let atual = null;
   let admin = false;
   if (cliente) {
@@ -562,11 +656,13 @@ async function iniciar() {
     const dados = atual ? await perfil() : null;
     admin = administra(dados?.papel);
   }
-  if (pedidoPeloEmail || linkVencido) {
+  if (pedidoPeloEmail || linkVencido || tipoLink === "signup" || tipoLink === "email") {
     history.replaceState(null, "", location.pathname + location.search);
   }
   api.recuperando = Boolean(pedidoPeloEmail && atual);
-  api.linkVencido = Boolean(linkVencido || (pedidoPeloEmail && !atual));
+  api.linkVencido = Boolean(pedidoPeloEmail && (linkVencido || !atual));
+  api.contaVerificada = (tipoLink === "signup" || tipoLink === "email") && !erroLink;
+  api.confirmacaoVencida = (tipoLink === "signup" || tipoLink === "email") && linkVencido;
   pintarMenu(atual, admin);
   prepararMenuConta(() => api.sair());
   window.contaLoja = api;

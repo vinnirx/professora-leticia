@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="../css/styles.css?v=86" />
-    <link rel="stylesheet" href="../css/conta.css?v=10" />
+    <link rel="stylesheet" href="../css/styles.css?v=87" />
+    <link rel="stylesheet" href="../css/conta.css?v=11" />
   </head>
   <body data-pagina="minhas">
     <header class="cabecalho">
@@ -64,10 +64,32 @@
         <p id="conta-vazia" hidden></p>
         <div class="lista-conta" id="lista-pedidos"></div>
       </section>
+      <button class="botao botao-secundario" id="abrir-ajuda" type="button" hidden>Preciso de ajuda</button>
+      <section id="ajuda-conta" class="ajuda-conta" hidden>
+          <h2>Preciso de ajuda</h2>
+          <p>Escolha o assunto. Se a central ainda não estiver instalada, a mensagem abre no e-mail já publicado da loja.</p>
+          <form id="form-ajuda" class="filtros-ajuda">
+            <label>Assunto
+              <select name="assunto">
+                <option value="pagamento">Problema com pagamento</option>
+                <option value="download">Não consigo baixar meu PDF</option>
+                <option value="acesso">Não consigo acessar a conta</option>
+                <option value="material">Material incorreto ou arquivo com problema</option>
+                <option value="reembolso">Cancelamento ou reembolso</option>
+                <option value="outro">Outro assunto</option>
+              </select>
+            </label>
+            <label>Pedido, se houver <input name="pedido" type="text" maxlength="80" /></label>
+            <label>Mensagem <textarea name="texto" rows="4" required></textarea></label>
+            <button class="botao" type="submit">Enviar pedido de ajuda</button>
+          </form>
+          <p class="aviso-conta" id="ajuda-aviso" role="status"></p>
+          <p class="miudo"><a href="../reembolso/">Política de cancelamento e reembolso</a></p>
+        </section>
     </main>
 
     <script src="../js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="../js/sessao.js?v=27"></script>
-    <script type="module" src="../js/conta.js?v=35"></script>
+    <script type="module" src="../js/sessao.js?v=29"></script>
+    <script type="module" src="../js/conta.js?v=38"></script>
   </body>
 </html>

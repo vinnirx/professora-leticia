@@ -4,11 +4,12 @@ import { abrirEdicao, prepararCadastro } from "./cadastro.js?v=6";
 import { prepararEquipe } from "./equipe.js";
 import { aviso, moeda, quando } from "./avisos.js";
 import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
+import { agruparPedidos, resumirVendas } from "./grupos-pedido.js";
 import { paginaAtividade, rota } from "../rotas.js";
 
 const travaPdf = criarTrava();
 
-const SECOES = ["visao", "atividades", "arquivos", "pedidos", "financeiro", "clientes", "equipe", "configuracoes"];
+const SECOES = ["visao", "atividades", "arquivos", "pedidos", "financeiro", "clientes", "suporte", "equipe", "configuracoes"];
 
 function rotuloStatus(status) {
   if (status === "pago") return ["Pago", "ok"];
@@ -59,33 +60,6 @@ function categoriaDe(atividade) {
   const pares = Array.isArray(atividade.informacoes) ? atividade.informacoes : [];
   const achado = pares.find((par) => Array.isArray(par) && par[0] === "Categoria");
   return achado ? String(achado[1] || "") : "";
-}
-
-function agruparPedidos(pedidos) {
-  const mapa = new Map();
-  pedidos.forEach((pedido) => {
-    const chave = `${pedido.txid}::${pedido.usuario_id || pedido.perfis?.email || ""}`;
-    let grupo = mapa.get(chave);
-    if (!grupo) {
-      grupo = {
-        chave,
-        txid: pedido.txid,
-        usuario_id: pedido.usuario_id || "",
-        perfis: pedido.perfis || {},
-        criado_em: pedido.criado_em,
-        itens: [],
-        valor: 0,
-      };
-      mapa.set(chave, grupo);
-    }
-    grupo.itens.push(pedido);
-    grupo.valor += Number(pedido.valor) || 0;
-    if (pedido.criado_em < grupo.criado_em) grupo.criado_em = pedido.criado_em;
-  });
-  return [...mapa.values()].map((grupo) => ({
-    ...grupo,
-    status: grupo.itens.every((item) => item.status === "pago") ? "pago" : "aguardando",
-  }));
 }
 
 function celula(rotulo, conteudo, classe) {
@@ -287,8 +261,36 @@ export async function iniciarAdmin(loja) {
   const app = document.querySelector("#painel-app");
   document.querySelectorAll("[data-secao]").forEach((botao) => {
     botao.addEventListener("click", () => {
-      location.hash = botao.dataset.secao;
+      if (botao.dataset.secao === "atividades") document.dispatchEvent(new CustomEvent("mostrar-lista-atividades"));
+      if (location.hash === `#${botao.dataset.secao}`) mostrarSecao(botao.dataset.secao);
+      else location.hash = botao.dataset.secao;
     });
+  });
+  document.querySelectorAll("[data-painel]").forEach((secao) => {
+    if (secao.dataset.painel === "visao" || secao.querySelector(".voltar-visao")) return;
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "botao botao-secundario voltar-visao";
+    botao.textContent = "Voltar à visão geral";
+    botao.addEventListener("click", () => {
+      location.hash = "visao";
+    });
+    const cabeca = secao.querySelector(".secao-cabeca");
+    if (cabeca) cabeca.append(botao);
+    else secao.prepend(botao);
+  });
+  ["#cadastro-atividade .secao-cabeca", "#ficha-edicao .secao-cabeca"].forEach((seletor) => {
+    const cabeca = document.querySelector(seletor);
+    if (!cabeca || cabeca.querySelector(".voltar-visao")) return;
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "botao botao-secundario voltar-visao";
+    botao.textContent = "Voltar à visão geral";
+    botao.addEventListener("click", () => {
+      document.dispatchEvent(new CustomEvent("mostrar-lista-atividades"));
+      location.hash = "visao";
+    });
+    cabeca.append(botao);
   });
   const aplicarSecao = () => mostrarSecao(secaoAtual());
   window.addEventListener("hashchange", aplicarSecao);
@@ -341,7 +343,11 @@ export async function iniciarAdmin(loja) {
 
   const porId = new Map(atividades.map((item) => [item.id, item]));
   (window.loja?.atividades || []).forEach((local) => {
-    if (porId.has(local.id)) return;
+    const existente = porId.get(local.id);
+    if (existente) {
+      if (!existente.capa && local.imagem) existente.capa = local.imagem;
+      return;
+    }
     porId.set(local.id, {
       id: local.id,
       titulo: local.titulo,
@@ -365,6 +371,7 @@ export async function iniciarAdmin(loja) {
     pedidos: painel.pedidos,
     cobrancas: painel.cobrancas || [],
     cobrancasDisponiveis: painel.cobrancasDisponiveis === true,
+    paginaClientes: 0,
     atividades: [...porId.values()].sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR")),
     periodo: "dia",
   };
@@ -428,13 +435,13 @@ export async function iniciarAdmin(loja) {
     const atalhos = document.querySelector("#atalhos-visao");
     atalhos.replaceChildren();
     [
-      ["Nova atividade", "atividades", "principal"],
+      ["Ver atividades", "atividades", "principal"],
       ["Ver pedidos", "pedidos", ""],
       ...(podeFinanceiro(dados) ? [["Ver financeiro", "financeiro", ""]] : []),
     ].forEach(([texto, secao, estilo]) => {
       atalhos.append(botaoAcao(texto, () => {
-        if (secao === "atividades") document.querySelector("#abrir-cadastro")?.click();
-        else location.hash = secao;
+        if (secao === "atividades") document.dispatchEvent(new CustomEvent("mostrar-lista-atividades"));
+        location.hash = secao;
       }, estilo));
     });
     const recentes = document.querySelector("#vendas-recentes");
@@ -510,8 +517,15 @@ export async function iniciarAdmin(loja) {
       lista.replaceChildren(vazio("Nenhuma atividade no site ainda."));
       return;
     }
+    const resumoLista = document.querySelector("#atividades-resumo");
+    if (resumoLista) {
+      const cadastradas = memoria.atividades.filter((item) => !item.foraDoBanco).length;
+      resumoLista.textContent = cadastradas
+        ? `${cadastradas} ${cadastradas === 1 ? "material cadastrado" : "materiais cadastrados"}. Editar abre a ficha do material. Nova atividade abre o cadastro completo.`
+        : "Nenhum material cadastrado ainda. Nova atividade abre o cadastro completo.";
+    }
     const tabela = montarTabela(
-      ["Capa", "Atividade", "Categoria", "Preço", "Situação", "Destaque", "Ações"],
+      ["Capa", "Atividade", "Categoria", "Preço", "PDF", "Destaque", "Ações"],
       memoria.atividades.map((atividade) => {
         const tr = document.createElement("tr");
         tr.dataset.atividade = atividade.id;
@@ -576,10 +590,6 @@ export async function iniciarAdmin(loja) {
             } },
           ]),
         );
-        const situacao = atividade.foraDoBanco
-          ? selo("Fora do banco", "neutro")
-          : selo("Visível", "ok");
-        situacao.title = atividade.foraDoBanco ? "Ainda não está no banco" : "Visível na loja";
         return {
           tr,
           celulas: [
@@ -587,13 +597,13 @@ export async function iniciarAdmin(loja) {
             celula("Atividade", tituloDuas(atividade.titulo, "titulo")),
             celula("Categoria", categoriaDe(atividade) || "—"),
             celula("Preço", preco, "numero"),
-            celula("Situação", situacao),
+            celula("PDF", atividade.arquivo || "Sem PDF"),
             celula("Destaque", destaque, "celula-centro"),
             celula("Ações", acoes, "celula-acoes"),
           ],
         };
       }),
-      ["7%", "31%", "13%", "10%", "11%", "10%", "18%"],
+      ["4.5rem", "24%", "12%", "6.5rem", "18%", "8rem", "16%"],
     );
     lista.replaceChildren(tabela);
     if (!visiveis.size) lista.prepend(vazio("Nenhuma atividade com esse filtro."));
@@ -782,7 +792,7 @@ export async function iniciarAdmin(loja) {
 
   function pintarFinanceiro() {
     const apoio = document.querySelector("#indicadores-financeiro-apoio");
-    const barraFinanceiro = document.querySelector("[data-painel='financeiro'] .barra-ferramentas");
+    const barraFinanceiro = document.querySelector("[data-painel='financeiro'] .filtros-painel");
     if (barraFinanceiro) barraFinanceiro.hidden = !podeFinanceiro(dados);
     if (!podeFinanceiro(dados)) {
       document.querySelector("#indicadores-financeiro").replaceChildren(vazio("O financeiro desta conta não está liberado."));
@@ -795,11 +805,9 @@ export async function iniciarAdmin(loja) {
     }
     const { inicio, fim } = intervalosFinanceiro();
     const noPeriodo = memoria.pedidos.filter((pedido) => dentroDoIntervalo(pedido.criado_em, inicio, fim));
+    const resumo = resumirVendas(noPeriodo);
     const pagos = noPeriodo.filter((pedido) => pedido.status === "pago");
-    const aguardando = noPeriodo.filter((pedido) => pedido.status === "aguardando");
     const gruposPagos = agruparPedidos(pagos);
-    const bruto = pagos.reduce((soma, pedido) => soma + (Number(pedido.valor) || 0), 0);
-    const ticket = gruposPagos.length ? bruto / gruposPagos.length : null;
     const cobrancaDo = (txid) => memoria.cobrancas.find((item) => item.txid === txid) || null;
     const taxasConhecidas = memoria.cobrancasDisponiveis && gruposPagos.length > 0 && gruposPagos.every((grupo) => {
       const cobranca = cobrancaDo(grupo.txid);
@@ -815,16 +823,16 @@ export async function iniciarAdmin(loja) {
       ? memoria.cobrancas.filter((item) => item.status === "estornada" && dentroDoIntervalo(item.atualizado_em, inicio, fim))
       : null;
     document.querySelector("#indicadores-financeiro").replaceChildren(
-      indicador("Receita bruta", moeda.format(bruto), "Soma dos itens com pagamento confirmado."),
-      indicador("Receita líquida", liquidoTotal == null ? indisponivel() : moeda.format(liquidoTotal), liquidoTotal == null ? "Sem a taxa registrada, o líquido não é calculado." : "Soma do líquido gravado em cada cobrança."),
-      indicador("Taxas Asaas", taxaTotal == null ? indisponivel() : moeda.format(taxaTotal), taxaTotal == null ? "A integração ainda não grava a tarifa de cada cobrança." : "Soma da tarifa gravada pelo Asaas."),
-      indicador("Pedidos pagos", String(gruposPagos.length), "Um código de pedido conta uma vez."),
+      indicador("Receita bruta", moeda.format(resumo.bruto), "Soma dos pedidos em que todos os materiais estão pagos. Pendente não entra."),
+      indicador("Receita líquida", liquidoTotal == null ? indisponivel() : moeda.format(liquidoTotal), liquidoTotal == null ? "A taxa do Asaas ainda não é conhecida. O líquido não é estimado." : "Soma do líquido gravado em cada cobrança."),
+      indicador("Vendas confirmadas", String(resumo.pedidosPagos), "Um código com várias atividades conta uma venda. O valor soma todos os materiais pagos."),
+      indicador("Aguardando pagamento", String(resumo.aguardando), "Pedidos ainda não confirmados. Não entram na receita."),
     );
     apoio.replaceChildren(
-      indicador("Atividades vendidas", String(pagos.length), "Cada material pago conta uma unidade."),
-      indicador("Ticket médio", ticket === null ? "—" : moeda.format(ticket), "Receita bruta dividida pelos pedidos pagos."),
-      indicador("Valores pendentes", moeda.format(aguardando.reduce((soma, pedido) => soma + (Number(pedido.valor) || 0), 0)), `${aguardando.length} ${aguardando.length === 1 ? "item aguardando" : "itens aguardando"}.`),
-      indicador("Estornos", estornos == null ? indisponivel() : moeda.format(estornos.reduce((soma, item) => soma + (Number(item.valor_bruto) || 0), 0)), estornos == null ? "O banco ainda não registra estorno." : "Soma do bruto das cobranças estornadas neste intervalo."),
+      indicador("Atividades vendidas", String(resumo.unidadesPagas), "Cada material pago conta uma unidade."),
+      indicador("Cancelados ou estornados", String(resumo.encerrados), "Não entram na receita bruta."),
+      indicador("Taxas Asaas", taxaTotal == null ? indisponivel() : moeda.format(taxaTotal), taxaTotal == null ? "Enquanto o Pix for manual, a taxa efetiva não é gravada." : "Soma da tarifa gravada pelo Asaas."),
+      indicador("Estornos", estornos == null ? indisponivel() : moeda.format(estornos.reduce((soma, item) => soma + (Number(item.valor_bruto) || 0), 0)), estornos == null ? "O valor do estorno só aparece quando o Asaas gravar a cobrança." : "Soma do bruto das cobranças estornadas neste intervalo."),
     );
     const ranking = new Map();
     pagos.forEach((pedido) => {
@@ -909,10 +917,18 @@ export async function iniciarAdmin(loja) {
     }
   }
 
+  function comprasDaConta(conta) {
+    return memoria.pedidos.filter((pedido) => pedido.usuario_id === conta.id);
+  }
+
   function pintarClientes() {
     const destino = document.querySelector("#lista-clientes");
     const termo = (document.querySelector("#busca-cliente")?.value || "").trim().toLocaleLowerCase("pt-BR");
+    const filtro = document.querySelector("#filtro-cliente")?.value || "";
     const contas = memoria.contas.filter((conta) => {
+      const compras = comprasDaConta(conta);
+      if (filtro === "compra" && !compras.some((pedido) => pedido.status === "pago")) return false;
+      if (filtro === "sem" && compras.length) return false;
       if (!termo) return true;
       return `${conta.nome} ${conta.email}`.toLocaleLowerCase("pt-BR").includes(termo);
     });
@@ -924,22 +940,38 @@ export async function iniciarAdmin(loja) {
       destino.replaceChildren(vazio("Nenhuma conta com essa busca.", "Tente o nome ou o e-mail."));
       return;
     }
-    destino.replaceChildren(montarTabela(
+    const tamanho = 20;
+    const paginas = Math.max(1, Math.ceil(contas.length / tamanho));
+    memoria.paginaClientes = Math.min(memoria.paginaClientes, paginas - 1);
+    const pagina = contas.slice(memoria.paginaClientes * tamanho, memoria.paginaClientes * tamanho + tamanho);
+    const nota = document.createElement("p");
+    nota.className = "texto-secao";
+    nota.textContent = memoria.contasExtra
+      ? `${contas.length} contas. A confirmação do e-mail e o último acesso vêm do cadastro protegido.`
+      : `${contas.length} contas no cadastro da loja, inclusive quem ainda não comprou. A data de cadastro, a confirmação do e-mail e o último acesso dependem da migração de atendimento, que ainda não foi aplicada.`;
+    destino.replaceChildren(nota);
+    destino.append(montarTabela(
       ["Nome", "E-mail", "Papel", "Pedidos pagos", "Materiais pagos", "Ações"],
-      contas.map((conta) => {
-        const compras = memoria.pedidos.filter((pedido) => pedido.usuario_id === conta.id && pedido.status === "pago");
+      pagina.map((conta) => {
+        const historico = comprasDaConta(conta);
+        const compras = historico.filter((pedido) => pedido.status === "pago");
         const pedidosPagos = agruparPedidos(compras).length;
+        const extra = memoria.contasExtra?.get(conta.id);
         const acoes = document.createElement("div");
         acoes.className = "acoes";
-        acoes.append(botaoAcao("Ver compras", () => {
+        acoes.append(botaoAcao("Ver detalhes", () => {
           const aberto = document.querySelector("#cliente-aberto");
-          const historico = memoria.pedidos.filter((pedido) => pedido.usuario_id === conta.id);
           aberto.replaceChildren();
           const titulo = document.createElement("h3");
           titulo.textContent = conta.nome;
-          aberto.append(titulo);
+          const ficha = document.createElement("p");
+          ficha.className = "texto-secao";
+          const confirmacao = extra ? (extra.email_confirmado ? "E-mail confirmado." : "E-mail ainda não confirmado.") : "Confirmação do e-mail indisponível até a migração autorizada.";
+          const acesso = extra?.ultimo_acesso ? `Último acesso em ${quando.format(new Date(extra.ultimo_acesso))}.` : "Último acesso indisponível nesta consulta.";
+          ficha.textContent = `${conta.email} · ${rotuloPapel(conta.papel)}. ${confirmacao} ${acesso}`;
+          aberto.append(titulo, ficha);
           if (!historico.length) {
-            aberto.append(vazio("Nenhuma compra registrada para esta conta."));
+            aberto.append(vazio("Nenhuma compra registrada para esta conta.", "A pessoa está cadastrada mesmo sem pedido."));
             return;
           }
           aberto.append(montarTabela(
@@ -976,6 +1008,25 @@ export async function iniciarAdmin(loja) {
       }),
       ["18%", "28%", "14%", "14%", "14%", "12%"],
     ));
+    if (paginas > 1) {
+      const navegacao = document.createElement("div");
+      navegacao.className = "atalhos-painel";
+      const anterior = botaoAcao("Página anterior", () => {
+        memoria.paginaClientes -= 1;
+        pintarClientes();
+      });
+      const proxima = botaoAcao("Próxima página", () => {
+        memoria.paginaClientes += 1;
+        pintarClientes();
+      });
+      anterior.disabled = memoria.paginaClientes === 0;
+      proxima.disabled = memoria.paginaClientes >= paginas - 1;
+      const posicao = document.createElement("p");
+      posicao.className = "texto-secao";
+      posicao.textContent = `Página ${memoria.paginaClientes + 1} de ${paginas}`;
+      navegacao.append(anterior, proxima, posicao);
+      destino.append(navegacao);
+    }
   }
 
   function pintarConfig() {
@@ -985,22 +1036,35 @@ export async function iniciarAdmin(loja) {
       .map((conta) => `${conta.email} (${rotuloPapel(conta.papel)})`)
       .join(", ") || "Nenhuma conta administradora encontrada";
     const gruposConfig = [
-      ["Dados da loja", "Nome e contato publicados. O texto institucional continua na página inicial.", [
+      ["Informações da loja", "Somente leitura. O texto institucional continua na página inicial.", [
         ["Nome público", "Inclusão no Cotidiano"],
+        ["Domínio", "inclusaonocotidiano.com.br"],
+        ["Responsável", "Professora Letícia Pimentel de Macedo"],
+      ]],
+      ["Contato e atendimento", "Nenhum canal novo foi inventado. O atendimento gravado no painel depende da migração de ajuda.", [
+        ["E-mail já publicado", lojaPublica.pixChave || "Não informado"],
         ["WhatsApp", lojaPublica.whatsapp ? lojaPublica.whatsapp : "Não informado"],
+        ["Central de ajuda", "Preparada localmente. Ainda não instalada no banco."],
       ]],
-      ["Pagamentos", "O Pix da loja continua manual. O Asaas ainda não grava taxa, saldo nem identificador.", [
-        ["Chave Pix publicada", lojaPublica.pixChave || indisponivel()],
-        ["Asaas", "Não ligado"],
-        ["Repasse", "O valor líquido da cobrança não é o saldo do Asaas nem a transferência para o Banco do Brasil. Os dois continuam não disponíveis."],
-        ["Confirmação", "A venda manual só conta depois de Confirmar Pix. O navegador não marca pedido como pago."],
-        ["Pedidos antigos", "Continuam baixáveis até a proprietária conciliar cada código no painel e encerrar a exceção. Pedido novo não usa essa exceção."],
+      ["Pagamentos", "O Pix continua manual. Nenhuma chave de API pode ser editada aqui.", [
+        ["Cobrança automática", "Desligada"],
+        ["Asaas", "Não ligado. Taxa, saldo e repasse continuam indisponíveis."],
+        ["Confirmação", "A venda manual só conta depois de Confirmar Pix."],
       ]],
-      ["Equipe e permissões", "A hierarquia fica na seção Equipe. Aqui só aparece quem já administra.", [
+      ["Downloads e arquivos", "O PDF permanece no espaço privado.", [
+        ["Download", "Somente pela função protegida, com sessão e permissão."],
+        ["Troca de PDF", "A versão nova só passa a valer depois da confirmação. A anterior fica guardada."],
+      ]],
+      ["Segurança e permissões", "A hierarquia real fica na seção Equipe. Este painel não altera cargos sozinho.", [
         ["Quem administra", admins],
+        ["Proprietária", "Protegida no servidor. Não pode ser rebaixada pelo painel."],
+        ["Cliente", "Não vê contas, pedidos ou arquivos de outras pessoas."],
       ]],
-      ["Segurança", "Cargos do site não limitam quem entra no projeto do Supabase ou no GitHub.", [
-        ["Acesso ao projeto", "Deixe essas contas só com quem precisa."],
+      ["Políticas da loja", "Os textos estão no site e ainda precisam de revisão jurídica antes de serem tratados como versão definitiva.", [
+        ["Termos, reembolso, privacidade e ajuda", "Links no rodapé da loja e na finalização da compra."],
+      ]],
+      ["Informações legais", "Faltam dados que só a proprietária pode fornecer. Nada disso é editável no navegador.", [
+        ["Pendente", "CPF ou CNPJ, endereço comercial e telefone de atendimento."],
       ]],
     ];
     const lista = document.querySelector("#lista-config");
@@ -1106,6 +1170,8 @@ export async function iniciarAdmin(loja) {
     pintarEquipe();
     pintarConfig();
     pintarConciliacao();
+    pintarSuporte();
+    completarContas();
   }
 
   ["#busca-atividade", "#filtro-area-lista", "#filtro-categoria-lista", "#filtro-destaque-lista"].forEach((seletor) => {
@@ -1113,7 +1179,68 @@ export async function iniciarAdmin(loja) {
     document.querySelector(seletor).addEventListener("change", pintarAtividades);
   });
   document.addEventListener("click", fecharMenus);
-  document.querySelector("#busca-cliente")?.addEventListener("input", pintarClientes);
+  document.querySelector("#busca-cliente")?.addEventListener("input", () => {
+    memoria.paginaClientes = 0;
+    pintarClientes();
+  });
+  document.querySelector("#filtro-cliente")?.addEventListener("change", () => {
+    memoria.paginaClientes = 0;
+    pintarClientes();
+  });
+  async function completarContas() {
+    if (!loja.listarContas) return;
+    const resultado = await loja.listarContas();
+    if (!resultado.ok) return;
+    memoria.contasExtra = new Map(resultado.contas.map((conta) => [conta.id, conta]));
+    pintarClientes();
+  }
+  async function pintarSuporte() {
+    const destino = document.querySelector("#lista-suporte");
+    if (!destino) return;
+    if (!loja.listarSolicitacoes) {
+      destino.replaceChildren(vazio("A central de ajuda ainda não está ligada.", "A migração precisa ser autorizada antes de gravar solicitações."));
+      return;
+    }
+    const resultado = await loja.listarSolicitacoes();
+    if (!resultado.ok) {
+      destino.replaceChildren(vazio(
+        resultado.ausente ? "A central de ajuda ainda não está instalada no banco." : "Não foi possível ler as solicitações.",
+        resultado.ausente ? "Nenhuma mensagem foi gravada. O envio pelo painel começa depois da migração autorizada." : resultado.mensagem,
+      ));
+      return;
+    }
+    if (!resultado.solicitacoes.length) {
+      destino.replaceChildren(vazio("Nenhuma solicitação aberta.", "Quando um cliente pedir ajuda, ela aparece aqui."));
+      return;
+    }
+    destino.replaceChildren(montarTabela(
+      ["Data", "Cliente", "Assunto", "Pedido", "Status", "Ações"],
+      resultado.solicitacoes.map((item) => {
+        const acoes = document.createElement("div");
+        acoes.className = "acoes";
+        if (item.status !== "resolvido") {
+          acoes.append(botaoAcao("Registrar solução", async () => {
+            const texto = window.prompt("Escreva a solução registrada para o cliente.");
+            if (!texto) return;
+            const gravado = await loja.atualizarSolicitacao(item.id, "resolvido", texto);
+            aviso(document.querySelector("#suporte-aviso"), gravado.ok ? "Solicitação resolvida." : gravado.mensagem, Boolean(gravado.ok));
+            if (gravado.ok) pintarSuporte();
+          }));
+        }
+        return {
+          tr: document.createElement("tr"),
+          celulas: [
+            celula("Data", quando.format(new Date(item.criado_em))),
+            celula("Cliente", item.nome || item.email || "Conta"),
+            celula("Assunto", item.assunto),
+            celula("Pedido", item.txid || "—"),
+            celula("Status", item.status === "atendimento" ? "Em atendimento" : item.status === "resolvido" ? "Resolvido" : "Aberto"),
+            celula("Ações", acoes),
+          ],
+        };
+      }),
+    ));
+  }
   async function restaurarPdf(atividade) {
     if (!loja.restaurarPdf || !atividade.pdfAnterior || atividade.pdfAnterior === atividade.arquivo) return;
     if (!window.confirm("Voltar ao PDF anterior? O arquivo novo permanece guardado, mas os downloads passam a usar o anterior.")) return;

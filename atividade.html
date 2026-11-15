@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=86" />
+    <link rel="stylesheet" href="css/styles.css?v=87" />
   </head>
   <body>
     <header class="cabecalho">
@@ -59,6 +59,7 @@
               <p class="miudo" id="ficha-extra">12 situações-problema em 4 páginas</p>
             </div>
             <button class="botao" id="comprar" type="button">Adicionar ao carrinho</button>
+            <p class="miudo"><a href="reembolso/">Cancelamento e reembolso</a> · <a href="ajuda/">Ajuda</a></p>
           </section>
 
           <div class="ficha-texto" id="ficha-texto">
@@ -134,8 +135,9 @@
             <input name="email" type="email" autocomplete="email" required />
           </label>
           <label id="campo-documento" hidden>
-            CPF ou CNPJ
+            CPF ou CNPJ de quem paga
             <input name="documento" inputmode="numeric" autocomplete="off" maxlength="18" />
+            <span class="miudo">Pedimos o documento só para a cobrança Pix. Ele não cria a conta nem fica salvo neste navegador.</span>
           </label>
           <button class="botao" type="submit">Gerar QR do Pix</button>
         </form>
@@ -165,7 +167,7 @@
     <script src="js/loja.js?v=48"></script>
     <script src="js/pix.js?v=21"></script>
     <script src="js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="js/sessao.js?v=28"></script>
-    <script type="module" src="js/atividade.js?v=14"></script>
+    <script type="module" src="js/sessao.js?v=29"></script>
+    <script type="module" src="js/atividade.js?v=15"></script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-const SECOES = new Set(["entrar", "criar-conta", "minha-conta", "gerenciar", "recuperar-senha", "atividades"]);
+const SECOES = new Set(["entrar", "criar-conta", "minha-conta", "gerenciar", "recuperar-senha", "atividades", "ajuda", "termos", "reembolso", "privacidade"]);
 
 export function emSecao(pathname) {
   const partes = String(pathname || "/").split("/").filter(Boolean);

@@ -17,7 +17,7 @@
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=86" />
+    <link rel="stylesheet" href="css/styles.css?v=87" />
     <link rel="stylesheet" href="css/historia.css?v=3" />
   </head>
   <body>
@@ -133,6 +133,13 @@
 
     <footer class="rodape">
       <img src="img/logo-inclusao.png?v=2" alt="Inclusão no Cotidiano" />
+      <nav class="rodape-links" aria-label="Informações da loja">
+        <a href="ajuda/">Ajuda</a>
+        <a href="reembolso/">Cancelamento e reembolso</a>
+        <a href="termos/">Termos de uso</a>
+        <a href="privacidade/">Privacidade</a>
+      </nav>
+      <p>Responsável: Professora Letícia Pimentel de Macedo. CPF ou CNPJ, endereço comercial e telefone de atendimento ainda serão informados pela proprietária.</p>
     </footer>
 
     <dialog class="historia" id="historia" aria-labelledby="titulo-historia">
@@ -199,10 +206,12 @@
             <input name="email" type="email" autocomplete="email" required />
           </label>
           <label id="campo-documento" hidden>
-            CPF ou CNPJ
+            CPF ou CNPJ de quem paga
             <input name="documento" inputmode="numeric" autocomplete="off" maxlength="18" />
+            <span class="miudo">Pedimos o documento só para a cobrança Pix. Ele não cria a conta nem fica salvo neste navegador.</span>
           </label>
           <button class="botao" type="submit">Gerar QR do Pix</button>
+          <p class="miudo">Os materiais são PDFs. Cancelamento e reembolso seguem o Código de Defesa do Consumidor. <a href="reembolso/">Leia a política</a>.</p>
         </form>
         <div id="pix-resultado" hidden>
           <div class="qr-caixa" id="pix-imagem"></div>
@@ -231,7 +240,7 @@
     <script src="js/pix.js?v=21"></script>
     <script src="js/historia.js?v=2"></script>
     <script src="js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="js/sessao.js?v=28"></script>
-    <script type="module" src="js/inicio.js?v=13"></script>
+    <script type="module" src="js/sessao.js?v=29"></script>
+    <script type="module" src="js/inicio.js?v=14"></script>
   </body>
 </html>

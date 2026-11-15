@@ -556,6 +556,16 @@ main {
 
 .rodape img { height: 2.7rem; width: auto; display: block; }
 
+.rodape-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.9rem;
+  margin: 0.8rem 0;
+  font-weight: 800;
+}
+
+.rodape p { max-width: 42rem; margin-top: 0.4rem; }
+
 .pix {
   width: min(34rem, calc(100% - 1.25rem));
   max-height: calc(100dvh - 1.25rem);

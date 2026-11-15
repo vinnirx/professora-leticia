@@ -248,16 +248,33 @@ body[data-pagina="admin"] {
 
 .barra-ferramentas > .botao { align-self: end; }
 
-.barra-filtros {
+.filtros-painel {
   display: grid;
-  grid-template-columns: minmax(12rem, 1.8fr) minmax(8.5rem, 0.9fr) minmax(10.4rem, 0.85fr) minmax(10.4rem, 0.85fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.5rem), 1fr));
+  gap: 0.7rem;
   align-items: end;
+  margin: 0 0 0.9rem;
 }
 
-.barra-filtros label {
-  flex: none;
+.filtros-painel label {
+  display: grid;
+  gap: 0.3rem;
   min-width: 0;
+  margin: 0;
+  color: var(--adm-mudo);
+  font-size: 0.78rem;
+  font-weight: 800;
 }
+
+.filtros-painel .campo-largo { grid-column: 1 / -1; }
+
+@media (min-width: 760px) {
+  .filtros-painel .campo-largo { grid-column: span 2; }
+}
+
+.filtros-painel .botao { width: 100%; }
+
+.voltar-visao { width: fit-content; max-width: 100%; }
 
 .painel input[type="date"] {
   font-variant-numeric: tabular-nums;
@@ -833,7 +850,7 @@ body[data-pagina="admin"] {
 
 @media (max-width: 900px) {
   .barra-ferramentas label { flex-basis: calc(50% - 0.7rem); }
-  .barra-filtros { grid-template-columns: 1fr 1fr; }
+  .filtros-painel .campo-largo { grid-column: 1 / -1; }
   .indicadores-principais,
   .indicadores-apoio { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 

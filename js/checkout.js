@@ -1,4 +1,4 @@
-import { documentoValido } from "./documento.js";
+import { documentoValido, mascararDocumento } from "./documento.js";
 import { rota } from "./rotas.js";
 import { dinheiro, escapar, linkAjuda } from "./texto.js";
 import { itemOficial, limparCarrinho } from "./carrinho.js?v=2";
@@ -122,6 +122,11 @@ export async function abrirPix(atividade) {
     const dados = new FormData(pedido);
     const nome = String(dados.get("nome") || "").trim();
     const email = String(dados.get("email") || "").trim();
+    if (ligada && sessao?.user?.email_confirmed_at === null) {
+      marcarEstado("problema", "Confirme seu e-mail", "");
+      aviso.textContent = "Confirme seu e-mail antes de comprar. Verifique a caixa de entrada e também o spam.";
+      return;
+    }
     if (window.loja.cobrancaAutomatica) {
       if (!ligada || !sessao) {
         marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: "Preciso entrar na conta para gerar a cobrança." }));
@@ -270,4 +275,8 @@ export function prepararCheckout() {
   const dialogo = document.querySelector("#pix");
   if (!dialogo) return;
   document.querySelector("#pix .fechar")?.addEventListener("click", () => dialogo.close());
+  const documento = dialogo.querySelector("[name=documento]");
+  documento?.addEventListener("input", () => {
+    documento.value = mascararDocumento(documento.value);
+  });
 }

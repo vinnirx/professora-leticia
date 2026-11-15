@@ -854,6 +854,7 @@ export function prepararCadastro(loja, existentes, aoCriar) {
     document.querySelector("#nova-status").textContent = "";
     mostrarEtapa(formulario, etapaAtual - 1);
   });
+  document.addEventListener("mostrar-lista-atividades", () => mostrarTrabalho("lista"));
   document.querySelector("#abrir-cadastro")?.addEventListener("click", () => {
     const caixa = document.querySelector("#cadastro-atividade");
     if (!caixa.hidden && temRascunho(formulario) && !window.confirm("Há um cadastro aberto. Descartar o que foi preenchido?")) return;
