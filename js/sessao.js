@@ -320,6 +320,36 @@ async function iniciar() {
         return { ok: false, fator: null, mensagem: "Não consegui ler o autenticador. Tente de novo." };
       }
     },
+    async diagnosticarSessao() {
+      if (!cliente) return { autenticado: false, ativa: null, nivel: "", mensagem: "Não consegui preparar a verificação." };
+      try {
+        const sessaoAtual = await cliente.auth.getSession();
+        if (sessaoAtual.error || !sessaoAtual.data?.session) {
+          return { autenticado: false, ativa: null, nivel: "", mensagem: "Nenhuma sessão nesta janela." };
+        }
+        const chamada = await cliente.rpc("sessao_ainda_valida");
+        const nivelResposta = await cliente.auth.mfa.getAuthenticatorAssuranceLevel();
+        const nivel = String(nivelResposta.data?.currentLevel || "");
+        if (chamada.error) {
+          const texto = String(chamada.error.message || "");
+          const negada = /permission denied|42501|jwt|not authorized/i.test(texto);
+          return {
+            autenticado: true,
+            ativa: null,
+            nivel,
+            mensagem: negada ? "A chamada foi recusada." : "Não consegui concluir a verificação.",
+          };
+        }
+        return {
+          autenticado: true,
+          ativa: chamada.data === true,
+          nivel,
+          mensagem: chamada.data === true ? "A sessão foi aceita." : "A sessão não foi aceita.",
+        };
+      } catch {
+        return { autenticado: false, ativa: null, nivel: "", mensagem: "Não consegui falar com o servidor." };
+      }
+    },
     async nivelAcesso() {
       try {
         const acesso = await contaAdministra();

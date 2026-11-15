@@ -1,4 +1,4 @@
-const SECOES = new Set(["entrar", "criar-conta", "minha-conta", "gerenciar", "recuperar-senha", "atividades", "ajuda", "termos", "reembolso", "privacidade"]);
+const SECOES = new Set(["entrar", "criar-conta", "minha-conta", "gerenciar", "recuperar-senha", "atividades", "ajuda", "termos", "reembolso", "privacidade", "diagnostico-sessao"]);
 
 export function emSecao(pathname) {
   const partes = String(pathname || "/").split("/").filter(Boolean);
@@ -37,6 +37,7 @@ export function destinoInterno(valor, pathname = typeof location === "undefined"
     "criar-conta/": "criar-conta/",
     "recuperar-senha/": "recuperar-senha/",
     "atividades/": "atividades/",
+    "diagnostico-sessao/": "diagnostico-sessao/",
   };
   const nome = apelidos[pedido] || "minha-conta/";
   return rota(nome, pathname);

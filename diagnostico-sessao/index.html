@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="robots" content="noindex" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://*.supabase.co; connect-src 'self' https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321 https://fonts.googleapis.com https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'" />
+    <script src="../js/protecao.js?v=1"></script>
+    <title>Diagnóstico da sessão — Inclusão no Cotidiano</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../css/styles.css?v=87" />
+    <link rel="stylesheet" href="../css/conta.css?v=12" />
+  </head>
+  <body>
+    <main class="acesso">
+      <section class="acesso-cartao" aria-labelledby="titulo-diagnostico">
+        <p class="faixa-hero">Verificação temporária</p>
+        <h1 id="titulo-diagnostico">Diagnóstico da sessão</h1>
+        <p>Esta página só pergunta ao servidor se a sessão aberta nesta janela continua válida. Ela não altera dados, não mostra o token e não libera nenhuma função da loja.</p>
+        <p id="diagnostico-status" role="status">Verificando…</p>
+        <p id="diagnostico-detalhe"></p>
+        <p id="diagnostico-entrar" hidden><a href="../entrar/?depois=diagnostico-sessao/">Entrar e voltar para esta verificação</a></p>
+      </section>
+    </main>
+    <script src="../js/vendor/supabase.js?v=1"></script>
+    <script type="module" src="../js/sessao.js?v=39"></script>
+    <script type="module" src="../js/diagnostico-sessao.js?v=1"></script>
+  </body>
+</html>
