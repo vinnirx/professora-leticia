@@ -221,7 +221,7 @@ async function iniciar() {
         const chaves = [];
         for (let indice = 0; indice < sessionStorage.length; indice += 1) {
           const chave = sessionStorage.key(indice);
-          if (chave && chave.startsWith("sb-")) chaves.push(chave);
+          if (chave && (chave.startsWith("sb-") || chave === "email-conta" || chave === "depois")) chaves.push(chave);
         }
         chaves.forEach((chave) => sessionStorage.removeItem(chave));
       };
@@ -229,8 +229,8 @@ async function iniciar() {
       try {
         if (cliente) {
           await Promise.race([
-            cliente.auth.signOut({ scope: "local" }),
-            new Promise((resolve) => setTimeout(resolve, 1500)),
+            cliente.auth.signOut({ scope: "global" }),
+            new Promise((resolve) => setTimeout(resolve, 4000)),
           ]);
         }
       } catch {
