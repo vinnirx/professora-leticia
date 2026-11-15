@@ -1,7 +1,7 @@
-import { prepararAreas } from "./areas.js";
-import { prepararCarrinho } from "./carrinho.js";
-import { iniciarCatalogo, prepararBusca } from "./catalogo.js";
-import { abrirPix, prepararCheckout } from "./checkout.js";
+import { prepararAreas } from "./areas.js?v=2";
+import { prepararCarrinho } from "./carrinho.js?v=2";
+import { iniciarCatalogo, prepararBusca } from "./catalogo.js?v=2";
+import { abrirPix, prepararCheckout } from "./checkout.js?v=2";
 
 document.addEventListener("DOMContentLoaded", () => {
   prepararCarrinho(abrirPix);

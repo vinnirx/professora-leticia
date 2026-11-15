@@ -1,5 +1,6 @@
-import { abrirCarrinho, guardarNoCarrinho, prepararCarrinho, rotuloAdicionar } from "./carrinho.js";
-import { abrirPix, prepararCheckout } from "./checkout.js";
+import { abrirCarrinho, guardarNoCarrinho, prepararCarrinho, rotuloAdicionar } from "./carrinho.js?v=2";
+import { abrirPix, prepararCheckout } from "./checkout.js?v=2";
+import { mesclarOferta, publicarOferta } from "./ofertas.js";
 import { dinheiro, linhas } from "./texto.js";
 
 function preencherFicha(atividade) {
@@ -110,15 +111,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     const remota = await conta.atividade(id);
     if (remota) {
-      preencherFicha({
+      const atual = mesclarOferta({
         ...local,
         ...remota,
-        capa: remota.capa || local?.capa,
-        capaAlt: remota.capaAlt || local?.capaAlt,
-        explicacao: remota.explicacao || local?.explicacao,
-        habilidades: remota.habilidades || local?.habilidades,
+        inclui: remota.inclui || local?.inclui,
         informacoes: (Array.isArray(remota.informacoes) && remota.informacoes.length) ? remota.informacoes : local?.informacoes,
-      });
+      }, local);
+      publicarOferta(atual);
+      preencherFicha(atual);
     }
   } catch {
     if (!local) document.querySelector("#ficha-titulo").textContent = "Esta atividade não está disponível.";

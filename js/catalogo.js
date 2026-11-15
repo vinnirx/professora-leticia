@@ -1,4 +1,5 @@
-import { abrirCarrinho, guardarNoCarrinho, pintarCarrinho } from "./carrinho.js";
+import { abrirCarrinho, guardarNoCarrinho, pintarCarrinho } from "./carrinho.js?v=2";
+import { mesclarOferta, publicarOfertas } from "./ofertas.js";
 import { dinheiro, escapar, linhas } from "./texto.js";
 import { paginaAtividade } from "./rotas.js";
 
@@ -158,6 +159,7 @@ export async function iniciarCatalogo() {
   if (!grade) return;
   const locais = window.loja.atividades.map(paraCartao);
   catalogo = locais;
+  publicarOfertas(catalogo);
   document.querySelector("#busca-atividade")?.addEventListener("input", mostrarCatalogo);
   document.querySelector("#voltar-destaque")?.addEventListener("click", () => {
     limparFiltro();
@@ -179,21 +181,10 @@ export async function iniciarCatalogo() {
     const locaisPorId = new Map(locais.map((item) => [item.id, item]));
     const ids = new Set(vindas.map((item) => item.id));
     catalogo = [
-      ...vindas.map((item) => {
-        const local = locaisPorId.get(item.id);
-        if (!local) return item;
-        return {
-          ...item,
-          area: item.area || local.area,
-          temas: item.temas.length ? item.temas : local.temas,
-          capa: item.capa || local.capa,
-          capaAlt: item.capaAlt || local.capaAlt,
-          explicacao: item.explicacao || local.explicacao,
-          habilidades: item.habilidades.length ? item.habilidades : local.habilidades,
-        };
-      }),
+      ...vindas.map((item) => mesclarOferta(item, locaisPorId.get(item.id))),
       ...locais.filter((item) => !ids.has(item.id)),
     ];
+    publicarOfertas(catalogo);
     mostrarCatalogo();
   } catch {
     catalogo = locais;

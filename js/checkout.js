@@ -1,7 +1,7 @@
 import { documentoValido } from "./documento.js";
 import { rota } from "./rotas.js";
 import { dinheiro, escapar, linkAjuda } from "./texto.js";
-import { itemOficial, limparCarrinho } from "./carrinho.js";
+import { itemOficial, limparCarrinho } from "./carrinho.js?v=2";
 
 let pixAtual = "";
 let pixManual = true;
@@ -66,7 +66,7 @@ export async function abrirPix(atividade) {
 
   const brutos = Array.isArray(atividade.itens) && atividade.itens.length ? atividade.itens : [atividade];
   const cobranca = brutos.map(itemOficial).filter(Boolean);
-  const total = cobranca.length === brutos.length
+  let total = cobranca.length === brutos.length
     ? Number(cobranca.reduce((soma, item) => soma + item.preco, 0).toFixed(2))
     : null;
 
@@ -185,6 +185,14 @@ export async function abrirPix(atividade) {
         }));
         aviso.textContent = gravado.mensagem;
         return;
+      }
+      if (gravado.pedidos?.length) {
+        const valorServidor = Number(gravado.pedidos.reduce((soma, item) => soma + Number(item.valor), 0).toFixed(2));
+        const titulos = gravado.pedidos.map((item) => item.titulo).filter(Boolean);
+        if (Number.isFinite(valorServidor) && valorServidor > 0) total = valorServidor;
+        if (titulos.length === 1) document.querySelector("#pix-titulo").textContent = titulos[0];
+        else if (titulos.length > 1) document.querySelector("#pix-titulo").textContent = `${titulos.length} atividades`;
+        document.querySelector("#pix-preco").textContent = dinheiro(total);
       }
     }
     const caixa = document.querySelector("#pix-imagem");

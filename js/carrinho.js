@@ -1,9 +1,14 @@
+import { ofertaDe } from "./ofertas.js";
 import { dinheiro, linhas } from "./texto.js";
 import { rota } from "./rotas.js";
 
+function fonteDaAtividade(id) {
+  return ofertaDe(id) || window.loja?.atividades?.find((atividade) => atividade.id === id) || null;
+}
+
 export function itemOficial(item) {
   if (!item || !/^[a-z0-9-]{1,48}$/.test(item.id || "")) return null;
-  const oficial = window.loja.atividades.find((atividade) => atividade.id === item.id);
+  const oficial = fonteDaAtividade(item.id);
   if (!oficial) return null;
   const preco = Number(oficial.preco);
   if (!Number.isFinite(preco) || preco <= 0) return null;

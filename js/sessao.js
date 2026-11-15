@@ -212,14 +212,14 @@ async function iniciar() {
       location.replace(rota("inicio"));
     },
     async registrarPedido(atividadeId, txid) {
-      const { error } = await cliente.rpc("criar_pedido", { atividade: atividadeId, txid });
+      const { data, error } = await cliente.rpc("criar_pedido", { atividade: atividadeId, txid });
       if (error) return { ok: false, mensagem: traduzir(error) };
-      return { ok: true };
+      return { ok: true, pedidos: Array.isArray(data) ? data : (data ? [data] : []) };
     },
     async registrarPedidos(ids, txid) {
-      const { error } = await cliente.rpc("criar_pedidos", { atividades: ids, codigo: txid });
+      const { data, error } = await cliente.rpc("criar_pedidos", { atividades: ids, codigo: txid });
       if (error) return { ok: false, mensagem: traduzir(error) };
-      return { ok: true };
+      return { ok: true, pedidos: Array.isArray(data) ? data : [] };
     },
     async meusPedidos() {
       const { data, error } = await cliente
