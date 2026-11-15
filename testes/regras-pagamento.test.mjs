@@ -1,5 +1,16 @@
 import assert from "node:assert/strict";
-import { decidirEvento, documentoValido, segredosIguais } from "../supabase/functions/_shared/regras.mjs";
+import {
+  decidirEvento,
+  acessoCobranca,
+  destinoAsaas,
+  identificadorAutenticado,
+  planoConciliacao,
+  documentoValido,
+  eventoAceito,
+  eventoDeConsulta,
+  respostaDoWebhook,
+  segredosIguais,
+} from "../supabase/functions/_shared/regras.mjs";
 
 function cpfDeTeste() {
   const base = "529982247";
@@ -105,5 +116,101 @@ const criada = decidirEvento({
 });
 assert.equal(criada.status, "pendente");
 assert.equal(criada.liberar, false);
+
+assert.equal(eventoAceito({ id: "evt_1", event: "PAYMENT_RECEIVED", payment: { id: "pay_1" } }), true);
+assert.equal(eventoAceito({ id: "abc", event: "PAYMENT_RECEIVED", payment: { id: "pay_1" } }), false);
+assert.equal(eventoAceito({ id: "evt_1", event: "", payment: { id: "pay_1" } }), false);
+assert.equal(respostaDoWebhook({ erroPersistencia: true }).status, 500);
+assert.equal(respostaDoWebhook({ repetir: true }).status, 409);
+const recebidoHttp = respostaDoWebhook({ processar: true });
+assert.equal(recebidoHttp.status, 200);
+assert.equal(recebidoHttp.corpo.resultado, "recebido");
+const falhaHttp = respostaDoWebhook({ processar: true, erroProcessamento: true });
+assert.equal(falhaHttp.status, 200);
+assert.equal(falhaHttp.corpo.reprocessar, true);
+assert.equal(eventoDeConsulta("RECEIVED"), "PAYMENT_RECEIVED");
+assert.equal(eventoDeConsulta("CONFIRMED"), "PAYMENT_CONFIRMED");
+assert.equal(eventoDeConsulta("PENDING"), "");
+const sandbox = destinoAsaas({
+  ambiente: "sandbox",
+  chave: "$aact_hmlg_teste",
+});
+assert.equal(sandbox.base, "https://api-sandbox.asaas.com/v3");
+assert.equal(destinoAsaas({ ambiente: "sandbox", chave: "$aact_prod_teste" }).ok, false);
+assert.equal(destinoAsaas({ ambiente: "producao", producaoLiberada: "sim", chave: "$aact_hmlg_teste" }).ok, false);
+assert.equal(destinoAsaas({
+  ambiente: "sandbox",
+  baseInformada: "http://127.0.0.1:8799/v3",
+  chave: "homologacao-local",
+}).base, "http://127.0.0.1:8799/v3");
+assert.equal(destinoAsaas({
+  ambiente: "sandbox",
+  baseInformada: "https://api.asaas.com/v3",
+  chave: "homologacao-local",
+}).ok, false);
+assert.equal(destinoAsaas({ ambiente: "producao", leitura: true, chave: "$aact_prod_teste" }).base, "https://api.asaas.com/v3");
+assert.equal(destinoAsaas({ ambiente: "producao", testeLiberado: "sim", chave: "$aact_prod_teste" }).ok, true);
+assert.equal(destinoAsaas({ ambiente: "producao", testeLiberado: "sim", chave: "$aact_hmlg_teste" }).ok, false);
+assert.equal(destinoAsaas({ ambiente: "producao", chave: "$aact_prod_teste" }).ok, false);
+
+const conta = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+const sessao = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+const outraSessao = "cccccccc-cccc-cccc-cccc-cccccccccccc";
+assert.equal(identificadorAutenticado({ usuarioId: conta, subject: conta, sessionId: sessao }), conta);
+assert.equal(identificadorAutenticado({ usuarioId: conta, subject: conta, sessionId: outraSessao }), conta);
+assert.equal(identificadorAutenticado({ usuarioId: sessao, subject: sessao, sessionId: sessao }), "");
+assert.equal(identificadorAutenticado({ usuarioId: conta, subject: sessao, sessionId: sessao }), "");
+assert.equal(acessoCobranca({
+  ambiente: "producao",
+  usuarioId: identificadorAutenticado({ usuarioId: conta, subject: conta, sessionId: outraSessao }),
+  emailConfirmado: true,
+  contaTeste: conta,
+  testeLiberado: "sim",
+}), "teste");
+assert.equal(acessoCobranca({
+  ambiente: "producao",
+  usuarioId: sessao,
+  emailConfirmado: true,
+  contaTeste: conta,
+  testeLiberado: "sim",
+}), "");
+assert.equal(acessoCobranca({
+  ambiente: "producao",
+  usuarioId: conta,
+  emailConfirmado: true,
+  contaTeste: conta,
+  testeLiberado: "sim",
+}), "teste");
+assert.equal(acessoCobranca({
+  ambiente: "producao",
+  usuarioId: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+  emailConfirmado: true,
+  contaTeste: conta,
+  testeLiberado: "sim",
+}), "");
+assert.equal(acessoCobranca({
+  ambiente: "producao",
+  usuarioId: conta,
+  emailConfirmado: false,
+  contaTeste: conta,
+  testeLiberado: "sim",
+}), "confirmar");
+assert.equal(acessoCobranca({
+  ambiente: "producao",
+  usuarioId: conta,
+  emailConfirmado: true,
+  contaTeste: conta,
+  testeLiberado: "nao",
+  producaoLiberada: "sim",
+}), "geral");
+assert.equal(acessoCobranca({ ambiente: "sandbox", usuarioId: conta, emailConfirmado: true }), "sandbox");
+const bloqueada = planoConciliacao({ destinoOk: false, resultados: [], cobrancasAbertas: 0 });
+assert.equal(bloqueada.status, 200);
+assert.equal(bloqueada.corpo.consulta, "bloqueada");
+const pendente = planoConciliacao({ destinoOk: false, resultados: [], cobrancasAbertas: 1 });
+assert.equal(pendente.status, 500);
+const falha = planoConciliacao({ destinoOk: true, resultados: [{ resultado: "falhou" }], cobrancasAbertas: 0 });
+assert.equal(falha.status, 500);
+assert.equal(falha.corpo.alerta, true);
 
 console.log("ok regras de pagamento simuladas");

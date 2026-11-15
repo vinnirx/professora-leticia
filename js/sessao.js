@@ -684,6 +684,25 @@ async function iniciar() {
       if (error) return { ok: false, mensagem: traduzir(error) };
       return data || { ok: false, mensagem: "Não foi possível encerrar." };
     },
+    async pixAutomaticoDisponivel() {
+      try {
+        const atual = await sessao();
+        if (!atual || !config) return false;
+        const resposta = await fetch(`${config.url}/functions/v1/criar-cobranca`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${atual.access_token}`,
+            apikey: config.chave,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ consulta: "acesso" }),
+        });
+        const corpo = await resposta.json().catch(() => ({}));
+        return resposta.ok && corpo.automatico === true;
+      } catch {
+        return false;
+      }
+    },
     async criarCobranca(ids, chave, documento) {
       const atual = await sessao();
       const chavePedido = String(chave || "");

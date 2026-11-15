@@ -1,34 +1,43 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { cabecalhos, responder } from "../_shared/cors.ts";
-import { documentoValido } from "../_shared/regras.mjs";
+import { acessoCobranca, destinoAsaas, documentoValido, identificadorAutenticado } from "../_shared/regras.mjs";
 
-const sandbox = "https://api-sandbox.asaas.com/v3";
-const producao = "https://api.asaas.com/v3";
-
-function loopback(valor: string) {
+function claimsDoToken(autorizacao: string) {
+  const token = autorizacao.replace(/^Bearer\s+/i, "").trim();
+  const parte = token.split(".")[1] || "";
   try {
-    const alvo = new URL(valor);
-    return alvo.protocol === "http:" && (alvo.hostname === "127.0.0.1" || alvo.hostname === "localhost");
+    const json = JSON.parse(atob(parte.replace(/-/g, "+").replace(/_/g, "/")));
+    return { sub: String(json.sub || ""), sessionId: String(json.session_id || "") };
   } catch {
-    return false;
+    return { sub: "", sessionId: "" };
   }
 }
 
-function baseAsaas() {
-  const ambiente = Deno.env.get("ASAAS_AMBIENTE") || "";
-  if (ambiente === "sandbox") {
-    const local = Deno.env.get("ASAAS_BASE_URL") || "";
-    if (local && loopback(local)) return local.replace(/\/$/, "");
-    return sandbox;
-  }
-  if (ambiente === "producao" && Deno.env.get("ASAAS_PRODUCAO_LIBERADA") === "sim") return producao;
-  return "";
+function destinoPara(modo: string) {
+  return destinoAsaas({
+    ambiente: Deno.env.get("ASAAS_AMBIENTE") || "",
+    producaoLiberada: modo === "geral" ? "sim" : "",
+    testeLiberado: modo === "teste" ? "sim" : "",
+    baseInformada: Deno.env.get("ASAAS_BASE_URL") || "",
+    chave: Deno.env.get("ASAAS_API_KEY") || "",
+  });
 }
 
-async function asaas(caminho: string, chave: string, metodo: string, corpo?: unknown) {
+function modoDaConta(usuarioId: string, emailConfirmado: boolean) {
+  return acessoCobranca({
+    ambiente: Deno.env.get("ASAAS_AMBIENTE") || "",
+    usuarioId,
+    emailConfirmado,
+    contaTeste: Deno.env.get("ASAAS_CONTA_TESTE") || "",
+    testeLiberado: Deno.env.get("ASAAS_TESTE_LIBERADO") || "",
+    producaoLiberada: Deno.env.get("ASAAS_PRODUCAO_LIBERADA") || "",
+  });
+}
+
+async function asaas(base: string, caminho: string, chave: string, metodo: string, corpo?: unknown) {
   let resposta: Response;
   try {
-    resposta = await fetch(`${baseAsaas()}${caminho}`, {
+    resposta = await fetch(`${base}${caminho}`, {
       method: metodo,
       headers: { access_token: chave, "Content-Type": "application/json" },
       body: corpo ? JSON.stringify(corpo) : undefined,
@@ -62,7 +71,7 @@ Deno.serve(async (req) => {
   const anon = Deno.env.get("SUPABASE_ANON_KEY") || "";
   const serviço = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   const chaveAsaas = Deno.env.get("ASAAS_API_KEY") || "";
-  if (!url || !anon || !serviço || !chaveAsaas || !baseAsaas()) {
+  if (!url || !anon || !serviço || !chaveAsaas) {
     return responder(origem, 503, { ok: false, mensagem: "A cobrança automática ainda não está configurada." });
   }
 
@@ -73,15 +82,36 @@ Deno.serve(async (req) => {
   });
   const { data: conta, error: erroConta } = await usuario.auth.getUser();
   if (erroConta || !conta.user) return responder(origem, 401, { ok: false, mensagem: "Entre na conta para comprar." });
+  const claims = claimsDoToken(autorizacao);
+  const usuarioId = identificadorAutenticado({
+    usuarioId: conta.user.id,
+    subject: claims.sub,
+    sessionId: claims.sessionId,
+  });
+  if (!usuarioId) return responder(origem, 401, { ok: false, mensagem: "Entre na conta para comprar." });
 
   const pedido = await req.json().catch(() => null);
+  const modo = modoDaConta(usuarioId, Boolean(conta.user.email_confirmed_at));
+  const destino = destinoPara(modo);
+  if (pedido?.consulta === "acesso") {
+    return responder(origem, 200, { ok: true, automatico: (modo === "teste" || modo === "geral") && destino.ok });
+  }
+  if (modo === "confirmar") {
+    return responder(origem, 403, { ok: false, mensagem: "Confirme o e-mail antes de comprar." });
+  }
+  if ((modo !== "teste" && modo !== "geral" && modo !== "sandbox") || !destino.ok) {
+    return responder(origem, 503, { ok: false, mensagem: "A cobrança automática ainda não está configurada." });
+  }
+
   const atividades = Array.isArray(pedido?.atividades) ? pedido.atividades.map(String) : [];
   const chave = String(pedido?.chave || "");
   const documento = String(pedido?.documento || "").replace(/\D/g, "");
   const admin = createClient(url, serviço, { auth: { persistSession: false } });
 
+  const base = destino.base;
   const buscaCliente = await asaas(
-    `/customers?externalReference=${encodeURIComponent(conta.user.id)}&limit=1`,
+    base,
+    `/customers?externalReference=${encodeURIComponent(usuarioId)}&limit=1`,
     chaveAsaas,
     "GET",
   );
@@ -114,6 +144,7 @@ Deno.serve(async (req) => {
   let externa = String(preparo.cobranca_externa || "");
   if (!externa) {
     const buscaCobranca = await asaas(
+      base,
       `/payments?externalReference=${encodeURIComponent(preparo.txid)}&limit=1`,
       chaveAsaas,
       "GET",
@@ -127,17 +158,18 @@ Deno.serve(async (req) => {
   if (!externa) {
     if (!clienteId) {
       const nome = conta.user.user_metadata?.nome || conta.user.email || "Cliente";
-      const cliente = await asaas("/customers", chaveAsaas, "POST", {
+      const cliente = await asaas(base, "/customers", chaveAsaas, "POST", {
         name: nome,
         email: conta.user.email,
         cpfCnpj: documento,
         notificationDisabled: true,
-        externalReference: conta.user.id,
+        externalReference: usuarioId,
       });
       clienteId = String(cliente.json.id || "");
       if (cliente.status === 504) {
         const deNovo = await asaas(
-          `/customers?externalReference=${encodeURIComponent(conta.user.id)}&limit=1`,
+          base,
+          `/customers?externalReference=${encodeURIComponent(usuarioId)}&limit=1`,
           chaveAsaas,
           "GET",
         );
@@ -149,7 +181,7 @@ Deno.serve(async (req) => {
     }
 
     const vencimento = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const cobranca = await asaas("/payments", chaveAsaas, "POST", {
+    const cobranca = await asaas(base, "/payments", chaveAsaas, "POST", {
       customer: clienteId,
       billingType: "PIX",
       value: preparo.valor_bruto,
@@ -160,6 +192,7 @@ Deno.serve(async (req) => {
     externa = String(cobranca.json.id || "");
     if (!externa) {
       const recuperada = await asaas(
+        base,
         `/payments?externalReference=${encodeURIComponent(preparo.txid)}&limit=1`,
         chaveAsaas,
         "GET",
@@ -180,7 +213,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const qr = await asaas(`/payments/${externa}/pixQrCode`, chaveAsaas, "GET");
+  const qr = await asaas(base, `/payments/${externa}/pixQrCode`, chaveAsaas, "GET");
   const copiaCola = String(qr.json.payload || "");
   if (!qr.ok || !copiaCola) {
     return responder(origem, 502, { ok: false, mensagem: "A cobrança existe, mas o Pix ainda não voltou. Use o mesmo pedido para tentar de novo." });

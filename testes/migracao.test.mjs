@@ -39,10 +39,20 @@ assert.match(webhook, /asaas-access-token/);
 assert.match(webhook, /segredosIguais/);
 assert.match(webhook, /receber_evento_asaas/);
 assert.match(webhook, /processar_evento_asaas/);
+assert.match(webhook, /Evento incompleto/);
+assert.match(webhook, /waitUntil/);
+assert.doesNotMatch(webhook, /Falha ao processar/);
 assert.doesNotMatch(webhook, /Authorization/);
 
 const cobranca = readFileSync(new URL("../supabase/functions/criar-cobranca/index.ts", import.meta.url), "utf8");
 assert.match(cobranca, /preparar_cobranca/);
+assert.ok(cobranca.indexOf("consulta") < cobranca.indexOf("preparar_cobranca"));
+assert.match(cobranca, /ASAAS_CONTA_TESTE/);
+assert.match(cobranca, /ASAAS_TESTE_LIBERADO/);
+assert.match(cobranca, /identificadorAutenticado/);
+assert.match(cobranca, /email_confirmed_at/);
+assert.match(cobranca, /session_id/);
+assert.ok(cobranca.indexOf("identificadorAutenticado") < cobranca.indexOf("preparar_cobranca"));
 assert.doesNotMatch(cobranca, /pedido\.valor|pedido\.preco/);
 assert.match(cobranca, /ASAAS_AMBIENTE/);
 assert.match(cobranca, /AbortSignal\.timeout\(12000\)/);
@@ -50,5 +60,15 @@ assert.match(cobranca, /cpfCnpj/);
 assert.match(cobranca, /documentoValido/);
 assert.match(cobranca, /externalReference=/);
 assert.doesNotMatch(cobranca, /console\.log/);
+
+const conciliar = readFileSync(new URL("../supabase/functions/conciliar-asaas/index.ts", import.meta.url), "utf8");
+assert.ok(conciliar.indexOf("processar_evento_asaas") < conciliar.indexOf("const destino = configuracao()"));
+assert.match(conciliar, /leitura: true/);
+assert.doesNotMatch(conciliar, /ASAAS_PRODUCAO_LIBERADA/);
+assert.doesNotMatch(conciliar, /\/payments"|method: "POST"/);
+const agenda = readFileSync(new URL("../.github/workflows/conciliar-asaas.yml", import.meta.url), "utf8");
+assert.match(agenda, /secrets\.CONCILIACAO_TOKEN/);
+assert.match(agenda, /vars\.CONCILIACAO_ATIVA/);
+assert.doesNotMatch(agenda, /\$aact_|CONCILIACAO_TOKEN=|cron\.schedule|vault\.create_secret/);
 
 console.log("ok migração e funções sem concessão automática");

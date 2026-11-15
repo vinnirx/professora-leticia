@@ -48,7 +48,7 @@ assert.equal(checkout.includes("localStorage"), false);
 assert.match(cobranca, /value: preparo\.valor_bruto/);
 assert.doesNotMatch(cobranca, /value: pedido/);
 assert.doesNotMatch(cobranca, /console\.log/);
-assert.match(cobranca, /externalReference: conta\.user\.id/);
+assert.match(cobranca, /externalReference: usuarioId/);
 assert.match(cobranca, /cpfCnpj: documento/);
 
 console.log("documento-mascara ok");

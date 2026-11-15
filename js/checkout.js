@@ -8,27 +8,44 @@ import { totalConfirmado } from "./valor-pedido.js";
 let pixAtual = "";
 let pixManual = true;
 
-function observarPedido(dialogo, txid, lojaConta) {
-  let restantes = 40;
-  const timer = setInterval(async () => {
-    restantes -= 1;
-    if (restantes <= 0 || !dialogo.open) {
-      clearInterval(timer);
-      return;
-    }
-    const situacao = await lojaConta.situacaoPedido(txid);
-    const finais = {
-      pago: ["ok", "Pagamento confirmado", "Pagamento confirmado. A liberação do PDF continua dependendo do servidor."],
+function mensagensDoPedido(automatico) {
+  if (automatico) {
+    return {
+      pago: ["ok", "Pagamento confirmado", "Pagamento confirmado! Seus materiais estão disponíveis em Minha Conta."],
       analise: ["problema", "Pagamento em análise", "O aviso não conferiu com o pedido. O PDF continua bloqueado."],
-      expirada: ["problema", "Cobrança expirada", "Esta cobrança expirou. O PDF continua bloqueado."],
+      expirada: ["problema", "Cobrança expirada", "O prazo do Pix expirou. Gere uma nova cobrança."],
       estornada: ["problema", "Pagamento estornado", "Este pagamento foi estornado. O PDF continua bloqueado."],
       cancelada: ["problema", "Cobrança cancelada", "Esta cobrança foi cancelada. O PDF continua bloqueado."],
     };
-    const final = finais[situacao];
+  }
+  return {
+    pago: ["ok", "Pagamento confirmado", "Pagamento confirmado. A liberação do PDF continua dependendo do servidor."],
+    analise: ["problema", "Pagamento em análise", "O aviso não conferiu com o pedido. O PDF continua bloqueado."],
+    expirada: ["problema", "Cobrança expirada", "Esta cobrança expirou. O PDF continua bloqueado."],
+    estornada: ["problema", "Pagamento estornado", "Este pagamento foi estornado. O PDF continua bloqueado."],
+    cancelada: ["problema", "Cobrança cancelada", "Esta cobrança foi cancelada. O PDF continua bloqueado."],
+  };
+}
+
+function observarPedido(dialogo, txid, lojaConta, automatico) {
+  let restantes = 40;
+  const timer = setInterval(async () => {
+    restantes -= 1;
+    const caixa = document.querySelector("#pix-aviso");
+    if (!dialogo.open) {
+      clearInterval(timer);
+      return;
+    }
+    if (restantes <= 0) {
+      clearInterval(timer);
+      if (automatico && caixa) caixa.textContent = "Se você já pagou, aguarde a atualização ou procure o suporte.";
+      return;
+    }
+    const situacao = await lojaConta.situacaoPedido(txid);
+    const final = mensagensDoPedido(automatico)[situacao];
     if (!final) return;
     clearInterval(timer);
     marcarEstado(final[0], final[1]);
-    const caixa = document.querySelector("#pix-aviso");
     if (caixa) caixa.textContent = final[2];
   }, 8000);
   dialogo.addEventListener("close", () => clearInterval(timer), { once: true });
@@ -99,7 +116,11 @@ export async function abrirPix(atividade) {
   }
   pedido.hidden = !window.loja.pixChave;
   const campoDocumento = document.querySelector("#campo-documento");
-  if (campoDocumento) campoDocumento.hidden = window.loja.cobrancaAutomatica !== true;
+  let automaticoNestaConta = window.loja.cobrancaAutomatica === true;
+  if (!automaticoNestaConta && ligada && sessao) {
+    automaticoNestaConta = await lojaConta.pixAutomaticoDisponivel() === true;
+  }
+  if (campoDocumento) campoDocumento.hidden = !automaticoNestaConta;
   resultado.hidden = true;
   pixAtual = "";
   whatsapp.hidden = true;
@@ -128,7 +149,7 @@ export async function abrirPix(atividade) {
       aviso.textContent = "Confirme seu e-mail antes de comprar. Verifique a caixa de entrada e também o spam.";
       return;
     }
-    if (window.loja.cobrancaAutomatica) {
+    if (automaticoNestaConta) {
       if (!ligada || !sessao) {
         marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: "Preciso entrar na conta para gerar a cobrança." }));
         aviso.textContent = "Entre na conta para gerar a cobrança.";
@@ -158,9 +179,9 @@ export async function abrirPix(atividade) {
         limparTentativa(sessionStorage);
         delete pedido.dataset.chaveCobranca;
         marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: "A cobrança anterior não pode ser reutilizada." }));
-        aviso.textContent = automatica.status === "pago"
-          ? "Este pagamento já foi confirmado. O material entra em Minha conta."
-          : "Essa cobrança não está mais válida. Gere o Pix outra vez.";
+        if (automatica.status === "pago") aviso.textContent = "Pagamento confirmado! Seus materiais estão disponíveis em Minha Conta.";
+        else if (automatica.status === "expirada") aviso.textContent = "O prazo do Pix expirou. Gere uma nova cobrança.";
+        else aviso.textContent = "Essa cobrança não está mais válida. Gere o Pix outra vez.";
         return;
       }
       pixManual = false;
@@ -184,9 +205,9 @@ export async function abrirPix(atividade) {
       resultado.hidden = false;
       limparCarrinho();
       limparTentativa(sessionStorage);
-      marcarEstado("espera", "Pagamento pendente", linkAjuda({ txid: automatica.txid, email, motivo: "Gerei o Pix e preciso de ajuda." }));
-      aviso.textContent = `Pague ${dinheiro(automatica.valor)}. O PDF só entra em Minha conta depois que o Asaas confirmar o recebimento.`;
-      observarPedido(dialogo, automatica.txid, lojaConta);
+      marcarEstado("espera", "Estamos aguardando a confirmação do pagamento.", linkAjuda({ txid: automatica.txid, email, motivo: "Gerei o Pix e preciso de ajuda." }));
+      aviso.textContent = "Seu Pix está pronto. Escaneie o QR Code ou utilize o Pix Copia e Cola.";
+      observarPedido(dialogo, automatica.txid, lojaConta, true);
       return;
     }
     if (!window.loja.pixChave) return;
@@ -272,7 +293,7 @@ export async function abrirPix(atividade) {
     aviso.textContent = ligada
       ? `Pague ${dinheiro(total)}. O PDF só entra em Minha conta quando este pagamento for confirmado.`
       : `Pague ${dinheiro(total)}. A conta ainda não está ligada ao banco, então o download entra quando ela estiver.`;
-    if (ligada) observarPedido(dialogo, txid, lojaConta);
+    if (ligada) observarPedido(dialogo, txid, lojaConta, false);
     if (/^[0-9]{10,15}$/.test(window.loja.whatsapp || "")) {
       const nomes = cobranca.map((item) => item.titulo).join(", ");
       const texto = encodeURIComponent(

@@ -21,6 +21,8 @@ assert.equal(destinoInterno("atividade.html?id=adicao", "/"), "atividade.html?id
 assert.equal(destinoInterno("atividade.html?id=adicao", "/atividades/"), "../atividade.html?id=adicao");
 assert.equal(destinoInterno("index.html?carrinho=1", "/minha-conta/"), "../?carrinho=1");
 assert.equal(destinoLegado("/entrar.html", "entrar/", "#access_token=1&type=recovery", ""), "recuperar-senha/#access_token=1&type=recovery");
+assert.equal(destinoLegado("/entrar.html", "entrar/", "#error_code=otp_expired", ""), "recuperar-senha/#error_code=otp_expired");
+assert.equal(destinoLegado("/entrar/", "entrar/", "#error_code=otp_expired&type=signup", ""), "entrar/#error_code=otp_expired&type=signup");
 assert.equal(destinoLegado("/minhas.html", "minha-conta/", "", "?aba=pedidos"), "minha-conta/?aba=pedidos");
 
 const sessao = readFileSync(new URL("../js/sessao.js", import.meta.url), "utf8");
@@ -34,6 +36,16 @@ assert.match(cors, /https:\/\/vinnirx\.github\.io/);
 assert.match(cors, /http:\/\/127\.0\.0\.1:4204/);
 
 assert.match(readFileSync(new URL("../js/loja.js", import.meta.url), "utf8"), /cobrancaAutomatica: false/);
+assert.match(sessao, /pixAutomaticoDisponivel/);
+const checkout = readFileSync(new URL("../js/checkout.js", import.meta.url), "utf8");
+assert.match(checkout, /pixAutomaticoDisponivel/);
+assert.match(checkout, /cobrancaAutomatica === true/);
+assert.match(checkout, /Seu Pix está pronto\. Escaneie o QR Code ou utilize o Pix Copia e Cola\./);
+assert.match(checkout, /Estamos aguardando a confirmação do pagamento\./);
+assert.match(checkout, /Pagamento confirmado! Seus materiais estão disponíveis em Minha Conta\./);
+assert.match(checkout, /O prazo do Pix expirou\. Gere uma nova cobrança\./);
+assert.match(checkout, /Se você já pagou, aguarde a atualização ou procure o suporte\./);
+assert.match(checkout, /Pague \$\{dinheiro\(total\)\}\. O PDF só entra em Minha conta quando este pagamento for confirmado\./);
 
 for (const pagina of ["entrar/index.html", "criar-conta/index.html", "recuperar-senha/index.html", "minha-conta/index.html", "gerenciar/index.html"]) {
   const html = readFileSync(new URL(`../${pagina}`, import.meta.url), "utf8");

@@ -1,0 +1,49 @@
+name: Conciliar Asaas
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: conciliar-asaas
+  cancel-in-progress: false
+
+jobs:
+  conciliar:
+    if: vars.CONCILIACAO_ATIVA == 'sim'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Recuperar eventos e consultar cobranças abertas
+        env:
+          TOKEN: ${{ secrets.CONCILIACAO_TOKEN }}
+          CHAVE: ${{ secrets.SUPABASE_ANON_KEY }}
+          URL: https://cjuiineqxulejxzlljjm.supabase.co/functions/v1/conciliar-asaas
+        run: |
+          set -euo pipefail
+          if [ -z "${TOKEN}" ] || [ -z "${CHAVE}" ]; then
+            echo "segredo ausente"
+            exit 1
+          fi
+          for tentativa in 1 2 3; do
+            codigo=$(curl -sS -o /tmp/conciliar.json -w "%{http_code}" \
+              --max-time 60 \
+              -X POST \
+              -H "Authorization: Bearer ${CHAVE}" \
+              -H "apikey: ${CHAVE}" \
+              -H "x-conciliacao-token: ${TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{}' \
+              "${URL}" || true)
+            if python3 -c 'import json,sys; corpo=json.load(open("/tmp/conciliar.json")); consulta=str(corpo.get("consulta") or ""); print("consulta", consulta, "alerta", str(bool(corpo.get("alerta"))).lower(), "itens", len(corpo.get("resultados") or [])); sys.exit(0 if consulta in ("asaas", "bloqueada") else 1)'; then
+              if [ "${codigo}" = "200" ]; then
+                exit 0
+              fi
+            fi
+            echo "tentativa ${tentativa} http ${codigo}"
+            sleep 20
+          done
+          exit 1
