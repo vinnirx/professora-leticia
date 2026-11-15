@@ -156,6 +156,43 @@ function mostrarAdministracao(dados, resumo) {
   });
 }
 
+function rotuloStatus(status) {
+  if (status === "atendimento") return "Em atendimento";
+  if (status === "resolvido") return "Resolvido";
+  return "Aberto";
+}
+
+async function mostrarSolicitacoes(loja) {
+  const destino = document.querySelector("#minhas-solicitacoes");
+  if (!destino || !loja.listarSolicitacoes) return;
+  const resultado = await loja.listarSolicitacoes();
+  destino.replaceChildren();
+  if (!resultado.ok) {
+    if (!resultado.ausente) {
+      const avisoLista = document.createElement("p");
+      avisoLista.textContent = resultado.mensagem || "Não foi possível ler seus pedidos de ajuda.";
+      destino.append(avisoLista);
+    }
+    return;
+  }
+  if (!resultado.solicitacoes.length) return;
+  const titulo = document.createElement("h3");
+  titulo.textContent = "Seus pedidos de ajuda";
+  destino.append(titulo);
+  for (const item of resultado.solicitacoes) {
+    const artigo = document.createElement("article");
+    const cabeca = document.createElement("p");
+    cabeca.textContent = `${rotuloStatus(item.status)}${item.txid ? ` · Pedido ${item.txid}` : ""}`;
+    artigo.append(cabeca);
+    for (const mensagem of item.mensagens || []) {
+      const linha = document.createElement("p");
+      linha.textContent = mensagem.texto;
+      artigo.append(linha);
+    }
+    destino.append(artigo);
+  }
+}
+
 export async function iniciarMinhas(loja) {
   const lista = document.querySelector("#lista-pedidos");
   const vazio = document.querySelector("#conta-vazia");
@@ -179,6 +216,7 @@ export async function iniciarMinhas(loja) {
   ajuda.addEventListener("click", () => {
     painelAjuda.hidden = false;
     ajuda.hidden = true;
+    mostrarSolicitacoes(loja);
   });
   document.querySelector("#form-ajuda")?.addEventListener("submit", async (evento) => {
     evento.preventDefault();
@@ -199,6 +237,7 @@ export async function iniciarMinhas(loja) {
     if (resultado.ok) {
       aviso(estado, "Pedido de ajuda registrado. A Letícia consegue acompanhá-lo no painel.", true);
       formulario.reset();
+      await mostrarSolicitacoes(loja);
       return;
     }
     if (resultado.ausente) {

@@ -4,6 +4,12 @@ export function codigoNumerico(valor) {
   return String(valor || "").replace(/\D/g, "").slice(0, 6);
 }
 
+export function pedidoDeConfirmacao(codigo) {
+  const token = codigoNumerico(codigo);
+  if (!/^\d{6}$/.test(token)) return { ok: false, mensagem: "O código tem 6 números." };
+  return { ok: true, token, tipo: TIPO_OTP_CADASTRO };
+}
+
 export function mensagemOtp(erro) {
   const codigo = String(erro?.code || erro?.error_code || "");
   const texto = String(erro?.message || erro || "");

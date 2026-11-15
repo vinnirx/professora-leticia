@@ -3,7 +3,7 @@ import { nomeCapa, urlComVersao, validarCapa } from "./capa-loja.js";
 import { administra, perfilDaSessao } from "./conta/papeis.js";
 import { mensagemFator, resultadoDaConfirmacao } from "./conta/mfa.js";
 import { acionarSaida } from "./conta/saida.js";
-import { mensagemOtp, TIPO_OTP_CADASTRO, codigoNumerico } from "./conta/codigo.js";
+import { mensagemOtp, codigoNumerico, pedidoDeConfirmacao } from "./conta/codigo.js?v=2";
 import { pedidoRepetido } from "./tentativa-compra.js";
 import { enderecoDeConfirmacao, enderecoDeRecuperacao } from "./endereco-publico.js";
 import { destinoInterno, rota } from "./rotas.js";
@@ -99,7 +99,9 @@ function hashDaUrl() {
 
 function linkDeSenha() {
   const hash = hashDaUrl();
-  return hash.get("type") === "recovery" || hash.get("error_code") === "otp_expired";
+  const tipo = hash.get("type") || "";
+  if (tipo === "signup" || tipo === "email" || tipo === "email_change") return false;
+  return tipo === "recovery" || hash.get("error_code") === "otp_expired";
 }
 
 function levarParaNovaSenha() {
@@ -250,12 +252,12 @@ async function iniciar() {
       return { ok: true };
     },
     async confirmarCodigo({ email, codigo }) {
-      const token = codigoNumerico(codigo);
-      if (!/^\d{6}$/.test(token)) return { ok: false, mensagem: "O código tem 6 números." };
+      const pedido = pedidoDeConfirmacao(codigo);
+      if (!pedido.ok) return pedido;
       const { error } = await cliente.auth.verifyOtp({
         email,
-        token,
-        type: TIPO_OTP_CADASTRO,
+        token: pedido.token,
+        type: pedido.tipo,
       });
       if (error) return { ok: false, mensagem: mensagemOtp(error) };
       return { ok: true };
@@ -612,7 +614,7 @@ async function iniciar() {
     async listarSolicitacoes() {
       const { data, error } = await cliente
         .from("solicitacoes")
-        .select("id, txid, assunto, status, criado_em, perfis(nome, email)")
+        .select("id, txid, assunto, status, criado_em, perfis(nome, email), solicitacao_mensagens(texto, criado_em)")
         .order("criado_em", { ascending: false });
       if (error && /schema cache|does not exist|could not find/i.test(String(error.message || ""))) {
         return { ok: false, ausente: true };
@@ -624,6 +626,9 @@ async function iniciar() {
           ...item,
           nome: item.perfis?.nome || "",
           email: item.perfis?.email || "",
+          mensagens: (item.solicitacao_mensagens || [])
+            .map((mensagem) => ({ texto: mensagem.texto, criado_em: mensagem.criado_em }))
+            .sort((a, b) => String(a.criado_em).localeCompare(String(b.criado_em))),
         })),
       };
     },
@@ -632,12 +637,12 @@ async function iniciar() {
       if (!atual) return { ok: false, mensagem: "Entre na conta para responder." };
       const gravado = await cliente.from("solicitacoes").update({
         status,
-        atualizado_em: new Date().toISOString(),
-      }).eq("id", id);
+      }).eq("id", id).select("id");
       if (gravado.error && /schema cache|does not exist|could not find/i.test(String(gravado.error.message || ""))) {
         return { ok: false, ausente: true };
       }
       if (gravado.error) return { ok: false, mensagem: traduzir(gravado.error) };
+      if (!(gravado.data || []).length) return { ok: false, mensagem: "Não foi possível atualizar esta solicitação." };
       if (texto) {
         const mensagem = await cliente.from("solicitacao_mensagens").insert({
           solicitacao_id: id,
@@ -891,7 +896,7 @@ async function iniciar() {
     history.replaceState(null, "", location.pathname + location.search);
   }
   api.recuperando = Boolean(pedidoPeloEmail && atual);
-  api.linkVencido = Boolean(pedidoPeloEmail && (linkVencido || !atual));
+  api.linkVencido = Boolean((pedidoPeloEmail && (linkVencido || !atual)) || (!tipoLink && linkVencido));
   api.contaVerificada = (tipoLink === "signup" || tipoLink === "email") && !erroLink;
   api.confirmacaoVencida = (tipoLink === "signup" || tipoLink === "email") && linkVencido;
   pintarMenu(atual, admin);

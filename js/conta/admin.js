@@ -1356,6 +1356,21 @@ export async function iniciarAdmin(loja) {
     memoria.contasExtra = new Map(resultado.contas.map((conta) => [conta.id, conta]));
     pintarClientes();
   }
+  function historicoSolicitacao(mensagens) {
+    const lista = document.createElement("div");
+    const itens = mensagens || [];
+    if (!itens.length) {
+      lista.textContent = "Sem mensagens.";
+      return lista;
+    }
+    for (const mensagem of itens) {
+      const linha = document.createElement("p");
+      linha.textContent = mensagem.texto;
+      lista.append(linha);
+    }
+    return lista;
+  }
+
   async function pintarSuporte() {
     const destino = document.querySelector("#lista-suporte");
     if (!destino) return;
@@ -1376,7 +1391,7 @@ export async function iniciarAdmin(loja) {
       return;
     }
     destino.replaceChildren(montarTabela(
-      ["Data", "Cliente", "Assunto", "Pedido", "Status", "Ações"],
+      ["Data", "Cliente", "Assunto", "Pedido", "Histórico", "Status", "Ações"],
       resultado.solicitacoes.map((item) => {
         const acoes = document.createElement("div");
         acoes.className = "acoes";
@@ -1396,6 +1411,7 @@ export async function iniciarAdmin(loja) {
             celula("Cliente", item.nome || item.email || "Conta"),
             celula("Assunto", item.assunto),
             celula("Pedido", item.txid || "—"),
+            celula("Histórico", historicoSolicitacao(item.mensagens)),
             celula("Status", item.status === "atendimento" ? "Em atendimento" : item.status === "resolvido" ? "Resolvido" : "Aberto"),
             celula("Ações", acoes),
           ],

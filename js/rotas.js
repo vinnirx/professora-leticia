@@ -44,7 +44,9 @@ export function destinoInterno(valor, pathname = typeof location === "undefined"
 }
 
 export function destinoLegado(pagina, destino, hash = "", search = "") {
-  const recuperacao = String(hash).includes("type=recovery") || String(hash).includes("error_code=");
+  const bruto = String(hash);
+  const confirmacao = /(?:^|[#&])type=(?:signup|email|email_change)(?:&|$)/.test(bruto);
+  const recuperacao = !confirmacao && (bruto.includes("type=recovery") || bruto.includes("error_code="));
   const origem = String(pagina || "");
   if (recuperacao && (destino === "entrar/" || origem.endsWith("entrar.html") || origem.endsWith("/entrar/"))) {
     return `recuperar-senha/${search}${hash}`;

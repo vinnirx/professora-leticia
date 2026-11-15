@@ -123,7 +123,7 @@ export async function abrirPix(atividade) {
     const dados = new FormData(pedido);
     const nome = String(dados.get("nome") || "").trim();
     const email = String(dados.get("email") || "").trim();
-    if (ligada && sessao?.user?.email_confirmed_at === null) {
+    if (ligada && !sessao?.user?.email_confirmed_at) {
       marcarEstado("problema", "Confirme seu e-mail", "");
       aviso.textContent = "Confirme seu e-mail antes de comprar. Verifique a caixa de entrada e também o spam.";
       return;
