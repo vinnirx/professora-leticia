@@ -49,7 +49,10 @@ function prepararReenvio(loja, status) {
 
 function prepararCodigo(loja, status) {
   const caixa = document.createElement("form");
+  caixa.className = "form-codigo";
   caixa.hidden = true;
+  const rotulo = document.createElement("label");
+  rotulo.textContent = "Código de 6 números";
   const campo = document.createElement("input");
   campo.name = "codigo";
   campo.inputMode = "numeric";
@@ -57,12 +60,13 @@ function prepararCodigo(loja, status) {
   campo.maxLength = 6;
   campo.required = true;
   campo.setAttribute("aria-label", "Código de 6 números");
+  rotulo.append(campo);
   const botao = document.createElement("button");
   botao.className = "botao";
   botao.type = "submit";
   botao.textContent = "Confirmar código";
-  caixa.append(campo, botao);
-  status?.insertAdjacentElement("afterend", caixa);
+  caixa.append(rotulo, botao);
+  status?.closest("form")?.insertAdjacentElement("afterend", caixa);
   campo.addEventListener("input", () => {
     campo.value = codigoNumerico(campo.value);
   });
@@ -158,7 +162,9 @@ export function iniciarEntrar(loja) {
       aviso(status, resultado.mensagem);
       if (/confirme o e-mail/i.test(resultado.mensagem || "")) {
         sessionStorage.setItem("email-conta", String(dados.get("email") || "").trim());
-        status.insertAdjacentElement("afterend", reenvio);
+        const formulario = status.closest("form");
+        formulario.insertAdjacentElement("afterend", reenvio);
+        reenvio.insertAdjacentElement("afterend", codigo);
         reenvio.hidden = false;
         codigo.hidden = false;
       }
