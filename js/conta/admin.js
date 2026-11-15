@@ -7,7 +7,7 @@ import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
 import { agruparPedidos, resumirVendas } from "./grupos-pedido.js";
 import { fecharCaixa, linhaExportada, origemFinanceira } from "./caixa.js";
 import { celulaCsv } from "./csv.js";
-import { desafiarFator, montarSegundoFator } from "./mfa.js?v=4";
+import { desafiarFator, montarSegundoFator } from "./mfa.js?v=5";
 import { acionarSaida } from "./saida.js";
 import { paginaAtividade, rota } from "../rotas.js";
 
@@ -324,8 +324,15 @@ export async function iniciarAdmin(loja) {
     bloqueio.insertAdjacentElement("afterend", volta);
     return;
   }
-  const segurou = await desafiarFator(loja, bloqueio, () => location.reload());
-  if (segurou) return;
+  let passo = "falha";
+  try {
+    passo = await desafiarFator(loja, bloqueio, () => location.reload());
+  } catch {
+    bloqueio.hidden = false;
+    bloqueio.textContent = "Não consegui confirmar a sessão. Entre de novo.";
+    return;
+  }
+  if (passo !== "seguir") return;
 
   document.querySelectorAll("[data-secao]").forEach((botao) => {
     botao.addEventListener("click", () => {

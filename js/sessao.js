@@ -29,6 +29,12 @@ function traduzir(erro) {
   if (/different from the old/i.test(texto)) return "Escolha uma senha diferente da anterior.";
   if (/rate limit|only request this|too many/i.test(texto)) return "Espere um pouco e peça o link de novo.";
   if (/expired|invalid.*token|otp/i.test(texto)) return "Esse link expirou. Peça outro.";
+  if (/failed to fetch|networkerror|load failed|tempo esgotado/i.test(texto)) {
+    return "Não consegui falar com o servidor. Verifique a conexão e tente de novo.";
+  }
+  if (/session or user missing|auth session missing/i.test(texto)) {
+    return "Esta sessão não está mais ativa. Entre de novo.";
+  }
   if (/password/i.test(texto)) return "A senha precisa de 8 caracteres ou mais.";
   if (/Entre na conta|Sem permissão|indisponível|inválido/i.test(texto) || /[áàâãéêíóôõúç]/i.test(texto)) return texto;
   return "Não foi possível agora. Tente de novo.";
@@ -126,19 +132,27 @@ async function iniciar() {
 
   async function sessao() {
     if (!cliente) return null;
-    const { data } = await cliente.auth.getSession();
-    return data.session;
+    try {
+      const resposta = await cliente.auth.getSession();
+      return resposta?.data?.session || null;
+    } catch {
+      return null;
+    }
   }
 
   async function perfil() {
-    const atual = await sessao();
-    if (!atual) return null;
-    let { data, error } = await cliente.from("perfis").select("id, nome, email, papel, acesso_financeiro").eq("id", atual.user.id).maybeSingle();
-    if (error) {
-      const basico = await cliente.from("perfis").select("id, nome, email, papel").eq("id", atual.user.id).maybeSingle();
-      data = basico.data ? { ...basico.data, acesso_financeiro: basico.data.papel === "admin" } : null;
+    try {
+      const atual = await sessao();
+      if (!atual?.user?.id) return null;
+      let { data, error } = await cliente.from("perfis").select("id, nome, email, papel, acesso_financeiro").eq("id", atual.user.id).maybeSingle();
+      if (error) {
+        const basico = await cliente.from("perfis").select("id, nome, email, papel").eq("id", atual.user.id).maybeSingle();
+        data = basico.data ? { ...basico.data, acesso_financeiro: basico.data.papel === "admin" } : null;
+      }
+      return perfilDaSessao(atual.user.id, data);
+    } catch {
+      return null;
     }
-    return perfilDaSessao(atual.user.id, data);
   }
 
   const CAMPOS_ATIVIDADE = "id, titulo, preco, arquivo, resumo, explicacao, uso, inclui, habilidades, destaque, area, tema, capa, informacoes";
@@ -172,13 +186,20 @@ async function iniciar() {
   }
 
   async function contaAdministra() {
-    const acesso = await usuarioConfirmado();
-    if (!acesso.ok) return acesso;
-    const dados = await perfil();
-    if (!administra(dados?.papel) || dados?.id !== acesso.id) {
-      return { ok: false, mensagem: "O segundo fator desta tela é só de quem administra a loja." };
+    try {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
+      const dados = await perfil();
+      if (!dados || dados.id !== acesso.id) {
+        return { ok: false, mensagem: "Não consegui confirmar a sessão. Tente de novo." };
+      }
+      if (!administra(dados.papel)) {
+        return { ok: false, mensagem: "O segundo fator desta tela é só de quem administra a loja." };
+      }
+      return acesso;
+    } catch {
+      return { ok: false, mensagem: "Não consegui confirmar a sessão. Tente de novo." };
     }
-    return acesso;
   }
 
   const api = {
@@ -224,21 +245,33 @@ async function iniciar() {
       return { ok: true };
     },
     async entrar({ email, senha }) {
-      const { error } = await cliente.auth.signInWithPassword({ email, password: senha });
-      if (error) return { ok: false, mensagem: traduzir(error) };
-      return { ok: true };
+      try {
+        const { data, error } = await cliente.auth.signInWithPassword({ email, password: senha });
+        if (error || !data?.session) return { ok: false, mensagem: traduzir(error || "Não foi possível entrar.") };
+        return { ok: true };
+      } catch (erro) {
+        return { ok: false, mensagem: traduzir(erro) };
+      }
     },
     async pedirNovaSenha(email) {
-      const { error } = await cliente.auth.resetPasswordForEmail(email, { redirectTo: enderecoDeRecuperacao(location.href) });
-      if (error && !/user not found/i.test(error.message || "")) {
-        return { ok: false, mensagem: traduzir(error) };
+      try {
+        const { error } = await cliente.auth.resetPasswordForEmail(email, { redirectTo: enderecoDeRecuperacao(location.href) });
+        if (error && !/user not found/i.test(error.message || "")) {
+          return { ok: false, mensagem: traduzir(error) };
+        }
+        return { ok: true };
+      } catch (erro) {
+        return { ok: false, mensagem: traduzir(erro) };
       }
-      return { ok: true };
     },
     async definirNovaSenha(senha) {
-      const { error } = await cliente.auth.updateUser({ password: senha });
-      if (error) return { ok: false, mensagem: traduzir(error) };
-      return { ok: true };
+      try {
+        const { error } = await cliente.auth.updateUser({ password: senha });
+        if (error) return { ok: false, mensagem: traduzir(error) };
+        return { ok: true };
+      } catch (erro) {
+        return { ok: false, mensagem: traduzir(erro) };
+      }
     },
     async sair() {
       if (cliente) {
@@ -261,18 +294,26 @@ async function iniciar() {
       return { ok: true };
     },
     async fatorAtual() {
-      const acesso = await contaAdministra();
-      if (!acesso.ok) return { ...acesso, fator: null };
-      const { data, error } = await cliente.auth.mfa.listFactors();
-      if (error) return { ok: false, fator: null, mensagem: mensagemFator(error) };
-      return { ok: true, fator: data?.totp?.[0] || null };
+      try {
+        const acesso = await contaAdministra();
+        if (!acesso.ok) return { ...acesso, fator: null };
+        const resposta = await cliente.auth.mfa.listFactors();
+        if (resposta?.error) return { ok: false, fator: null, mensagem: mensagemFator(resposta.error) };
+        return { ok: true, fator: resposta.data?.totp?.[0] || null };
+      } catch {
+        return { ok: false, fator: null, mensagem: "Não consegui ler o autenticador. Tente de novo." };
+      }
     },
     async nivelAcesso() {
-      const acesso = await contaAdministra();
-      if (!acesso.ok) return acesso;
-      const { data, error } = await cliente.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (error) return { ok: false, mensagem: mensagemFator(error) };
-      return { ok: true, atual: data?.currentLevel || null, proximo: data?.nextLevel || null };
+      try {
+        const acesso = await contaAdministra();
+        if (!acesso.ok) return acesso;
+        const resposta = await cliente.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (resposta?.error || !resposta?.data) return { ok: false, mensagem: mensagemFator(resposta?.error) };
+        return { ok: true, atual: resposta.data.currentLevel || null, proximo: resposta.data.nextLevel || null };
+      } catch {
+        return { ok: false, mensagem: "Não consegui confirmar a sessão. Tente de novo." };
+      }
     },
     async iniciarFator() {
       const acesso = await contaAdministra();

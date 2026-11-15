@@ -2,12 +2,48 @@ import { aviso, faltaBanco } from "./avisos.js";
 import { pedidoDeEntrada } from "./apresentacao.js?v=2";
 import { MENSAGEM_CONFIRMACAO } from "../endereco-publico.js";
 import { codigoNumerico } from "./codigo.js";
-import { desafiarFator } from "./mfa.js?v=4";
+import { desafiarFator } from "./mfa.js?v=5";
 import { rota } from "../rotas.js";
 
+function comPrazo(promessa, milissegundos = 20000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("tempo esgotado")), milissegundos);
+    Promise.resolve(promessa).then(
+      (valor) => {
+        clearTimeout(timer);
+        resolve(valor);
+      },
+      (erro) => {
+        clearTimeout(timer);
+        reject(erro);
+      },
+    );
+  });
+}
+
+function oferecerContinuidade(destino) {
+  const atual = location.href;
+  setTimeout(() => {
+    if (location.href !== atual || document.querySelector("[data-continuar]")) return;
+    const link = document.createElement("a");
+    link.className = "botao";
+    link.href = destino;
+    link.dataset.continuar = "sim";
+    link.textContent = "Continuar";
+    const status = document.querySelector(".aviso-conta");
+    if (status) status.insertAdjacentElement("afterend", link);
+    else document.querySelector("main")?.append(link);
+  }, 1200);
+}
+
 async function destinoDepois(loja) {
-  const bruto = new URLSearchParams(location.search).get("depois") || sessionStorage.getItem("depois");
-  sessionStorage.removeItem("depois");
+  let bruto = "";
+  try {
+    bruto = new URLSearchParams(location.search).get("depois") || sessionStorage.getItem("depois") || "";
+    sessionStorage.removeItem("depois");
+  } catch {
+    bruto = "";
+  }
   const depois = String(bruto || "").trim();
   let dados = null;
   if (!depois) {
@@ -17,7 +53,14 @@ async function destinoDepois(loja) {
       dados = null;
     }
   }
-  location.href = loja.destinoSeguro(pedidoDeEntrada(dados, depois));
+  const destino = new URL(loja.destinoSeguro(pedidoDeEntrada(dados, depois)), location.href).href;
+  try {
+    location.assign(destino);
+  } catch {
+    /* o link de continuidade abaixo ainda leva à página */
+  }
+  oferecerContinuidade(destino);
+  return destino;
 }
 
 function prepararReenvio(loja, status) {
@@ -145,8 +188,15 @@ export function iniciarEntrar(loja) {
   entrar.addEventListener("submit", async (evento) => {
     evento.preventDefault();
     const status = entrar.querySelector(".aviso-conta");
+    const botao = entrar.querySelector("button");
     const dados = new FormData(entrar);
+    const email = String(dados.get("email") || "").trim();
     const senha = String(dados.get("senha") || "");
+    const campoEmail = entrar.querySelector("[name=email]");
+    if (campoEmail && !campoEmail.checkValidity()) {
+      aviso(status, "Escreva um e-mail válido.");
+      return;
+    }
     if (senha.length < 8) {
       aviso(status, "A senha precisa de 8 caracteres ou mais.");
       return;
@@ -155,24 +205,34 @@ export function iniciarEntrar(loja) {
       faltaBanco(status);
       return;
     }
-    const resultado = await loja.entrar({
-      email: String(dados.get("email") || "").trim(),
-      senha,
-    });
-    if (!resultado.ok) {
-      aviso(status, resultado.mensagem);
-      if (/confirme o e-mail/i.test(resultado.mensagem || "")) {
-        sessionStorage.setItem("email-conta", String(dados.get("email") || "").trim());
-        const formulario = status.closest("form");
-        formulario.insertAdjacentElement("afterend", reenvio);
-        reenvio.insertAdjacentElement("afterend", codigo);
-        reenvio.hidden = false;
-        codigo.hidden = false;
+    if (botao) botao.disabled = true;
+    aviso(status, "Entrando…");
+    try {
+      const resultado = await comPrazo(loja.entrar({ email, senha }));
+      if (!resultado?.ok) {
+        aviso(status, resultado?.mensagem || "E-mail ou senha não conferem.");
+        if (/confirme o e-mail/i.test(resultado?.mensagem || "")) {
+          sessionStorage.setItem("email-conta", email);
+          const formulario = status.closest("form");
+          formulario.insertAdjacentElement("afterend", reenvio);
+          reenvio.insertAdjacentElement("afterend", codigo);
+          reenvio.hidden = false;
+          codigo.hidden = false;
+        }
+        return;
       }
-      return;
+      const passo = await comPrazo(desafiarFator(loja, entrar, () => destinoDepois(loja)));
+      if (passo === "falha") return;
+      if (passo === "desafio") {
+        aviso(status, "");
+        return;
+      }
+      await destinoDepois(loja);
+    } catch {
+      aviso(status, "Não consegui entrar agora. Verifique a conexão e tente de novo.");
+    } finally {
+      if (botao?.isConnected) botao.disabled = false;
     }
-    const segurou = await desafiarFator(loja, entrar, () => destinoDepois(loja));
-    if (!segurou) destinoDepois(loja);
   });
 
   criar.addEventListener("submit", async (evento) => {
@@ -219,7 +279,12 @@ export function iniciarEntrar(loja) {
   senha.addEventListener("submit", async (evento) => {
     evento.preventDefault();
     const status = senha.querySelector(".aviso-conta");
+    const campoEmail = senha.querySelector("[name=email]");
     const email = String(new FormData(senha).get("email") || "").trim();
+    if (campoEmail && !campoEmail.checkValidity()) {
+      aviso(status, "Escreva um e-mail válido.");
+      return;
+    }
     if (!email) {
       aviso(status, "Escreva o e-mail da conta.");
       return;
@@ -229,14 +294,19 @@ export function iniciarEntrar(loja) {
       return;
     }
     const botao = senha.querySelector("button");
-    botao.disabled = true;
-    const resultado = await loja.pedirNovaSenha(email);
-    botao.disabled = false;
-    if (!resultado.ok) {
-      aviso(status, resultado.mensagem);
-      return;
+    if (botao) botao.disabled = true;
+    try {
+      const resultado = await comPrazo(loja.pedirNovaSenha(email));
+      if (!resultado?.ok) {
+        aviso(status, resultado?.mensagem || "Não consegui enviar o link. Tente de novo.");
+        return;
+      }
+      aviso(status, "Se esse e-mail tiver conta, o link chega em alguns minutos. Olhe também o spam.", true);
+    } catch {
+      aviso(status, "Não consegui falar com o servidor. Verifique a conexão e tente de novo.");
+    } finally {
+      if (botao) botao.disabled = false;
     }
-    aviso(status, "Se esse e-mail tiver conta, o link chega em alguns minutos. Olhe também o spam.", true);
   });
 
   nova.addEventListener("submit", async (evento) => {
@@ -258,14 +328,19 @@ export function iniciarEntrar(loja) {
       return;
     }
     const botao = nova.querySelector("button");
-    botao.disabled = true;
-    const resultado = await loja.definirNovaSenha(escolhida);
-    if (!resultado.ok) {
-      botao.disabled = false;
-      aviso(status, resultado.mensagem);
-      return;
+    if (botao) botao.disabled = true;
+    try {
+      const resultado = await comPrazo(loja.definirNovaSenha(escolhida));
+      if (!resultado?.ok) {
+        aviso(status, resultado?.mensagem || "Não consegui salvar a senha. Tente de novo.");
+        return;
+      }
+      aviso(status, "Senha salva.", true);
+      await destinoDepois(loja);
+    } catch {
+      aviso(status, "Não consegui falar com o servidor. Verifique a conexão e tente de novo.");
+    } finally {
+      if (botao?.isConnected) botao.disabled = false;
     }
-    aviso(status, "Senha salva.", true);
-    destinoDepois(loja);
   });
 }

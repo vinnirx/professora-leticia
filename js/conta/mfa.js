@@ -216,13 +216,64 @@ export function montarSegundoFator(loja, raiz) {
   carregar();
 }
 
+function mensagemDeCliente(texto) {
+  return /só de quem administra/i.test(texto || "");
+}
+
+export function decidirEntrada({ nivel, fatores }) {
+  if (!nivel?.ok && mensagemDeCliente(nivel?.mensagem)) return { acao: "seguir" };
+  if (!nivel?.ok) {
+    if (fatores?.ok && fatores.fator?.id) return { acao: "desafiar" };
+    if (fatores?.ok) return { acao: "seguir" };
+    return {
+      acao: "falha",
+      mensagem: nivel?.mensagem || fatores?.mensagem || "Não consegui confirmar a sessão. Tente de novo.",
+    };
+  }
+  if (nivel.atual === "aal2" || nivel.proximo !== "aal2") return { acao: "seguir" };
+  if (!fatores?.ok) {
+    return { acao: "falha", mensagem: fatores?.mensagem || "Não consegui ler o autenticador. Tente de novo." };
+  }
+  if (!fatores.fator?.id) return { acao: "seguir" };
+  return { acao: "desafiar" };
+}
+
+function mostrarFalha(ancora, mensagem) {
+  const status = ancora.querySelector?.(".aviso-conta");
+  if (status) {
+    status.hidden = false;
+    status.textContent = mensagem;
+    status.classList.remove("aviso-ok");
+    return;
+  }
+  ancora.hidden = false;
+  ancora.textContent = mensagem;
+}
+
 export async function desafiarFator(loja, ancora, aoConcluir) {
-  if (!loja?.nivelAcesso || !ancora) return false;
-  const nivel = await loja.nivelAcesso();
-  if (!nivel?.ok) return false;
-  if (nivel.atual === "aal2" || nivel.proximo !== "aal2") return false;
-  const fatores = await loja.fatorAtual();
-  if (!fatores?.ok || !fatores.fator) return false;
+  if (!loja?.nivelAcesso || !ancora) return "seguir";
+  let nivel = { ok: false, mensagem: "Não consegui confirmar a sessão. Tente de novo." };
+  try {
+    nivel = await loja.nivelAcesso();
+  } catch {
+    nivel = { ok: false, mensagem: "Não consegui confirmar a sessão. Tente de novo." };
+  }
+  let fatores = null;
+  const cliente = !nivel?.ok && mensagemDeCliente(nivel?.mensagem);
+  const precisaFator = !cliente && (!nivel?.ok || (nivel.atual !== "aal2" && nivel.proximo === "aal2"));
+  if (precisaFator && loja.fatorAtual) {
+    try {
+      fatores = await loja.fatorAtual();
+    } catch {
+      fatores = { ok: false, fator: null, mensagem: "Não consegui ler o autenticador. Tente de novo." };
+    }
+  }
+  const decisao = decidirEntrada({ nivel, fatores });
+  if (decisao.acao === "falha") {
+    mostrarFalha(ancora, decisao.mensagem);
+    return "falha";
+  }
+  if (decisao.acao !== "desafiar" || !fatores?.fator?.id) return "seguir";
 
   const caixa = document.createElement("form");
   caixa.className = "form-codigo";
@@ -255,16 +306,23 @@ export async function desafiarFator(loja, ancora, aoConcluir) {
   caixa.addEventListener("submit", async (evento) => {
     evento.preventDefault();
     botao.disabled = true;
-    const resultado = await loja.confirmarFator({ factorId: fatores.fator.id, codigo: campo.value });
-    botao.disabled = false;
-    if (!resultado?.ok) {
+    try {
+      const resultado = await loja.confirmarFator({ factorId: fatores.fator.id, codigo: campo.value });
+      if (!resultado?.ok) {
+        estado.hidden = false;
+        estado.textContent = resultado?.mensagem || "O código não confere.";
+        estado.classList.remove("aviso-ok");
+        return;
+      }
+      await aoConcluir();
+    } catch {
       estado.hidden = false;
-      estado.textContent = resultado?.mensagem || "O código não confere.";
+      estado.textContent = "Não consegui confirmar o código. Tente de novo.";
       estado.classList.remove("aviso-ok");
-      return;
+    } finally {
+      botao.disabled = false;
     }
-    await aoConcluir();
   });
   ancora.insertAdjacentElement("afterend", caixa);
-  return true;
+  return "desafio";
 }

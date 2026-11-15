@@ -44,7 +44,7 @@
         <p class="faixa-hero">Sua conta</p>
         <h1 id="titulo-entrar">Entrar</h1>
         <p>Se você já comprou, entre para baixar de novo. Se ainda não tem conta, crie a sua.</p>
-        <form id="form-entrar">
+        <form id="form-entrar" novalidate>
           <label>
             E-mail
             <input name="email" type="email" autocomplete="email" required />
@@ -64,7 +64,7 @@
         <p class="faixa-hero">Sua conta</p>
         <h1 id="titulo-senha">Esqueci a senha</h1>
         <p>Escreva o e-mail da conta. O link para criar uma senha nova chega nesse e-mail.</p>
-        <form id="form-senha">
+        <form id="form-senha" novalidate>
           <label>
             E-mail
             <input name="email" type="email" autocomplete="email" required />
@@ -79,7 +79,7 @@
         <p class="faixa-hero">Sua conta</p>
         <h1 id="titulo-nova">Nova senha</h1>
         <p>Escolha uma senha com 8 caracteres ou mais. Ela passa a valer nesta conta.</p>
-        <form id="form-nova">
+        <form id="form-nova" novalidate>
           <label>
             Nova senha
             <input name="senha" type="password" autocomplete="new-password" minlength="8" required />
@@ -118,7 +118,7 @@
     </main>
 
     <script src="../js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="../js/sessao.js?v=36"></script>
-    <script type="module" src="../js/conta.js?v=47"></script>
+    <script type="module" src="../js/sessao.js?v=37"></script>
+    <script type="module" src="../js/conta.js?v=48"></script>
   </body>
 </html>
