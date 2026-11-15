@@ -33,6 +33,10 @@
   margin-bottom: 1rem;
 }
 
+.acesso [hidden] {
+  display: none !important;
+}
+
 .acesso-cartao form,
 .admin-bloco form {
   display: grid;

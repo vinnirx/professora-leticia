@@ -7,7 +7,7 @@ import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
 import { agruparPedidos, resumirVendas } from "./grupos-pedido.js";
 import { fecharCaixa, linhaExportada, origemFinanceira } from "./caixa.js";
 import { celulaCsv } from "./csv.js";
-import { desafiarFator, montarSegundoFator } from "./mfa.js?v=5";
+import { desafiarFator, montarSegundoFator } from "./mfa.js?v=6";
 import { acionarSaida } from "./saida.js";
 import { paginaAtividade, rota } from "../rotas.js";
 import { podeVoltarALoja, semVenda } from "../vitrine.js";

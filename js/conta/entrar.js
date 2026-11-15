@@ -2,7 +2,8 @@ import { aviso, faltaBanco } from "./avisos.js";
 import { pedidoDeEntrada } from "./apresentacao.js?v=2";
 import { MENSAGEM_CONFIRMACAO } from "../endereco-publico.js";
 import { codigoNumerico } from "./codigo.js";
-import { desafiarFator } from "./mfa.js?v=5";
+import { desafiarFator } from "./mfa.js?v=6";
+import { administra } from "./papeis.js";
 import { rota } from "../rotas.js";
 
 function comPrazo(promessa, milissegundos = 20000) {
@@ -95,8 +96,11 @@ function prepararCodigo(loja, status) {
   const caixa = document.createElement("form");
   caixa.className = "form-codigo";
   caixa.hidden = true;
+  const explicacao = document.createElement("p");
+  explicacao.className = "texto-secao";
+  explicacao.textContent = "Digite o código de 6 números enviado ao seu e-mail. Ele não vem do aplicativo autenticador.";
   const rotulo = document.createElement("label");
-  rotulo.textContent = "Código de 6 números";
+  rotulo.textContent = "Código recebido por e-mail";
   const campo = document.createElement("input");
   campo.name = "codigo";
   campo.inputMode = "numeric";
@@ -109,7 +113,7 @@ function prepararCodigo(loja, status) {
   botao.className = "botao";
   botao.type = "submit";
   botao.textContent = "Confirmar código";
-  caixa.append(rotulo, botao);
+  caixa.append(explicacao, rotulo, botao);
   status?.closest("form")?.insertAdjacentElement("afterend", caixa);
   campo.addEventListener("input", () => {
     campo.value = codigoNumerico(campo.value);
@@ -187,6 +191,7 @@ export function iniciarEntrar(loja) {
 
   entrar.addEventListener("submit", async (evento) => {
     evento.preventDefault();
+    if (entrar.dataset.enviando === "1" || document.querySelector("[data-desafio-autenticador]")) return;
     const status = entrar.querySelector(".aviso-conta");
     const botao = entrar.querySelector("button");
     const dados = new FormData(entrar);
@@ -206,6 +211,7 @@ export function iniciarEntrar(loja) {
       return;
     }
     if (botao) botao.disabled = true;
+    entrar.dataset.enviando = "1";
     aviso(status, "Entrando…");
     try {
       const resultado = await comPrazo(loja.entrar({ email, senha }));
@@ -221,6 +227,11 @@ export function iniciarEntrar(loja) {
         }
         return;
       }
+      const dados = await loja.perfil();
+      if (!administra(dados?.papel)) {
+        await destinoDepois(loja);
+        return;
+      }
       const passo = await comPrazo(desafiarFator(loja, entrar, () => destinoDepois(loja)));
       if (passo === "falha") return;
       if (passo === "desafio") {
@@ -231,6 +242,7 @@ export function iniciarEntrar(loja) {
     } catch {
       aviso(status, "Não consegui entrar agora. Verifique a conexão e tente de novo.");
     } finally {
+      delete entrar.dataset.enviando;
       if (botao?.isConnected) botao.disabled = false;
     }
   });

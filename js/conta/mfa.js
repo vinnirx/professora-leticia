@@ -274,12 +274,14 @@ export async function desafiarFator(loja, ancora, aoConcluir) {
     return "falha";
   }
   if (decisao.acao !== "desafiar" || !fatores?.fator?.id) return "seguir";
+  if (document.querySelector("[data-desafio-autenticador]")) return "desafio";
 
   const caixa = document.createElement("form");
   caixa.className = "form-codigo";
+  caixa.dataset.desafioAutenticador = "sim";
   const titulo = document.createElement("p");
   titulo.className = "texto-secao";
-  titulo.textContent = "Informe o código do autenticador para continuar.";
+  titulo.textContent = "Informe o código de 6 números do aplicativo autenticador. Esse código não chega por e-mail.";
   const rotulo = document.createElement("label");
   rotulo.textContent = "Código de 6 números";
   const campo = document.createElement("input");
