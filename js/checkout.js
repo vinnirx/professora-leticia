@@ -1,4 +1,5 @@
 import { documentoValido, mascararDocumento } from "./documento.js";
+import { cobrancaReutilizavel, gravarTentativa, lerTentativa, limparTentativa } from "./tentativa-compra.js";
 import { rota } from "./rotas.js";
 import { dinheiro, escapar, linkAjuda } from "./texto.js";
 import { itemOficial, limparCarrinho } from "./carrinho.js?v=2";
@@ -139,7 +140,10 @@ export async function abrirPix(atividade) {
         aviso.textContent = "Informe um CPF ou CNPJ válido para gerar o Pix.";
         return;
       }
-      if (!pedido.dataset.chaveCobranca) pedido.dataset.chaveCobranca = crypto.randomUUID();
+      if (!pedido.dataset.chaveCobranca) {
+        pedido.dataset.chaveCobranca = lerTentativa(sessionStorage, cobranca.map((item) => item.id))?.codigo || crypto.randomUUID();
+      }
+      gravarTentativa(sessionStorage, cobranca.map((item) => item.id), pedido.dataset.chaveCobranca);
       const automatica = await lojaConta.criarCobranca(
         cobranca.map((item) => item.id),
         pedido.dataset.chaveCobranca,
@@ -148,6 +152,15 @@ export async function abrirPix(atividade) {
       if (!automatica.ok || !automatica.copiaCola) {
         marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: automatica.mensagem || "A cobrança automática não saiu." }));
         aviso.textContent = automatica.mensagem || "A cobrança automática não está disponível.";
+        return;
+      }
+      if (!cobrancaReutilizavel({ status: automatica.status, expiraEm: automatica.expiraEm })) {
+        limparTentativa(sessionStorage);
+        delete pedido.dataset.chaveCobranca;
+        marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: "A cobrança anterior não pode ser reutilizada." }));
+        aviso.textContent = automatica.status === "pago"
+          ? "Este pagamento já foi confirmado. O material entra em Minha conta."
+          : "Essa cobrança não está mais válida. Gere o Pix outra vez.";
         return;
       }
       pixManual = false;
@@ -170,6 +183,7 @@ export async function abrirPix(atividade) {
       pedido.hidden = true;
       resultado.hidden = false;
       limparCarrinho();
+      limparTentativa(sessionStorage);
       marcarEstado("espera", "Pagamento pendente", linkAjuda({ txid: automatica.txid, email, motivo: "Gerei o Pix e preciso de ajuda." }));
       aviso.textContent = `Pague ${dinheiro(automatica.valor)}. O PDF só entra em Minha conta depois que o Asaas confirmar o recebimento.`;
       observarPedido(dialogo, automatica.txid, lojaConta);
@@ -177,12 +191,28 @@ export async function abrirPix(atividade) {
     }
     if (!window.loja.pixChave) return;
     pixManual = true;
-    const txid = window.identificadorPix();
+    const ids = cobranca.map((item) => item.id);
+    const txid = lerTentativa(sessionStorage, ids)?.codigo || window.identificadorPix();
+    gravarTentativa(sessionStorage, ids, txid);
     if (ligada) {
-      const ids = cobranca.map((item) => item.id);
-      const gravado = ids.length > 1
+      let gravado = ids.length > 1
         ? await lojaConta.registrarPedidos(ids, txid)
         : await lojaConta.registrarPedido(ids[0], txid);
+      if (!gravado.ok && gravado.repetido) {
+        const existentes = (await lojaConta.meusPedidos()).filter((item) => item.txid === txid);
+        if (existentes.length && existentes.every((item) => item.status === "pago")) {
+          limparTentativa(sessionStorage);
+          limparCarrinho();
+          marcarEstado("ok", "Pagamento confirmado", "");
+          aviso.textContent = "Este pagamento já está confirmado. O material está em Minha conta.";
+          return;
+        }
+        gravado = {
+          ok: existentes.some((item) => item.status === "aguardando"),
+          pedidos: existentes.filter((item) => item.status === "aguardando"),
+          mensagem: "Não foi possível reutilizar o pedido pendente.",
+        };
+      }
       if (!gravado.ok) {
         marcarEstado("problema", "Problema no pagamento", linkAjuda({
           txid,
@@ -237,6 +267,7 @@ export async function abrirPix(atividade) {
     pedido.hidden = true;
     resultado.hidden = false;
     limparCarrinho();
+    limparTentativa(sessionStorage);
     marcarEstado("espera", "Pagamento pendente", linkAjuda({ txid, email, motivo: "Gerei o Pix e preciso de ajuda." }));
     aviso.textContent = ligada
       ? `Pague ${dinheiro(total)}. O PDF só entra em Minha conta quando este pagamento for confirmado.`

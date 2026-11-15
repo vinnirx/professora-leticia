@@ -30,6 +30,36 @@ export function segredosIguais(recebido, esperado) {
   return diferenca === 0;
 }
 
+export function situacaoAsaas({ statusCobranca, statusGateway, valorEsperado, valorGateway }) {
+  const recebido = String(statusGateway || "").toUpperCase();
+  if (recebido === "RECEIVED" || recebido === "RECEIVED_IN_CASH") {
+    return decidirEvento({
+      status: statusCobranca,
+      tipo: "PAYMENT_RECEIVED",
+      valorEsperado,
+      valorRecebido: valorGateway,
+    });
+  }
+  if (recebido === "CONFIRMED") {
+    return decidirEvento({
+      status: statusCobranca,
+      tipo: "PAYMENT_CONFIRMED",
+      valorEsperado,
+      valorRecebido: valorGateway,
+    });
+  }
+  if (recebido === "OVERDUE") {
+    return decidirEvento({ status: statusCobranca, tipo: "PAYMENT_OVERDUE", valorEsperado, valorRecebido: valorGateway });
+  }
+  if (recebido === "REFUNDED") {
+    return decidirEvento({ status: statusCobranca, tipo: "PAYMENT_REFUNDED", valorEsperado, valorRecebido: valorGateway });
+  }
+  if (recebido === "DELETED" || recebido === "CANCELED") {
+    return decidirEvento({ status: statusCobranca, tipo: "PAYMENT_DELETED", valorEsperado, valorRecebido: valorGateway });
+  }
+  return { status: statusCobranca, liberar: false, resultado: "ignorado" };
+}
+
 export function decidirEvento({ status, tipo, valorEsperado, valorRecebido }) {
   const centavosEsperados = Math.round(Number(valorEsperado) * 100);
   const centavosRecebidos = valorRecebido == null ? null : Math.round(Number(valorRecebido) * 100);

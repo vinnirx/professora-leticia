@@ -2,6 +2,7 @@ import { caminhoPdf } from "./arquivo-seguro.js";
 import { nomeCapa, urlComVersao, validarCapa } from "./capa-loja.js";
 import { administra } from "./conta/papeis.js";
 import { mensagemOtp, TIPO_OTP_CADASTRO, codigoNumerico } from "./conta/codigo.js";
+import { pedidoRepetido } from "./tentativa-compra.js";
 import { enderecoDeConfirmacao, enderecoDeRecuperacao } from "./endereco-publico.js";
 import { destinoInterno, rota } from "./rotas.js";
 import { executarRestauracao, executarSubstituicao, PDF_AINDA_NAO_INSTALADO, pdfAnteriorDisponivel } from "./pdf-troca.js";
@@ -240,12 +241,12 @@ async function iniciar() {
     },
     async registrarPedido(atividadeId, txid) {
       const { data, error } = await cliente.rpc("criar_pedido", { atividade: atividadeId, txid });
-      if (error) return { ok: false, mensagem: traduzir(error) };
+      if (error) return { ok: false, repetido: pedidoRepetido(error), mensagem: traduzir(error) };
       return { ok: true, pedidos: Array.isArray(data) ? data : (data ? [data] : []) };
     },
     async registrarPedidos(ids, txid) {
       const { data, error } = await cliente.rpc("criar_pedidos", { atividades: ids, codigo: txid });
-      if (error) return { ok: false, mensagem: traduzir(error) };
+      if (error) return { ok: false, repetido: pedidoRepetido(error), mensagem: traduzir(error) };
       return { ok: true, pedidos: Array.isArray(data) ? data : [] };
     },
     async meusPedidos() {
