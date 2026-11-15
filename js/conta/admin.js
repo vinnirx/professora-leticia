@@ -7,6 +7,8 @@ import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
 import { agruparPedidos, resumirVendas } from "./grupos-pedido.js";
 import { fecharCaixa, linhaExportada, origemFinanceira } from "./caixa.js";
 import { celulaCsv } from "./csv.js";
+import { montarSegundoFator } from "./mfa.js";
+import { acionarSaida } from "./saida.js";
 import { paginaAtividade, rota } from "../rotas.js";
 
 const travaPdf = criarTrava();
@@ -294,8 +296,20 @@ export async function iniciarAdmin(loja) {
   }
 
   const sessao = await loja.sessao();
-  if (!sessao) {
+  if (!sessao?.user?.id) {
     location.href = `${rota("entrar/")}?depois=${encodeURIComponent("admin.html")}`;
+    return;
+  }
+  const confirmada = await loja.usuarioConfirmado();
+  if (!confirmada.ok || confirmada.id !== sessao.user.id) {
+    app?.remove();
+    bloqueio.hidden = false;
+    bloqueio.textContent = confirmada.mensagem || "Esta sessão não está mais ativa. Entre de novo.";
+    const volta = document.createElement("a");
+    volta.className = "botao";
+    volta.href = `${rota("entrar/")}?depois=${encodeURIComponent("admin.html")}`;
+    volta.textContent = "Entrar de novo";
+    bloqueio.insertAdjacentElement("afterend", volta);
     return;
   }
   const dados = await loja.perfil();
@@ -357,10 +371,9 @@ export async function iniciarAdmin(loja) {
   const sair = document.querySelector("#sair");
   sair.hidden = false;
   sair.addEventListener("click", () => {
-    sair.disabled = true;
-    sair.textContent = "Saindo…";
-    loja.sair();
+    acionarSaida(sair, () => loja.sair());
   });
+  montarSegundoFator(loja, document.querySelector("#segundo-fator"));
 
   let painel;
   let atividades = [];

@@ -1,0 +1,57 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { mensagemFator, origemDoQr } from "../js/conta/mfa.js";
+
+const raiz = new URL("..", import.meta.url);
+const ler = (caminho) => readFileSync(new URL(caminho, raiz), "utf8");
+const sessao = ler("js/sessao.js");
+const admin = ler("js/conta/admin.js");
+const mfa = ler("js/conta/mfa.js");
+const sql = ler("supabase/migracao-sessao-ativa.sql");
+
+const sair = sessao.slice(sessao.indexOf("async sair()"), sessao.indexOf("async fatorAtual"));
+assert.ok(sair.indexOf('signOut({ scope: "global" })') < sair.indexOf("email-conta"));
+assert.doesNotMatch(sair, /setTimeout/);
+assert.match(sair, /ok: false/);
+
+const operacoes = [
+  ["definir_papel", "async definirPapel"],
+  ["definir_financeiro", "async definirFinanceiro"],
+  ["confirmar_pix", "async confirmar("],
+  ["criar_atividade", "async criarAtividade"],
+  ["editar_campos", "async editarCampos"],
+  ["definir_capa", "async definirCapa"],
+];
+for (const [marcador, inicio] of operacoes) {
+  const pos = sessao.indexOf(marcador);
+  assert.ok(pos > sessao.indexOf(inicio), marcador);
+  assert.match(sessao.slice(sessao.indexOf(inicio), pos), /usuarioConfirmado/, marcador);
+}
+for (const inicio of ["async referenciaPdfDisponivel", "async substituirPdf", "async restaurarPdf"]) {
+  const pos = sessao.indexOf(inicio);
+  const proxima = sessao.indexOf("definir_arquivo", pos);
+  assert.match(sessao.slice(pos, proxima), /usuarioConfirmado/, inicio);
+}
+const inscricao = sessao.slice(sessao.indexOf("async iniciarFator"), sessao.indexOf("mfa.enroll"));
+assert.match(inscricao, /contaAdministra/);
+assert.doesNotMatch(inscricao, /definir_papel/);
+assert.doesNotMatch(mfa, /definir_papel|acesso_financeiro/);
+assert.match(mfa, /não gera código de recuperação/);
+assert.match(mfa, /Authentication/);
+assert.doesNotMatch(sql, /aal2/);
+assert.doesNotMatch(sessao, /aal2/);
+assert.doesNotMatch(admin, /aal2/);
+assert.doesNotMatch(ler("supabase/migracao-permissoes.sql"), /sessao_ainda_valida/);
+
+assert.ok(admin.indexOf("usuarioConfirmado") < admin.indexOf("loja.perfil()"));
+assert.ok(admin.indexOf("if (!administra(dados?.papel))") < admin.indexOf("montarSegundoFator(loja"));
+assert.ok(admin.indexOf("montarSegundoFator") < admin.indexOf("loja.painel()"));
+
+assert.equal(origemDoQr("javascript:alert(1)"), "");
+assert.equal(origemDoQr("data:image/svg+xml;utf-8,<svg><script>alert(1)</script></svg>"), "");
+assert.equal(origemDoQr('data:image/svg+xml;utf-8,<svg onload=alert(1)></svg>'), "");
+assert.match(origemDoQr("data:image/svg+xml;utf-8,<svg></svg>"), /svg/);
+assert.match(mensagemFator({ message: "MFA enroll is disabled" }), /ainda não está ligado/);
+assert.match(mensagemFator({ message: "Invalid TOTP code" }), /não confere/);
+
+console.log("ok mfa administrativo");

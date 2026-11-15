@@ -1,4 +1,5 @@
 import { aviso, moeda } from "./avisos.js";
+import { acionarSaida } from "./saida.js";
 import { resumoAdministrativo } from "./apresentacao.js?v=2";
 import { administra } from "./papeis.js";
 import { rota } from "../rotas.js";
@@ -84,9 +85,7 @@ function cartaoPedido(pedido, loja) {
 function ligarSaida(loja) {
   document.querySelectorAll("[data-sair-conta]").forEach((botao) => {
     botao.addEventListener("click", () => {
-      botao.disabled = true;
-      botao.textContent = "Saindo…";
-      loja.sair();
+      acionarSaida(botao, () => loja.sair());
     });
   });
 }

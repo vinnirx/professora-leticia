@@ -1,6 +1,8 @@
 import { caminhoPdf } from "./arquivo-seguro.js";
 import { nomeCapa, urlComVersao, validarCapa } from "./capa-loja.js";
 import { administra, perfilDaSessao } from "./conta/papeis.js";
+import { mensagemFator } from "./conta/mfa.js";
+import { acionarSaida } from "./conta/saida.js";
 import { mensagemOtp, TIPO_OTP_CADASTRO, codigoNumerico } from "./conta/codigo.js";
 import { pedidoRepetido } from "./tentativa-compra.js";
 import { enderecoDeConfirmacao, enderecoDeRecuperacao } from "./endereco-publico.js";
@@ -81,9 +83,7 @@ function prepararMenuConta(sair) {
     if (evento.key === "Escape") fechar();
   });
   bloco.querySelector("[data-sair]")?.addEventListener("click", () => {
-    const botaoSair = bloco.querySelector("[data-sair]");
-    if (botaoSair) botaoSair.disabled = true;
-    sair();
+    acionarSaida(bloco.querySelector("[data-sair]"), sair);
   });
 }
 
@@ -158,12 +158,36 @@ async function iniciar() {
     return (consulta.data || []).map((item) => ({ ...item, arquivo_anterior: item.arquivo_anterior || "" }));
   }
 
+  async function usuarioConfirmado() {
+    if (!cliente) return { ok: false, mensagem: "Entre na conta de novo para continuar." };
+    try {
+      const { data, error } = await cliente.auth.getUser();
+      if (error || !data?.user?.id) {
+        return { ok: false, mensagem: "Esta sessão não está mais ativa. Entre de novo." };
+      }
+      return { ok: true, id: data.user.id };
+    } catch {
+      return { ok: false, mensagem: "Não consegui confirmar a sessão. Tente de novo." };
+    }
+  }
+
+  async function contaAdministra() {
+    const acesso = await usuarioConfirmado();
+    if (!acesso.ok) return acesso;
+    const dados = await perfil();
+    if (!administra(dados?.papel) || dados?.id !== acesso.id) {
+      return { ok: false, mensagem: "O segundo fator desta tela é só de quem administra a loja." };
+    }
+    return acesso;
+  }
+
   const api = {
     configurada: Boolean(cliente),
     traduzir,
     destinoSeguro,
     sessao,
     perfil,
+    usuarioConfirmado,
     async criarConta({ nome, email, senha }) {
       const { data, error } = await cliente.auth.signUp({
         email,
@@ -217,27 +241,83 @@ async function iniciar() {
       return { ok: true };
     },
     async sair() {
-      const apagar = () => {
-        const chaves = [];
-        for (let indice = 0; indice < sessionStorage.length; indice += 1) {
-          const chave = sessionStorage.key(indice);
-          if (chave && (chave.startsWith("sb-") || chave === "email-conta" || chave === "depois")) chaves.push(chave);
+      if (cliente) {
+        try {
+          const { error } = await cliente.auth.signOut({ scope: "global" });
+          if (error) {
+            return { ok: false, mensagem: "Não consegui encerrar as sessões desta conta. Tente sair de novo." };
+          }
+        } catch {
+          return { ok: false, mensagem: "Não consegui encerrar as sessões desta conta. Tente sair de novo." };
         }
-        chaves.forEach((chave) => sessionStorage.removeItem(chave));
-      };
-      apagar();
-      try {
-        if (cliente) {
-          await Promise.race([
-            cliente.auth.signOut({ scope: "global" }),
-            new Promise((resolve) => setTimeout(resolve, 4000)),
-          ]);
-        }
-      } catch {
-        // A sessão local já foi apagada. A página inicial abre mesmo assim.
       }
-      apagar();
+      const chaves = [];
+      for (let indice = 0; indice < sessionStorage.length; indice += 1) {
+        const chave = sessionStorage.key(indice);
+        if (chave && (chave.startsWith("sb-") || chave === "email-conta" || chave === "depois")) chaves.push(chave);
+      }
+      chaves.forEach((chave) => sessionStorage.removeItem(chave));
       location.replace(rota("inicio"));
+      return { ok: true };
+    },
+    async fatorAtual() {
+      const acesso = await contaAdministra();
+      if (!acesso.ok) return { ...acesso, fator: null };
+      const { data, error } = await cliente.auth.mfa.listFactors();
+      if (error) return { ok: false, fator: null, mensagem: mensagemFator(error) };
+      return { ok: true, fator: data?.totp?.[0] || null };
+    },
+    async nivelAcesso() {
+      const acesso = await contaAdministra();
+      if (!acesso.ok) return acesso;
+      const { data, error } = await cliente.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (error) return { ok: false, mensagem: mensagemFator(error) };
+      return { ok: true, atual: data?.currentLevel || null, proximo: data?.nextLevel || null };
+    },
+    async iniciarFator() {
+      const acesso = await contaAdministra();
+      if (!acesso.ok) return acesso;
+      const lista = await cliente.auth.mfa.listFactors();
+      if (lista.error) return { ok: false, mensagem: mensagemFator(lista.error) };
+      const pendentes = (lista.data?.all || []).filter((fator) => fator.factor_type === "totp" && fator.status !== "verified");
+      for (const fator of pendentes) {
+        const removido = await cliente.auth.mfa.unenroll({ factorId: fator.id });
+        if (removido.error) return { ok: false, mensagem: mensagemFator(removido.error) };
+      }
+      const inscricao = await cliente.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: "Autenticador da loja",
+        issuer: "Inclusão no Cotidiano",
+      });
+      if (inscricao.error || !inscricao.data?.id) return { ok: false, mensagem: mensagemFator(inscricao.error) };
+      return {
+        ok: true,
+        id: inscricao.data.id,
+        qr: inscricao.data.totp?.qr_code || "",
+        segredo: inscricao.data.totp?.secret || "",
+      };
+    },
+    async confirmarFator({ factorId, codigo }) {
+      const acesso = await contaAdministra();
+      if (!acesso.ok) return acesso;
+      const token = codigoNumerico(codigo);
+      if (!/^\d{6}$/.test(token)) return { ok: false, mensagem: "O código tem 6 números." };
+      const desafio = await cliente.auth.mfa.challenge({ factorId });
+      if (desafio.error || !desafio.data?.id) return { ok: false, mensagem: mensagemFator(desafio.error) };
+      const verificado = await cliente.auth.mfa.verify({
+        factorId,
+        challengeId: desafio.data.id,
+        code: token,
+      });
+      if (verificado.error) return { ok: false, mensagem: mensagemFator(verificado.error) };
+      return { ok: true };
+    },
+    async removerFator(factorId) {
+      const acesso = await contaAdministra();
+      if (!acesso.ok) return acesso;
+      const { error } = await cliente.auth.mfa.unenroll({ factorId });
+      if (error) return { ok: false, mensagem: mensagemFator(error) };
+      return { ok: true };
     },
     async registrarPedido(atividadeId, txid) {
       const { data, error } = await cliente.rpc("criar_pedido", { atividade: atividadeId, txid });
@@ -269,6 +349,8 @@ async function iniciar() {
       return lista[0] || null;
     },
     async criarAtividade(dados) {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
       const { data, error } = await cliente.rpc("criar_atividade", {
         atividade_id: dados.id,
         atividade_titulo: dados.titulo,
@@ -287,6 +369,8 @@ async function iniciar() {
       return { ok: true, atividade: data };
     },
     async editarCampos(atividadeId, mudancas) {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
       const { data, error } = await cliente.rpc("editar_campos", {
         atividade_id: atividadeId,
         campos: mudancas,
@@ -455,16 +539,22 @@ async function iniciar() {
       return "aguardando";
     },
     async listarConciliacao() {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
       const { data, error } = await cliente.rpc("listar_conciliacao");
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true, pedidos: data || [] };
     },
     async conciliarPedido(codigo, confirmar) {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
       const { data, error } = await cliente.rpc("conciliar_pedido", { codigo, confirmar: confirmar === true });
       if (error) return { ok: false, mensagem: traduzir(error) };
       return data || { ok: false, mensagem: "Não foi possível conciliar." };
     },
     async encerrarConciliacao() {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
       const { data, error } = await cliente.rpc("encerrar_conciliacao");
       if (error) return { ok: false, mensagem: traduzir(error) };
       return data || { ok: false, mensagem: "Não foi possível encerrar." };
@@ -498,28 +588,38 @@ async function iniciar() {
       };
     },
     async definirPapel(alvo, novoPapel) {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
       const { data, error } = await cliente.rpc("definir_papel", { alvo, novo_papel: novoPapel });
       if (error) return { ok: false, mensagem: migracaoAusente(error) || traduzir(error) };
       if (!data?.ok) return { ok: false, mensagem: data?.mensagem || "Sem permissão." };
       return { ok: true };
     },
     async definirFinanceiro(alvo, ligado) {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
       const { data, error } = await cliente.rpc("definir_financeiro", { alvo, ligado });
       if (error) return { ok: false, mensagem: migracaoAusente(error) || traduzir(error) };
       if (!data?.ok) return { ok: false, mensagem: data?.mensagem || "Sem permissão." };
       return { ok: true };
     },
     async historicoPermissoes() {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
       const { data, error } = await cliente.rpc("historico_permissoes");
       if (error) return { ok: false, mensagem: migracaoAusente(error) || traduzir(error), linhas: [] };
       return { ok: true, linhas: data || [] };
     },
     async confirmar(id) {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
       const { error } = await cliente.rpc("confirmar_pix", { pedido: id });
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true };
     },
     async enviarCapa(atividadeId, arquivo) {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
       const bytes = new Uint8Array(await arquivo.arrayBuffer());
       const instante = Date.now();
       const validacao = validarCapa({ tipo: arquivo.type, tamanho: arquivo.size, bytes });
@@ -535,11 +635,15 @@ async function iniciar() {
       return { ok: true, url: urlComVersao(data.publicUrl, instante) };
     },
     async definirDestaque(atividadeId, ligado) {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
       const { error } = await cliente.rpc("definir_destaque", { atividade: atividadeId, ligado });
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true };
     },
     async definirCapa(atividadeId, url) {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
       const { error } = await cliente.rpc("definir_capa", { atividade: atividadeId, endereco: url });
       if (error) return { ok: false, mensagem: traduzir(error) };
       return { ok: true };
@@ -573,6 +677,8 @@ async function iniciar() {
       return api.substituirPdf(atividadeId, arquivo, nome);
     },
     async referenciaPdfDisponivel() {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return false;
       const { error } = await cliente.rpc("definir_arquivo", { atividade: "x", nome: "x" });
       if (!error) return false;
       return !/could not find|schema cache|does not exist|não encontr/i.test(String(error.message || ""));
@@ -594,6 +700,8 @@ async function iniciar() {
       };
     },
     async substituirPdf(atividadeId, arquivo, arquivoAtual) {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
       if (api.trocasPdf.has(atividadeId)) {
         return { ok: false, mensagem: "A substituição deste PDF já está em andamento.", arquivo: arquivoAtual || "" };
       }
@@ -623,6 +731,8 @@ async function iniciar() {
       }
     },
     async restaurarPdf(atividadeId, arquivoAtual, nomeAnteriorArquivo) {
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
       if (api.trocasPdf.has(atividadeId)) {
         return { ok: false, mensagem: "A substituição deste PDF já está em andamento." };
       }
