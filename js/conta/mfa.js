@@ -1,3 +1,11 @@
+export function resultadoDaConfirmacao({ fatores, nivel }) {
+  const verificado = (fatores || []).some((fator) => fator.factor_type === "totp" && fator.status === "verified");
+  if (!verificado || nivel !== "aal2") {
+    return { ok: false, mensagem: "O servidor não confirmou o autenticador. O cadastro não foi concluído." };
+  }
+  return { ok: true, mensagem: "O autenticador foi confirmado. Esta sessão passou pelo segundo fator." };
+}
+
 export function mensagemFator(erro) {
   const texto = String(erro?.message || erro || "");
   if (/enroll is disabled|verify is disabled|mfa.*disabled/i.test(texto)) {
@@ -92,7 +100,7 @@ export function montarSegundoFator(loja, raiz) {
         mostrarEstado(resultado?.mensagem || "O código não confere.");
         return;
       }
-      mostrarEstado("O código confere.", true);
+      mostrarEstado(resultado.mensagem, true);
       await carregar();
     });
     return form;

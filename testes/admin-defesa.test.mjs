@@ -217,5 +217,10 @@ await db.exec(`delete from auth.sessions where id = '${sessaoDona}'`);
 await entrar({ sub: dona, aal: "aal1", session_id: sessaoDona, iat: agora });
 assert.equal((await db.query("select public.motivo_proprietaria() as motivo")).rows[0].motivo, "");
 assert.equal((await db.query("select public.sou_admin() as ok")).rows[0].ok, true);
+promocao = await db.query(`select public.definir_papel('${alvo}', 'cliente') as resultado`);
+assert.equal(promocao.rows[0].resultado.ok, true);
+assert.equal(await papel(alvo), "cliente");
+promocao = await db.query(`select public.definir_financeiro('${gestor}', false) as resultado`);
+assert.equal(promocao.rows[0].resultado.ok, true);
 
 console.log("ok defesa administrativa isolada");

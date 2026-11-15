@@ -1,7 +1,7 @@
 import { caminhoPdf } from "./arquivo-seguro.js";
 import { nomeCapa, urlComVersao, validarCapa } from "./capa-loja.js";
 import { administra, perfilDaSessao } from "./conta/papeis.js";
-import { mensagemFator } from "./conta/mfa.js";
+import { mensagemFator, resultadoDaConfirmacao } from "./conta/mfa.js";
 import { acionarSaida } from "./conta/saida.js";
 import { mensagemOtp, TIPO_OTP_CADASTRO, codigoNumerico } from "./conta/codigo.js";
 import { pedidoRepetido } from "./tentativa-compra.js";
@@ -313,7 +313,17 @@ async function iniciar() {
         code: token,
       });
       if (verificado.error) return { ok: false, mensagem: mensagemFator(verificado.error) };
-      return { ok: true };
+      const [lista, acesso] = await Promise.all([
+        cliente.auth.mfa.listFactors(),
+        cliente.auth.mfa.getAuthenticatorAssuranceLevel(),
+      ]);
+      if (lista.error || acesso.error) {
+        return { ok: false, mensagem: "O código foi enviado, mas não consegui ler a confirmação no servidor." };
+      }
+      return resultadoDaConfirmacao({
+        fatores: (lista.data?.all || []).filter((fator) => fator.id === factorId),
+        nivel: acesso.data?.currentLevel,
+      });
     },
     async removerFator(factorId) {
       const acesso = await contaAdministra();

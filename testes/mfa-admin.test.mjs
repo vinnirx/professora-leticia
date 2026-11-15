@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { mensagemFator, origemDoQr } from "../js/conta/mfa.js";
+import { mensagemFator, origemDoQr, resultadoDaConfirmacao } from "../js/conta/mfa.js";
 
 const raiz = new URL("..", import.meta.url);
 const ler = (caminho) => readFileSync(new URL(caminho, raiz), "utf8");
@@ -64,5 +64,14 @@ assert.equal(mfa.includes("innerHTML"), false);
 assert.match(inscricao, /Remova o atual/);
 assert.match(mensagemFator({ message: "MFA enroll is disabled" }), /ainda não está ligado/);
 assert.match(mensagemFator({ message: "Invalid TOTP code" }), /não confere/);
+assert.equal(resultadoDaConfirmacao({ fatores: [{ id: "1", factor_type: "totp", status: "verified" }], nivel: "aal2" }).ok, true);
+assert.equal(resultadoDaConfirmacao({ fatores: [{ id: "1", factor_type: "totp", status: "verified" }], nivel: "aal1" }).ok, false);
+assert.equal(resultadoDaConfirmacao({ fatores: [{ id: "1", factor_type: "totp", status: "unverified" }], nivel: "aal2" }).ok, false);
+assert.equal(resultadoDaConfirmacao({ fatores: [], nivel: "aal2" }).ok, false);
+const confirmacao = sessao.slice(sessao.indexOf("async confirmarFator"), sessao.indexOf("async removerFator"));
+assert.ok(confirmacao.indexOf("mfa.verify") < confirmacao.indexOf("listFactors"));
+assert.match(confirmacao, /resultadoDaConfirmacao/);
+assert.match(confirmacao, /factorId/);
+assert.doesNotMatch(mfa, /O código confere/);
 
 console.log("ok mfa administrativo");
