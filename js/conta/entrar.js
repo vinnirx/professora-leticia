@@ -1,9 +1,20 @@
 import { aviso, faltaBanco } from "./avisos.js";
+import { pedidoDeEntrada } from "./apresentacao.js";
+import { rota } from "../rotas.js";
 
-function destinoDepois(loja) {
-  const depois = new URLSearchParams(location.search).get("depois") || sessionStorage.getItem("depois");
+async function destinoDepois(loja) {
+  const bruto = new URLSearchParams(location.search).get("depois") || sessionStorage.getItem("depois");
   sessionStorage.removeItem("depois");
-  location.href = loja.destinoSeguro(depois);
+  const depois = String(bruto || "").trim();
+  let dados = null;
+  if (!depois) {
+    try {
+      dados = await loja.perfil();
+    } catch {
+      dados = null;
+    }
+  }
+  location.href = loja.destinoSeguro(pedidoDeEntrada(dados, depois));
 }
 
 function mostrarPainel(nome) {
@@ -18,21 +29,39 @@ export function iniciarEntrar(loja) {
   const senha = document.querySelector("#form-senha");
   const nova = document.querySelector("#form-nova");
 
-  document.querySelector("#mostrar-criar").addEventListener("click", () => mostrarPainel("painel-criar"));
-  document.querySelector("#mostrar-entrar").addEventListener("click", () => mostrarPainel("painel-entrar"));
-  document.querySelector("#mostrar-senha").addEventListener("click", () => {
-    const destino = senha.querySelector("[name=email]");
-    destino.value = entrar.querySelector("[name=email]").value;
-    mostrarPainel("painel-senha");
-    destino.focus();
+  document.querySelector("#mostrar-criar")?.addEventListener("click", () => {
+    const email = entrar?.querySelector("[name=email]")?.value || "";
+    if (email) sessionStorage.setItem("email-conta", email);
+    location.href = rota("criar-conta/");
   });
-  document.querySelector("#senha-voltar").addEventListener("click", () => mostrarPainel("painel-entrar"));
+  document.querySelector("#mostrar-entrar")?.addEventListener("click", () => {
+    location.href = rota("entrar/");
+  });
+  document.querySelector("#mostrar-senha")?.addEventListener("click", () => {
+    const email = entrar?.querySelector("[name=email]")?.value || "";
+    if (email) sessionStorage.setItem("email-conta", email);
+    location.href = rota("recuperar-senha/");
+  });
+  document.querySelector("#senha-voltar")?.addEventListener("click", () => {
+    location.href = rota("entrar/");
+  });
 
+  const pedido = document.body.dataset.painel || "";
   if (loja?.linkVencido) {
     mostrarPainel("painel-senha");
     aviso(senha.querySelector(".aviso-conta"), "Esse link expirou. Peça outro.");
   } else if (loja?.recuperando) {
     mostrarPainel("painel-nova");
+  } else if (pedido === "criar") {
+    mostrarPainel("painel-criar");
+  } else if (pedido === "recuperar") {
+    mostrarPainel("painel-senha");
+  }
+  const guardado = sessionStorage.getItem("email-conta") || "";
+  if (guardado) {
+    document.querySelectorAll('input[name="email"]').forEach((campo) => {
+      if (!campo.value) campo.value = guardado;
+    });
   }
 
   entrar.addEventListener("submit", async (evento) => {

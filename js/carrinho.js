@@ -1,4 +1,5 @@
 import { dinheiro, linhas } from "./texto.js";
+import { rota } from "./rotas.js";
 
 export function itemOficial(item) {
   if (!item || !/^[a-z0-9-]{1,48}$/.test(item.id || "")) return null;
@@ -129,7 +130,7 @@ function continuarComprando() {
     destino.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
-  location.href = "index.html#atividades";
+  location.href = rota("atividades/");
 }
 
 export function prepararCarrinho(aoFinalizar) {

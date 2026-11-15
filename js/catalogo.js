@@ -1,5 +1,6 @@
 import { abrirCarrinho, guardarNoCarrinho, pintarCarrinho } from "./carrinho.js";
 import { dinheiro, escapar, linhas } from "./texto.js";
+import { paginaAtividade } from "./rotas.js";
 
 const grade = document.querySelector("#grade");
 let catalogo = [];
@@ -38,7 +39,7 @@ function paraCartao(item) {
     inclui: Array.isArray(item.inclui) ? item.inclui : linhas(item.inclui),
     preco: Number(item.preco),
     download: item.arquivo || item.download,
-    pagina: `atividade.html?id=${encodeURIComponent(item.id)}`,
+    pagina: paginaAtividade(item.id),
     area: item.area || (item.id === "adicao" || item.id === "adicao-50" || item.id === "resolver-problemas" ? "Matemática" : item.id === "silabas" ? "Português" : item.id === "celulas" ? "Ciências" : ""),
     temas: temasDoItem(item),
     destaque: item.destaque !== false,

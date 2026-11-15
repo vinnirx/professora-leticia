@@ -1,6 +1,8 @@
 const origens = new Set([
   "http://127.0.0.1:4204",
   "https://vinnirx.github.io",
+  "https://inclusaonocotidiano.com.br",
+  "https://www.inclusaonocotidiano.com.br",
   "https://professoraleticiapimenteldemacedo.com.br",
 ]);
 

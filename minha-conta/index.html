@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://*.supabase.co; connect-src 'self' https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321 https://fonts.googleapis.com https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'" />
+    <script src="../js/protecao.js?v=1"></script>
+    <title>Minha conta — Inclusão no Cotidiano</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../css/styles.css?v=86" />
+    <link rel="stylesheet" href="../css/conta.css?v=10" />
+  </head>
+  <body data-pagina="minhas">
+    <header class="cabecalho">
+      <a class="logo" href="../">
+        <img src="../img/logo-inclusao.png?v=2" alt="Inclusão no Cotidiano" />
+      </a>
+      <nav class="menu" aria-label="Seções">
+        <a href="../"><img src="../img/icones/simbolo.png?v=1" alt="" />Início</a>
+        <a href="../atividades/"><img src="../img/icones/atividades.png?v=1" alt="" />Atividades</a>
+        <a href="../#jogos"><img src="../img/icones/jogos.png?v=1" alt="" />Jogos</a>
+        <a href="../#gratuitos"><img src="../img/icones/gratuitos.png?v=1" alt="" />Gratuitos</a>
+        <a href="../#dicas"><img src="../img/icones/dicas.png?v=1" alt="" />Dicas</a>
+        <a href="../#historia"><img src="../img/icones/inclusao.png?v=1" alt="" />Sobre mim</a>
+        <div class="menu-conta">
+          <a data-conta href="../entrar/">Entrar</a>
+          <div data-menu-conta hidden>
+            <button class="menu-conta-abre" type="button" aria-expanded="false" aria-haspopup="true">Conta</button>
+            <div class="menu-conta-opcoes" hidden>
+              <a href="../minha-conta/">Minha conta</a>
+              <a class="so-admin" href="../gerenciar/">Gerenciar loja</a>
+              <button type="button" data-sair>Sair</button>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="conta">
+      <section id="conta-admin" class="conta-admin" hidden>
+        <div class="conta-topo">
+          <div>
+            <p class="conta-cargo" id="conta-cargo"></p>
+            <h1 id="saudacao-admin">Minha conta</h1>
+            <p id="conta-admin-texto"></p>
+          </div>
+          <button class="botao botao-secundario" id="sair-admin" type="button" data-sair-conta hidden>Sair</button>
+        </div>
+        <a class="botao conta-destaque" id="abrir-painel" href="../gerenciar/">Gerenciar loja</a>
+        <p id="indicadores-aviso" class="aviso-conta" hidden></p>
+        <div class="indicadores" id="indicadores-conta"></div>
+        <nav class="atalhos-conta" id="atalhos-conta" aria-label="Atalhos da loja"></nav>
+        <button class="botao botao-secundario" id="mostrar-compras" type="button" aria-expanded="false" aria-controls="area-compras">Minhas compras</button>
+      </section>
+      <section id="area-compras">
+        <div class="conta-topo" id="topo-cliente">
+          <h1 id="saudacao">Minha conta</h1>
+          <button class="botao botao-secundario" id="sair" type="button" data-sair-conta hidden>Sair</button>
+        </div>
+        <h2 id="titulo-compras" hidden>Minhas compras</h2>
+        <p id="conta-vazia" hidden></p>
+        <div class="lista-conta" id="lista-pedidos"></div>
+      </section>
+    </main>
+
+    <script src="../js/vendor/supabase.js?v=1"></script>
+    <script type="module" src="../js/sessao.js?v=27"></script>
+    <script type="module" src="../js/conta.js?v=35"></script>
+  </body>
+</html>

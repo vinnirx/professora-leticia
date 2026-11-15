@@ -1,4 +1,5 @@
 import { documentoValido } from "./documento.js";
+import { rota } from "./rotas.js";
 import { dinheiro, escapar, linkAjuda } from "./texto.js";
 import { itemOficial, limparCarrinho } from "./carrinho.js";
 
@@ -58,7 +59,7 @@ export async function abrirPix(atividade) {
     if (!sessao) {
       const volta = "index.html?carrinho=1";
       sessionStorage.setItem("depois", volta);
-      location.href = `entrar.html?depois=${encodeURIComponent(volta)}`;
+      location.href = `${rota("entrar/")}?depois=${encodeURIComponent(volta)}`;
       return;
     }
   }

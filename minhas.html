@@ -3,54 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://*.supabase.co; connect-src 'self' https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321 https://fonts.googleapis.com https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'" />
-    <script src="js/protecao.js?v=1"></script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'" />
     <title>Minha conta — Inclusão no Cotidiano</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=86" />
-    <link rel="stylesheet" href="css/conta.css?v=9" />
   </head>
-  <body data-pagina="minhas">
-    <header class="cabecalho">
-      <a class="logo" href="index.html">
-        <img src="img/logo-inclusao.png?v=2" alt="Inclusão no Cotidiano" />
-      </a>
-      <nav class="menu" aria-label="Seções">
-        <a href="index.html"><img src="img/icones/simbolo.png?v=1" alt="" />Início</a>
-        <a href="index.html#atividades"><img src="img/icones/atividades.png?v=1" alt="" />Atividades</a>
-        <a href="index.html#jogos"><img src="img/icones/jogos.png?v=1" alt="" />Jogos</a>
-        <a href="index.html#gratuitos"><img src="img/icones/gratuitos.png?v=1" alt="" />Gratuitos</a>
-        <a href="index.html#dicas"><img src="img/icones/dicas.png?v=1" alt="" />Dicas</a>
-        <a href="index.html#historia"><img src="img/icones/inclusao.png?v=1" alt="" />Sobre mim</a>
-        <div class="menu-conta">
-          <a data-conta href="entrar.html">Entrar</a>
-          <div data-menu-conta hidden>
-            <button class="menu-conta-abre" type="button" aria-expanded="false" aria-haspopup="true">Conta</button>
-            <div class="menu-conta-opcoes" hidden>
-              <a href="minhas.html">Minha conta</a>
-              <a class="so-admin" href="admin.html">Gerenciar loja</a>
-              <button type="button" data-sair>Sair</button>
-            </div>
-          </div>
-        </div>
-      </nav>
-    </header>
-
-    <main class="conta">
-      <div class="conta-topo">
-        <h1 id="saudacao">Minha conta</h1>
-        <button class="botao botao-secundario" id="sair" type="button" hidden>Sair</button>
-      </div>
-      <p id="conta-vazia" hidden></p>
-      <div class="lista-conta" id="lista-pedidos"></div>
-      <p><a class="so-admin" href="admin.html">Gerenciar loja</a></p>
-    </main>
-
-    <script src="js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="js/sessao.js?v=23"></script>
-    <script type="module" src="js/conta.js?v=24"></script>
+  <body data-destino="minha-conta/">
+    <p><a href="minha-conta/">Minha conta</a></p>
+    <script type="module" src="js/redirecionar.js?v=1"></script>
   </body>
 </html>

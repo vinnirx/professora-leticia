@@ -5,7 +5,7 @@ import { formatarTamanho, validarPdf } from "../pdf-troca.js";
 import { dinheiro, linhas } from "../texto.js";
 import { areas, temasPorArea } from "../temas.js";
 import { criarTrava } from "../trava.js";
-import { aviso } from "./avisos.js";
+import { paginaAtividade } from "../rotas.js";
 
 let capaUrl = "";
 let atividadeEmEdicao = null;
@@ -1072,7 +1072,7 @@ export function prepararCadastro(loja, existentes, aoCriar) {
       }
       atualizarCartao(atividade);
       const link = document.createElement("a");
-      link.href = `atividade.html?id=${encodeURIComponent(atividade.id)}`;
+      link.href = paginaAtividade(atividade.id);
       link.textContent = "Abrir a página exclusiva";
       const status = document.querySelector("#admin-status");
       if (status) {
@@ -1130,7 +1130,7 @@ export function prepararCadastro(loja, existentes, aoCriar) {
     if (nomePdf) nomePdf.textContent = "";
     mostrarEtapa(formulario, 1);
     const link = document.createElement("a");
-    link.href = `atividade.html?id=${encodeURIComponent(atividade.id)}`;
+    link.href = paginaAtividade(atividade.id);
     link.textContent = "Abrir a página exclusiva";
     const status = document.querySelector("#admin-status");
     if (status) {

@@ -415,7 +415,7 @@ assert.match(validarNovaAtividade({ ...novaCompleta, resumo: "curta" }), /descri
 assert.match(validarNovaAtividade({ ...novaCompleta, quantidade: "" }), /quantidade/);
 assert.match(validarNovaAtividade({ ...novaCompleta, formato: "" }), /formato/);
 
-const adminHtml = readFileSync(new URL("../admin.html", import.meta.url), "utf8");
+const adminHtml = readFileSync(new URL("../gerenciar/index.html", import.meta.url), "utf8");
 assert.match(adminHtml, /Substituir PDF/);
 assert.match(adminHtml, /id="pdf-troca-confirmar"/);
 const criarHtml = adminHtml.slice(adminHtml.indexOf('id="nova-atividade"'), adminHtml.indexOf('id="ficha-edicao"'));

@@ -40,6 +40,19 @@ body[data-pagina="admin"] {
   line-height: 1.2;
 }
 
+.painel-conta {
+  margin: 0.35rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.painel-conta a {
+  color: var(--azul-vivo);
+  text-decoration: none;
+}
+
+.painel-conta a:hover { text-decoration: underline; }
+
 .painel-moldura {
   display: grid;
   gap: 0.85rem;

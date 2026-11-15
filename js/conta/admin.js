@@ -4,6 +4,7 @@ import { abrirEdicao, prepararCadastro } from "./cadastro.js?v=6";
 import { prepararEquipe } from "./equipe.js";
 import { aviso, moeda, quando } from "./avisos.js";
 import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
+import { paginaAtividade, rota } from "../rotas.js";
 
 const travaPdf = criarTrava();
 
@@ -306,7 +307,7 @@ export async function iniciarAdmin(loja) {
 
   const sessao = await loja.sessao();
   if (!sessao) {
-    location.href = "entrar.html?depois=admin.html";
+    location.href = `${rota("entrar/")}?depois=${encodeURIComponent("admin.html")}`;
     return;
   }
   const dados = await loja.perfil();
@@ -317,6 +318,10 @@ export async function iniciarAdmin(loja) {
   }
 
   app.hidden = false;
+  const cargo = document.querySelector("#painel-cargo");
+  const saudacao = document.querySelector("#painel-saudacao");
+  if (cargo) cargo.textContent = rotuloPapel(dados?.papel);
+  if (saudacao) saudacao.textContent = dados?.nome ? `Olá, ${dados.nome}` : "Painel da loja";
   const sair = document.querySelector("#sair");
   sair.hidden = false;
   sair.addEventListener("click", () => {
@@ -564,7 +569,7 @@ export async function iniciarAdmin(loja) {
         acoes.append(
           botaoAcao("Editar", () => abrirEdicao(atividade)),
           menuAcoes([
-            { texto: "Ver na loja", href: `atividade.html?id=${encodeURIComponent(atividade.id)}` },
+            { texto: "Ver na loja", href: paginaAtividade(atividade.id) },
             { texto: "Gerenciar PDF", aoClicar: () => {
               location.hash = "arquivos";
               document.querySelector(`#lista-pdfs [data-atividade="${CSS.escape(atividade.id)}"]`)?.scrollIntoView({ block: "center" });
@@ -647,7 +652,7 @@ export async function iniciarAdmin(loja) {
         acoes.className = "acoes";
         if (!atividade.foraDoBanco) {
           acoes.append(botaoAcao("Visualizar", () => {
-            location.href = `atividade.html?id=${encodeURIComponent(atividade.id)}`;
+            location.href = paginaAtividade(atividade.id);
           }));
           if (atividade.pdfInfo?.pdf || atividade.arquivo) {
             acoes.append(botaoAcao("Baixar", async () => {

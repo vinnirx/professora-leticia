@@ -1,9 +1,13 @@
 import { caminhoPdf } from "./arquivo-seguro.js";
 import { nomeCapa, urlComVersao, validarCapa } from "./capa-loja.js";
 import { administra } from "./conta/papeis.js";
+import { enderecoDeRecuperacao } from "./endereco-publico.js";
+import { destinoInterno, rota } from "./rotas.js";
 import { executarRestauracao, executarSubstituicao, PDF_AINDA_NAO_INSTALADO, pdfAnteriorDisponivel } from "./pdf-troca.js";
 
-const destinos = new Set(["minhas.html", "admin.html", "index.html", "index.html#atividades", "atividade.html"]);
+function destinoSeguro(valor) {
+  return destinoInterno(valor);
+}
 
 function migracaoAusente(erro) {
   const texto = String(erro?.message || erro || "");
@@ -26,13 +30,6 @@ function traduzir(erro) {
   return "Não foi possível agora. Tente de novo.";
 }
 
-function destinoSeguro(valor) {
-  if (destinos.has(valor)) return valor;
-  if (/^atividade\.html\?id=[a-z0-9-]{1,48}$/.test(valor || "")) return valor;
-  if (valor === "index.html?carrinho=1") return valor;
-  return "minhas.html";
-}
-
 async function carregarConfig() {
   try {
     const modulo = await import("./supabase-config.js");
@@ -49,7 +46,7 @@ function pintarMenu(sessao, admin) {
   document.querySelectorAll("[data-conta]").forEach((link) => {
     link.hidden = Boolean(sessao);
     link.textContent = "Entrar";
-    link.href = "entrar.html";
+    link.href = rota("entrar/");
   });
   document.querySelectorAll("[data-menu-conta]").forEach((menu) => {
     menu.hidden = !sessao;
@@ -98,8 +95,8 @@ function linkDeSenha() {
 }
 
 function levarParaNovaSenha() {
-  if (!linkDeSenha() || /entrar\.html$/.test(location.pathname)) return false;
-  const destino = new URL("entrar.html", location.href);
+  if (!linkDeSenha() || /\/recuperar-senha\/?$/.test(location.pathname) || /entrar\.html$/.test(location.pathname)) return false;
+  const destino = new URL(rota("recuperar-senha/"), location.href);
   destino.search = "";
   destino.hash = location.hash;
   location.replace(destino.href);
@@ -180,13 +177,7 @@ async function iniciar() {
       return { ok: true };
     },
     async pedirNovaSenha(email) {
-      const publicado = location.hostname === "vinnirx.github.io";
-      const volta = publicado
-        ? new URL("https://vinnirx.github.io/professora-leticia/entrar.html")
-        : new URL("entrar.html", location.href);
-      volta.search = "";
-      volta.hash = "";
-      const { error } = await cliente.auth.resetPasswordForEmail(email, { redirectTo: volta.href });
+      const { error } = await cliente.auth.resetPasswordForEmail(email, { redirectTo: enderecoDeRecuperacao(location.href) });
       if (error && !/user not found/i.test(error.message || "")) {
         return { ok: false, mensagem: traduzir(error) };
       }
@@ -218,7 +209,7 @@ async function iniciar() {
         // A sessão local já foi apagada. A página inicial abre mesmo assim.
       }
       apagar();
-      location.replace("index.html");
+      location.replace(rota("inicio"));
     },
     async registrarPedido(atividadeId, txid) {
       const { error } = await cliente.rpc("criar_pedido", { atividade: atividadeId, txid });

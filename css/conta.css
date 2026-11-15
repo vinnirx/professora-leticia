@@ -99,6 +99,63 @@
 
 .conta-topo h1 { margin: 0; }
 
+.conta-admin {
+  display: grid;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+  padding: 1.1rem 1.1rem 1.2rem;
+  background:
+    linear-gradient(160deg, rgb(243 213 106 / 42%), rgb(142 200 220 / 30%) 46%, #fff 78%);
+  border-radius: 1.2rem;
+  box-shadow: var(--sombra);
+}
+
+.conta-admin[hidden],
+#area-compras[hidden],
+#topo-cliente[hidden],
+#titulo-compras[hidden] { display: none; }
+
+.conta-cargo {
+  margin-bottom: 0.2rem;
+  color: var(--verde);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.conta-admin h1 { margin-bottom: 0.35rem; }
+
+.conta-admin .conta-topo { margin-bottom: 0; }
+
+.conta-destaque,
+#mostrar-compras {
+  width: fit-content;
+  max-width: 100%;
+  font-weight: 800;
+}
+
+.atalhos-conta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
+  gap: 0.55rem;
+}
+
+.atalho-conta {
+  display: block;
+  padding: 0.8rem 0.85rem;
+  border-radius: 0.9rem;
+  background: #fff;
+  color: var(--tinta);
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: var(--sombra);
+}
+
+.atalho-conta:hover { background: var(--azul); color: #fff; }
+
+#titulo-compras { margin: 0 0 0.8rem; font-size: 1.35rem; }
+
 .lista-conta {
   display: grid;
   gap: 0.8rem;
@@ -188,7 +245,9 @@
 @media (max-width: 520px) {
   .conta-topo .botao,
   .item-conta .botao,
-  .acesso-cartao .botao { width: 100%; }
+  .acesso-cartao .botao,
+  .conta-destaque,
+  #mostrar-compras { width: 100%; }
 }
 
 .lucro-total {

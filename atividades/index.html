@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://*.supabase.co; connect-src 'self' https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321 https://fonts.googleapis.com https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self'" />
+    <script src="../js/protecao.js?v=1"></script>
+    <title>Atividades — Inclusão no Cotidiano</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../css/styles.css?v=86" />
+  </head>
+  <body>
+    <header class="cabecalho">
+      <a class="logo" href="../">
+        <img src="../img/logo-inclusao.png?v=2" alt="Inclusão no Cotidiano" />
+      </a>
+      <nav class="menu" aria-label="Seções">
+        <a href="../"><img src="../img/icones/simbolo.png?v=1" alt="" />Início</a>
+        <a href="./"><img src="../img/icones/atividades.png?v=1" alt="" />Atividades</a>
+        <a href="../#jogos"><img src="../img/icones/jogos.png?v=1" alt="" />Jogos</a>
+        <a href="../#gratuitos"><img src="../img/icones/gratuitos.png?v=1" alt="" />Gratuitos</a>
+        <a href="../#dicas"><img src="../img/icones/dicas.png?v=1" alt="" />Dicas</a>
+        <a href="../#historia"><img src="../img/icones/inclusao.png?v=1" alt="" />Sobre mim</a>
+        <div class="menu-conta">
+          <a data-conta href="../entrar/">Entrar</a>
+          <div data-menu-conta hidden>
+            <button class="menu-conta-abre" type="button" aria-expanded="false" aria-haspopup="true">Conta</button>
+            <div class="menu-conta-opcoes" hidden>
+              <a href="../minha-conta/">Minha conta</a>
+              <a class="so-admin" href="../gerenciar/">Gerenciar loja</a>
+              <button type="button" data-sair>Sair</button>
+            </div>
+          </div>
+        </div>
+        <button class="carrinho-abre" id="abre-carrinho" type="button"><span class="carrinho-icone"><img src="../img/icones/carrinho.svg?v=2" alt="" /><span id="carrinho-qtd" hidden></span></span>Carrinho</button>
+      </nav>
+      <label class="busca">
+        <span class="busca-rotulo">Buscar atividade</span>
+        <input id="busca-atividade" type="search" placeholder="O que você procura hoje?" autocomplete="off" aria-controls="sugestoes" aria-autocomplete="list" />
+        <ul id="sugestoes" class="sugestoes" hidden></ul>
+      </label>
+    </header>
+    <main>
+      <section class="loja" id="atividades" aria-labelledby="titulo-atividades">
+        <div class="secao-cabeca">
+          <h1 id="titulo-atividades">Atividades</h1>
+        </div>
+        <div id="busca-vazia" hidden>
+          <p id="busca-vazia-texto">Nenhuma atividade com esse nome.</p>
+          <img src="../img/em-breve.jpg?v=2" alt="Em Breve" hidden />
+        </div>
+        <button id="voltar-destaque" class="voltar-destaque" type="button" hidden>Ver a atividade em destaque</button>
+        <div class="grade" id="grade"></div>
+      </section>
+    </main>
+    <dialog class="carrinho" id="carrinho">
+      <div class="carrinho-painel">
+        <button class="fechar" type="button" aria-label="Fechar">×</button>
+        <h2>Carrinho</h2>
+        <p id="carrinho-vazio">Seu carrinho está vazio.</p>
+        <ul id="carrinho-lista" hidden></ul>
+        <p class="preco" id="carrinho-total" hidden></p>
+        <p class="miudo">O Pix sai com o total das atividades que ficarem aqui.</p>
+        <div class="carrinho-acoes">
+          <button class="botao botao-secundario" id="carrinho-continuar" type="button">Continuar comprando</button>
+          <button class="botao" id="carrinho-finalizar" type="button">Finalizar compra</button>
+          <button class="botao botao-secundario" id="carrinho-limpar" type="button">Limpar carrinho</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog class="pix" id="pix">
+      <div class="pix-painel">
+        <button class="fechar" type="button" aria-label="Fechar">×</button>
+        <p class="chapeu" id="pix-kicker">Pix</p>
+        <h2 id="pix-titulo"></h2>
+        <p class="preco-grande" id="pix-preco"></p>
+        <p id="pix-resumo"></p>
+        <ul id="pix-inclui"></ul>
+        <form id="pix-pedido" class="pedido">
+          <label>
+            Seu nome
+            <input name="nome" autocomplete="name" required />
+          </label>
+          <label>
+            Seu e-mail
+            <input name="email" type="email" autocomplete="email" required />
+          </label>
+          <label id="campo-documento" hidden>
+            CPF ou CNPJ
+            <input name="documento" inputmode="numeric" autocomplete="off" maxlength="18" />
+          </label>
+          <button class="botao" type="submit">Gerar QR do Pix</button>
+        </form>
+        <div id="pix-resultado" hidden>
+          <div class="qr-caixa" id="pix-imagem"></div>
+          <p class="miudo">No aplicativo do banco, o recebedor tem que ser <strong>LETICIA PIMENTEL MACEDO</strong>. Se aparecer outro nome, não pague.</p>
+          <p class="miudo">Código deste pedido</p>
+          <p class="codigo-pedido" id="pix-codigo"></p>
+          <p class="miudo" id="pix-pessoa"></p>
+          <label class="cola-rotulo">
+            Pix copia e cola
+            <textarea id="pix-cola" readonly rows="4"></textarea>
+          </label>
+          <div class="pix-acoes">
+            <button class="botao" id="copiar" type="button">Copiar código Pix</button>
+            <a class="botao botao-secundario" id="whatsapp" href="#" hidden>Enviar comprovante</a>
+          </div>
+        </div>
+        <div class="pedido-estado" id="pix-estado" hidden>
+          <p class="situacao" id="pix-situacao"></p>
+          <a class="botao botao-secundario" id="pix-ajuda" hidden>Falar com a Letícia</a>
+        </div>
+        <p class="miudo" id="pix-aviso" role="status"></p>
+      </div>
+    </dialog>
+
+    
+    <script src="../js/loja.js?v=48"></script>
+    <script src="../js/pix.js?v=21"></script>
+    <script src="../js/vendor/supabase.js?v=1"></script>
+    <script type="module" src="../js/sessao.js?v=27"></script>
+    <script type="module" src="../js/inicio.js?v=11"></script>
+  </body>
+</html>

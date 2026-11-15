@@ -1,5 +1,7 @@
 import { aviso, moeda } from "./avisos.js";
+import { resumoAdministrativo } from "./apresentacao.js";
 import { administra } from "./papeis.js";
+import { rota } from "../rotas.js";
 import { linkAjuda } from "../texto.js";
 
 function contato(pedido, motivo) {
@@ -79,16 +81,86 @@ function cartaoPedido(pedido, loja) {
   return artigo;
 }
 
+function ligarSaida(loja) {
+  document.querySelectorAll("[data-sair-conta]").forEach((botao) => {
+    botao.addEventListener("click", () => {
+      botao.disabled = true;
+      botao.textContent = "Saindo…";
+      loja.sair();
+    });
+  });
+}
+
+function escrever(elemento, texto, href, rotulo) {
+  elemento.replaceChildren(document.createTextNode(texto));
+  if (!href) return;
+  elemento.append(" ");
+  const link = document.createElement("a");
+  link.href = href;
+  link.textContent = rotulo;
+  elemento.append(link);
+}
+
+function indicador(item) {
+  const artigo = document.createElement("article");
+  artigo.className = "indicador";
+  const nome = document.createElement("span");
+  nome.textContent = item.rotulo;
+  const forte = document.createElement("strong");
+  forte.textContent = item.dinheiro ? moeda.format(item.valor) : item.valor;
+  const nota = document.createElement("small");
+  nota.textContent = item.nota;
+  artigo.append(nome, forte, nota);
+  return artigo;
+}
+
+function mostrarAdministracao(dados, resumo) {
+  const bloco = document.querySelector("#conta-admin");
+  const compras = document.querySelector("#area-compras");
+  compras.hidden = true;
+  bloco.hidden = false;
+  document.querySelector("#topo-cliente").hidden = true;
+  document.querySelector("#titulo-compras").hidden = false;
+  document.querySelector("#conta-cargo").textContent = resumo.cargo;
+  document.querySelector("#saudacao-admin").textContent = dados?.nome ? `Olá, ${dados.nome}` : "Conta administrativa";
+  document.querySelector("#conta-admin-texto").textContent = resumo.texto;
+  document.querySelector("#abrir-painel").href = rota("gerenciar/");
+  document.querySelector("#sair-admin").hidden = false;
+  const caixa = document.querySelector("#indicadores-conta");
+  const avisoIndicadores = document.querySelector("#indicadores-aviso");
+  if (!resumo.indicadores) {
+    avisoIndicadores.hidden = false;
+    avisoIndicadores.textContent = "Não consegui ler os números da loja agora. O gerenciamento continua disponível.";
+  } else {
+    caixa.replaceChildren(...resumo.indicadores.map(indicador));
+    if (resumo.semPedidos) {
+      avisoIndicadores.hidden = false;
+      avisoIndicadores.classList.add("aviso-ok");
+      avisoIndicadores.textContent = "Ainda não há pedidos. Os materiais cadastrados continuam na loja.";
+    }
+  }
+  const atalhos = document.querySelector("#atalhos-conta");
+  resumo.atalhos.forEach((atalho) => {
+    const link = document.createElement("a");
+    link.className = "atalho-conta";
+    link.href = rota(`gerenciar/#${atalho.hash}`);
+    link.textContent = atalho.texto;
+    atalhos.append(link);
+  });
+  const botao = document.querySelector("#mostrar-compras");
+  botao.addEventListener("click", () => {
+    const aberto = compras.hidden;
+    compras.hidden = !aberto;
+    botao.setAttribute("aria-expanded", String(aberto));
+    botao.textContent = aberto ? "Ocultar minhas compras" : "Minhas compras";
+  });
+}
+
 export async function iniciarMinhas(loja) {
   const lista = document.querySelector("#lista-pedidos");
   const vazio = document.querySelector("#conta-vazia");
   const saudacao = document.querySelector("#saudacao");
-  const sair = document.querySelector("#sair");
-  sair.addEventListener("click", () => {
-    sair.disabled = true;
-    sair.textContent = "Saindo…";
-    loja.sair();
-  });
+  ligarSaida(loja);
 
   if (!loja.configurada) {
     vazio.hidden = false;
@@ -98,19 +170,32 @@ export async function iniciarMinhas(loja) {
   const sessao = await loja.sessao();
   if (!sessao) {
     vazio.hidden = false;
-    vazio.textContent = "Entre para ver as atividades que você comprou.";
+    escrever(vazio, "Entre para ver os materiais que você comprou.", rota("entrar/"), "Entrar");
     return;
   }
   const dados = await loja.perfil();
   saudacao.textContent = dados?.nome ? `Olá, ${dados.nome}` : "Minha conta";
-  sair.hidden = false;
-  if (administra(dados?.papel)) {
+  document.querySelector("#sair").hidden = false;
+  const gestao = administra(dados?.papel);
+  if (gestao) {
     document.querySelectorAll(".so-admin").forEach((link) => link.classList.add("visivel"));
+    let resumo = resumoAdministrativo({ perfil: dados, atividades: null, pedidos: null });
+    try {
+      const [atividades, painel] = await Promise.all([loja.atividades(), loja.painel()]);
+      resumo = resumoAdministrativo({ perfil: dados, atividades, pedidos: painel.pedidos });
+    } catch {
+      resumo = resumoAdministrativo({ perfil: dados, atividades: null, pedidos: null });
+    }
+    mostrarAdministracao(dados, resumo);
   }
   const pedidos = await loja.meusPedidos();
   if (!pedidos.length) {
     vazio.hidden = false;
-    vazio.textContent = "Você ainda não tem atividades. A de adição com apoio visual está na loja.";
+    if (gestao) {
+      vazio.textContent = "Nenhuma compra nesta conta. Os materiais da loja continuam cadastrados.";
+    } else {
+      escrever(vazio, "Você ainda não comprou materiais. Quando o pagamento for confirmado, o PDF aparece aqui.", rota("atividades/"), "Ver materiais");
+    }
     return;
   }
   pedidos.forEach((pedido) => lista.append(cartaoPedido(pedido, loja)));
