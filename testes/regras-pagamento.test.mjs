@@ -19,6 +19,7 @@ import {
   cobrancaCompativel,
   mensagemParaCliente,
   valorAceitoAsaas,
+  organizarPedido,
 } from "../supabase/functions/_shared/regras.mjs";
 
 function cpfDeTeste() {
@@ -317,6 +318,16 @@ assert.equal(decidirRetomada({
 assert.equal(decidirRetomada({
   encontrada: true, statusPedido: "aguardando", statusCobranca: "analise", agora,
 }).acao, "analise");
+assert.equal(decidirRetomada({
+  encontrada: true, statusPedido: "cancelado", statusCobranca: "cancelada", temPix: false, temExterna: false, agora,
+}).acao, "tentativa");
+assert.equal(decidirRetomada({
+  encontrada: true, statusPedido: "cancelado", statusCobranca: "cancelada", temPix: false, temExterna: true, agora,
+}).acao, "cancelado");
+assert.equal(organizarPedido("abaixo").cancelavel, true);
+assert.equal(organizarPedido("continuar").cancelavel, false);
+assert.equal(organizarPedido("baixar").ocultavel, false);
+assert.equal(organizarPedido("tentativa").ocultavel, true);
 assert.equal(intervaloDaConsulta("continuar"), 15000);
 assert.equal(intervaloDaConsulta("tentar"), 0);
 assert.equal(intervaloDaConsulta("abaixo"), 0);

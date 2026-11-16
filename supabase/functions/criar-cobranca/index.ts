@@ -13,6 +13,7 @@ import {
   eventoDeConsulta,
   identificadorAutenticado,
   mensagemParaCliente,
+  organizarPedido,
   valorAceitoAsaas,
 } from "../_shared/regras.mjs";
 
@@ -131,10 +132,11 @@ Deno.serve(async (req) => {
   }
 
   const admin = createClient(url, serviço, { auth: { persistSession: false } });
-  if (pedido?.consulta === "retomar" || pedido?.consulta === "situacao") {
+  if (["retomar", "situacao", "cancelar", "ocultar", "mostrar"].includes(pedido?.consulta)) {
     return await consultaDoPedido({
       origem,
       admin,
+      usuario,
       usuarioId,
       pedido,
       destino,
@@ -435,7 +437,12 @@ async function aplicarConsulta(admin, cobranca, pagamento) {
   await admin.rpc("processar_evento_asaas", { evento_externo: evento });
 }
 
-async function consultaDoPedido({ origem, admin, usuarioId, pedido, destino, chaveAsaas }) {
+function camposDeOrganizacao(acao: string) {
+  const organizacao = organizarPedido(acao);
+  return { cancelavel: organizacao.cancelavel, ocultavel: organizacao.ocultavel };
+}
+
+async function consultaDoPedido({ origem, admin, usuario, usuarioId, pedido, destino, chaveAsaas }) {
   const txid = String(pedido?.txid || "");
   if (!txidValido(txid)) {
     return responder(origem, 400, { ok: false, mensagem: "Não encontrei este pedido na sua conta." });
@@ -504,11 +511,15 @@ async function consultaDoPedido({ origem, admin, usuarioId, pedido, destino, cha
     analise: "Este pagamento está em análise. O PDF continua bloqueado. Fale com a Letícia e informe o pedido.",
     estornado: "Este pagamento foi estornado. O PDF continua bloqueado.",
     cancelado: "Esta cobrança foi cancelada. O PDF continua bloqueado.",
+    tentativa: "A tentativa foi cancelada. Nenhum Pix foi gerado e os registros continuam guardados.",
     confirmar: "O pagamento foi confirmado. O material aparece quando a liberação estiver pronta.",
     baixar: "Pagamento confirmado.",
     manual: "Este pedido é Pix manual, não uma cobrança do Asaas. Se você já pagou o QR anterior, não gere outro.",
     continuar: "O Pix continua válido. Use o mesmo código para pagar.",
   };
+  if (pedido.consulta === "cancelar" || pedido.consulta === "ocultar" || pedido.consulta === "mostrar") {
+    return await responderOrganizacao({ origem, usuario, txid, pedido, decisao, registro, ausenciaConfirmada, cobranca: cobrancaAtual });
+  }
   if (pedido.consulta === "situacao" || decisao.acao === "negar") {
     return responder(origem, 200, {
       ok: true,
@@ -517,6 +528,7 @@ async function consultaDoPedido({ origem, admin, usuarioId, pedido, destino, cha
       mensagem: mensagens[decisao.acao] || "Não encontrei este pedido na sua conta.",
       renovavel: decisao.renovavel,
       liberado: decisao.acao === "baixar",
+      ...camposDeOrganizacao(decisao.acao),
     });
   }
   if (decisao.acao === "recuperar" && cobrancaAtual?.cobranca_externa && destino.ok) {
@@ -550,6 +562,54 @@ async function consultaDoPedido({ origem, admin, usuarioId, pedido, destino, cha
     expiraEm: cobranca?.expira_em || "",
     renovavel: decisao.renovavel,
     liberado: decisao.acao === "baixar",
+    ...camposDeOrganizacao(decisao.acao),
+  });
+}
+
+async function responderOrganizacao({ origem, usuario, txid, pedido, decisao, registro, ausenciaConfirmada, cobranca }) {
+  if (pedido.consulta === "cancelar") {
+    const pago = ["baixar", "confirmar"].includes(decisao.acao) || registro.pedidos.some((item) => item.status === "pago");
+    const remota = Boolean(cobranca?.cobranca_externa || cobranca?.copia_cola);
+    if (pago || remota || !ausenciaConfirmada || !organizarPedido(decisao.acao).cancelavel) {
+      return responder(origem, 409, {
+        ok: false,
+        acao: pago ? "confirmar" : remota ? "asaas_aberto" : decisao.acao,
+        mensagem: pago
+          ? "Este pedido já tem pagamento confirmado e não pode ser cancelado."
+          : remota
+            ? "Existe cobrança no Asaas. O cancelamento dessa cobrança não foi feito."
+            : "Não consegui confirmar a ausência da cobrança. O pedido não foi cancelado.",
+      });
+    }
+    const { data, error } = await usuario.rpc("cancelar_tentativa_sem_cobranca", { codigo: txid });
+    if (error || data?.ok === false) {
+      return responder(origem, 409, { ok: false, mensagem: data?.mensagem || "Não foi possível cancelar este pedido." });
+    }
+    return responder(origem, 200, {
+      ok: true,
+      acao: "tentativa",
+      mensagem: data?.mensagem || "A tentativa foi cancelada. Os registros continuam guardados.",
+      repetido: data?.repetido === true,
+      cancelavel: false,
+      ocultavel: true,
+    });
+  }
+  if (pedido.consulta === "ocultar" && !organizarPedido(decisao.acao).ocultavel) {
+    return responder(origem, 409, { ok: false, mensagem: "Esta compra permanece visível." });
+  }
+  const { data, error } = await usuario.rpc("definir_visibilidade_pedido", {
+    codigo: txid,
+    ocultar: pedido.consulta === "ocultar",
+  });
+  if (error || data?.ok === false) {
+    return responder(origem, 409, { ok: false, mensagem: data?.mensagem || "Não foi possível atualizar a visualização." });
+  }
+  return responder(origem, 200, {
+    ok: true,
+    acao: decisao.acao,
+    oculto: data?.oculto === true,
+    mensagem: data?.mensagem || "",
+    ...camposDeOrganizacao(decisao.acao),
   });
 }
 
@@ -565,5 +625,7 @@ function respostaPix(registro, txid, copiaCola, imagem, expiraEm) {
     imagem,
     expiraEm: expiraEm || "",
     liberado: false,
+    cancelavel: false,
+    ocultavel: false,
   };
 }

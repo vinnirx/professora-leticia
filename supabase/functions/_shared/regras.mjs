@@ -118,6 +118,7 @@ export function decidirRetomada({
     return { acao: "estornado", consultar: false, renovavel: false };
   }
   if (statusCobranca === "cancelada" || statusPedido === "cancelado") {
+    if (!temExterna && !temPix) return { acao: "tentativa", consultar: false, renovavel: false };
     return { acao: "cancelado", consultar: false, renovavel: false };
   }
   const limite = expiraEm ? Date.parse(expiraEm) : Number.NaN;
@@ -136,6 +137,13 @@ export function decidirRetomada({
 
 export function intervaloDaConsulta(acao) {
   return ["continuar", "recuperar", "confirmar"].includes(acao) ? 15000 : 0;
+}
+
+export function organizarPedido(acao) {
+  return {
+    cancelavel: acao === "abaixo" || acao === "tentar",
+    ocultavel: ["abaixo", "tentar", "tentativa", "cancelado", "estornado", "negar", "vencido"].includes(acao),
+  };
 }
 
 export function cobrancaCompativel(abertas, atividades) {

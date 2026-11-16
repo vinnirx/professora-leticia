@@ -432,12 +432,17 @@ async function iniciar() {
       return { ok: true, pedidos: Array.isArray(data) ? data : [] };
     },
     async meusPedidos() {
-      const { data, error } = await cliente
+      const pedido = await cliente
+        .from("pedidos")
+        .select("id, atividade_id, titulo, valor, txid, status, criado_em, oculto_em")
+        .order("criado_em", { ascending: false });
+      if (!pedido.error) return pedido.data || [];
+      const legado = await cliente
         .from("pedidos")
         .select("id, atividade_id, titulo, valor, txid, status, criado_em")
         .order("criado_em", { ascending: false });
-      if (error) throw error;
-      return data || [];
+      if (legado.error) throw legado.error;
+      return legado.data || [];
     },
     async arquivoDa(atividadeId) {
       const { data } = await cliente.from("atividades").select("arquivo").eq("id", atividadeId).maybeSingle();
@@ -718,6 +723,10 @@ async function iniciar() {
         imagem: corpo.imagem || "",
         renovavel: corpo.renovavel === true,
         liberado: corpo.liberado === true,
+        cancelavel: corpo.cancelavel === true,
+        ocultavel: corpo.ocultavel === true,
+        oculto: corpo.oculto === true,
+        repetido: corpo.repetido === true,
       };
     },
     async pixAutomaticoDisponivel() {
@@ -772,6 +781,12 @@ async function iniciar() {
     },
     async consultarPedido(txid) {
       return this.pedirCobranca("situacao", txid);
+    },
+    async cancelarTentativa(txid) {
+      return this.pedirCobranca("cancelar", txid);
+    },
+    async definirVisibilidade(txid, ocultar) {
+      return this.pedirCobranca(ocultar ? "ocultar" : "mostrar", txid);
     },
     async definirPapel(alvo, novoPapel) {
       const acesso = await usuarioConfirmado();

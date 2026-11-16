@@ -2,7 +2,7 @@ import { aviso, moeda } from "./avisos.js";
 import { acionarSaida } from "./saida.js";
 import { resumoAdministrativo } from "./apresentacao.js?v=2";
 import { administra } from "./papeis.js";
-import { apresentacao, intervaloDaTela } from "./retomada.js";
+import { agruparPorCodigo, apresentacao, intervaloDaTela, prioridadeDaAcao } from "./retomada.js?v=2";
 import { rota } from "../rotas.js";
 import { linkAjuda } from "../texto.js";
 
@@ -44,13 +44,12 @@ function cartaoPedido(pedido, loja) {
   }
   if (pedido.status !== "pago") {
     artigo.append(
-      selo("espera", "Pagamento pendente"),
+      selo("espera", "Consultando pedido"),
       estado,
       contato(pedido, "Meu Pix ainda não foi confirmado."),
     );
-    estado.textContent = "O pagamento ainda não entrou. O PDF fica bloqueado até a confirmação.";
-    artigo.append(botaoDaConta(pedido, "continuar"));
-    acompanharPedido(artigo, pedido, loja, "continuar");
+    estado.textContent = "Estamos conferindo se existe um Pix válido. Nenhum pagamento novo foi gerado.";
+    acompanharPedido(artigo, pedido, loja, "aguardar");
     return artigo;
   }
   artigo.append(selo("ok", "Pagamento confirmado"), estado, contato(pedido, "Preciso de ajuda com este pedido."));
@@ -207,6 +206,7 @@ function aplicarSituacao(artigo, pedido, loja, resultado) {
   }
   if (!visual.botao) {
     antigo?.remove();
+    botoesSecundarios(artigo, pedido, loja, resultado);
     return;
   }
   const botao = antigo || botaoDaConta(pedido, resultado.acao);
@@ -215,6 +215,9 @@ function aplicarSituacao(artigo, pedido, loja, resultado) {
   botao.disabled = false;
   if (!antigo) artigo.insertBefore(botao, estado);
   ligarBotao(artigo, pedido, loja, botao);
+  botoesSecundarios(artigo, pedido, loja, resultado);
+  artigo.dataset.ordem = String(prioridadeDaAcao(resultado.acao));
+  ordenarLista(artigo.parentElement);
 }
 
 function ligarBotao(artigo, pedido, loja, botao) {
@@ -223,36 +226,102 @@ function ligarBotao(artigo, pedido, loja, botao) {
   botao.addEventListener("click", () => agirNoPedido(artigo, pedido, loja));
 }
 
+function botaoSecundario(texto, aoClicar) {
+  const botao = document.createElement("button");
+  botao.type = "button";
+  botao.className = "botao botao-secundario";
+  botao.textContent = texto;
+  botao.addEventListener("click", aoClicar);
+  return botao;
+}
+
+function ordenarLista(lista) {
+  if (!lista) return;
+  const cartoes = [...lista.querySelectorAll(".item-conta")];
+  cartoes.sort((a, b) => Number(a.dataset.ordem || 3) - Number(b.dataset.ordem || 3));
+  cartoes.forEach((cartao) => lista.append(cartao));
+}
+
+function botoesSecundarios(artigo, pedido, loja, resultado) {
+  artigo.querySelector("[data-secundario]")?.remove();
+  const caixa = document.createElement("div");
+  caixa.className = "acoes";
+  caixa.dataset.secundario = "sim";
+  if (resultado.cancelavel) caixa.append(botaoSecundario("Cancelar pedido", () => confirmarCancelamento(artigo, pedido, loja)));
+  if (resultado.ocultavel && !pedido.oculto) caixa.append(botaoSecundario("Ocultar do meu histórico", () => alterarVisibilidade(artigo, pedido, loja, true)));
+  if (pedido.oculto) caixa.append(botaoSecundario("Mostrar de novo", () => alterarVisibilidade(artigo, pedido, loja, false)));
+  if (caixa.childElementCount) artigo.append(caixa);
+}
+
+function confirmarCancelamento(artigo, pedido, loja) {
+  const caixa = artigo.querySelector("[data-secundario]");
+  if (!caixa) return;
+  caixa.replaceChildren();
+  const texto = document.createElement("p");
+  texto.textContent = "Cancelar esta tentativa? Nenhum Pix foi gerado e os registros continuam guardados. Uma cobrança do Asaas não será cancelada por aqui.";
+  const confirmar = botaoSecundario("Confirmar cancelamento", async () => {
+    confirmar.disabled = true;
+    const resultado = await loja.cancelarTentativa(pedido.txid);
+    const estado = artigo.querySelector(".aviso-conta");
+    if (!resultado?.ok) {
+      aviso(estado, resultado?.mensagem || "O pedido não foi cancelado.");
+      botoesSecundarios(artigo, pedido, loja, { cancelavel: true, ocultavel: true });
+      return;
+    }
+    pedido.status = "cancelado";
+    aplicarSituacao(artigo, pedido, loja, { ...resultado, acao: "tentativa", cancelavel: false, ocultavel: true });
+  });
+  caixa.append(texto, confirmar, botaoSecundario("Voltar", () => botoesSecundarios(artigo, pedido, loja, { cancelavel: true, ocultavel: true })));
+}
+
+async function alterarVisibilidade(artigo, pedido, loja, ocultar) {
+  const resultado = await loja.definirVisibilidade(pedido.txid, ocultar);
+  const estado = artigo.querySelector(".aviso-conta");
+  if (!resultado?.ok) {
+    aviso(estado, resultado?.mensagem || "A visualização não mudou.");
+    return;
+  }
+  pedido.oculto = ocultar;
+  if (ocultar && artigo.parentElement?.dataset.ocultos !== "sim") artigo.remove();
+  else botoesSecundarios(artigo, pedido, loja, { cancelavel: false, ocultavel: !ocultar });
+}
+
 function acompanharPedido(artigo, pedido, loja, acaoInicial) {
   if (!loja.consultarPedido) return;
   let acao = acaoInicial;
   let timer = 0;
   let encerrado = false;
-  ligarBotao(artigo, pedido, loja, artigo.querySelector("button.botao"));
   const parar = () => {
     encerrado = true;
     if (timer) clearInterval(timer);
     timer = 0;
+  };
+  const agendar = () => {
+    if (timer) clearInterval(timer);
+    timer = 0;
+    if (encerrado || document.hidden || !intervaloDaTela(acao, false)) return;
+    timer = setInterval(consultar, 15000);
   };
   const consultar = async () => {
     if (encerrado || document.hidden) return;
     const resultado = await loja.consultarPedido(pedido.txid);
     if (encerrado) return;
     if (!resultado?.ok) {
+      const marca = artigo.querySelector(".situacao");
+      if (marca && acao !== "confirmar") {
+        marca.className = "situacao situacao-problema";
+        marca.textContent = "Não consegui consultar";
+      }
+      const estado = artigo.querySelector(".aviso-conta");
+      if (estado) aviso(estado, resultado?.mensagem || "Não consegui consultar este pedido. Nenhum pagamento novo foi gerado.");
       if (acao === "confirmar" && !artigo.querySelector("button.botao")) {
-        const estado = artigo.querySelector(".aviso-conta");
         artigo.insertBefore(botaoDownload(pedido, loja), estado);
       }
       return;
     }
     acao = resultado.acao || acao;
     aplicarSituacao(artigo, pedido, loja, resultado);
-    if (!intervaloDaTela(acao, false)) parar();
-  };
-  const retomar = () => {
-    if (encerrado || timer || !intervaloDaTela(acao, false)) return;
-    consultar();
-    timer = setInterval(consultar, 15000);
+    agendar();
   };
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
@@ -260,10 +329,10 @@ function acompanharPedido(artigo, pedido, loja, acaoInicial) {
       timer = 0;
       return;
     }
-    retomar();
+    consultar();
   });
   window.addEventListener("pagehide", parar, { once: true });
-  retomar();
+  consultar();
 }
 
 function ligarSaida(loja) {
@@ -458,11 +527,31 @@ export async function iniciarMinhas(loja) {
     }
     return;
   }
-  const porCodigo = new Map();
-  pedidos.forEach((pedido) => {
-    const ids = porCodigo.get(pedido.txid) || [];
-    ids.push(pedido.atividade_id);
-    porCodigo.set(pedido.txid, ids);
+  const grupos = agruparPorCodigo(pedidos);
+  let verOcultos = false;
+  const ocultos = grupos.filter((pedido) => pedido.oculto);
+  const alternar = document.createElement("button");
+  alternar.type = "button";
+  alternar.className = "botao botao-secundario";
+  alternar.hidden = ocultos.length === 0;
+  const pintar = () => {
+    const visiveis = grupos.filter((pedido) => verOcultos || !pedido.oculto);
+    alternar.textContent = verOcultos ? "Voltar às compras visíveis" : `Ver pedidos ocultos (${ocultos.length})`;
+    alternar.setAttribute("aria-pressed", String(verOcultos));
+    lista.dataset.ocultos = verOcultos ? "sim" : "nao";
+    lista.replaceChildren();
+    if (!visiveis.length) {
+      const nota = document.createElement("p");
+      nota.textContent = verOcultos ? "Nenhum pedido oculto." : "Nenhuma compra visível. As tentativas ocultas continuam guardadas.";
+      lista.append(nota);
+      return;
+    }
+    visiveis.forEach((pedido) => lista.append(cartaoPedido(pedido, loja)));
+  };
+  alternar.addEventListener("click", () => {
+    verOcultos = !verOcultos;
+    pintar();
   });
-  pedidos.forEach((pedido) => lista.append(cartaoPedido({ ...pedido, atividades: porCodigo.get(pedido.txid) }, loja)));
+  lista.before(alternar);
+  pintar();
 }
