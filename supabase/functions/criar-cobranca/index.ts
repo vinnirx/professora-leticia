@@ -401,19 +401,22 @@ async function registroDoUsuario(admin, usuarioId, txid) {
     .select("atividade_id, titulo, valor, status")
     .eq("usuario_id", usuarioId)
     .eq("txid", txid);
-  if (pedidos.error || !pedidos.data?.length) return null;
+  if (pedidos.error) return { erro: true };
+  if (!pedidos.data?.length) return null;
   const cobranca = await admin
     .from("cobrancas")
     .select("id, status, cobranca_externa, copia_cola, expira_em, valor_bruto")
     .eq("usuario_id", usuarioId)
     .eq("txid", txid)
     .maybeSingle();
+  if (cobranca.error) return { erro: true };
   const direitos = await admin
     .from("direitos_acesso")
-    .select("id")
+    .select("atividade_id")
     .eq("usuario_id", usuarioId)
     .eq("txid", txid)
     .is("revogado_em", null);
+  if (direitos.error) return { erro: true };
   return {
     pedidos: pedidos.data,
     cobranca: cobranca.data || null,
@@ -448,6 +451,9 @@ async function consultaDoPedido({ origem, admin, usuario, usuarioId, pedido, des
     return responder(origem, 400, { ok: false, mensagem: "Não encontrei este pedido na sua conta." });
   }
   let registro = await registroDoUsuario(admin, usuarioId, txid);
+  if (registro?.erro) {
+    return responder(origem, 503, { ok: false, mensagem: "Não consegui consultar este pedido. Nenhum pagamento novo foi gerado." });
+  }
   if (!registro) {
     return responder(origem, 404, { ok: false, mensagem: "Não encontrei este pedido na sua conta." });
   }
@@ -456,7 +462,8 @@ async function consultaDoPedido({ origem, admin, usuario, usuarioId, pedido, des
     : null;
   if (pedido.consulta === "situacao" && remota?.ok && remota.jsonValido) {
     await aplicarConsulta(admin, registro.cobranca, remota.json);
-    registro = await registroDoUsuario(admin, usuarioId, txid) || registro;
+    const relido = await registroDoUsuario(admin, usuarioId, txid);
+    if (relido && !relido.erro) registro = relido;
   }
   const cobranca = registro.cobranca;
   const valor = Number(cobranca?.valor_bruto ?? registro.pedidos.reduce((soma, item) => soma + Number(item.valor || 0), 0));
@@ -481,7 +488,8 @@ async function consultaDoPedido({ origem, admin, usuario, usuarioId, pedido, des
         codigo_pix: null,
         expira: null,
       });
-      registro = await registroDoUsuario(admin, usuarioId, txid) || registro;
+      const relido = await registroDoUsuario(admin, usuarioId, txid);
+    if (relido && !relido.erro) registro = relido;
     }
     ausenciaConfirmada = consulta.acao === "criar";
   }

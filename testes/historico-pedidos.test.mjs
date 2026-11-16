@@ -25,6 +25,13 @@ assert.match(sql, /grant execute on function public\.cancelar_tentativa_sem_cobr
 assert.match(reverter, /drop column if exists oculto_em/);
 assert.doesNotMatch(reverter, /drop table public\.pedidos/i);
 
+assert.match(sql, /grant select on public\.pedidos to service_role/);
+assert.match(sql, /grant select on public\.cobrancas to service_role/);
+assert.match(sql, /grant select on public\.direitos_acesso to service_role/);
+assert.doesNotMatch(sql, /grant select on public\.pedidos to anon/);
+assert.match(funcao, /\.from\("direitos_acesso"\)\s*\.select\("atividade_id"\)/);
+assert.doesNotMatch(funcao, /\.from\("direitos_acesso"\)\s*\.select\("id"\)/);
+assert.match(funcao, /registro\?\.erro/);
 assert.match(funcao, /cancelar_tentativa_sem_cobranca/);
 assert.match(funcao, /definir_visibilidade_pedido/);
 assert.doesNotMatch(funcao, /method: "DELETE"|asaas\(destino\.base, `\/payments\/\$\{[^`]+\}, chaveAsaas, "DELETE"/);

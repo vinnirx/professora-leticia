@@ -125,3 +125,7 @@ revoke all on function public.cancelar_tentativa_sem_cobranca(text) from public,
 revoke all on function public.definir_visibilidade_pedido(text, boolean) from public, anon, service_role;
 grant execute on function public.cancelar_tentativa_sem_cobranca(text) to authenticated;
 grant execute on function public.definir_visibilidade_pedido(text, boolean) to authenticated;
+
+grant select on public.pedidos to service_role;
+grant select on public.cobrancas to service_role;
+grant select on public.direitos_acesso to service_role;
