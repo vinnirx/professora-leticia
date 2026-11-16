@@ -21,6 +21,12 @@ export function paginaAtividade(id, pathname = typeof location === "undefined" ?
   return `${prefixo(pathname)}atividade.html?id=${encodeURIComponent(id)}`;
 }
 
+export function enderecoDeMidia(caminho, pathname = typeof location === "undefined" ? "/" : location.pathname) {
+  const texto = String(caminho || "").trim();
+  if (!texto || /^(?:https?:|data:|blob:|\/)/i.test(texto)) return texto;
+  return `${prefixo(pathname)}${texto.replace(/^\.\//, "")}`;
+}
+
 export function destinoInterno(valor, pathname = typeof location === "undefined" ? "/" : location.pathname) {
   const pedido = String(valor || "");
   if (pedido === "index.html?carrinho=1" || pedido === "?carrinho=1") return `${rota("inicio", pathname)}?carrinho=1`;

@@ -1,6 +1,7 @@
 import { abrirCarrinho, guardarNoCarrinho, prepararCarrinho, rotuloAdicionar } from "./carrinho.js?v=2";
 import { abrirPix, prepararCheckout } from "./checkout.js?v=7";
 import { mesclarOferta, publicarOferta } from "./ofertas.js";
+import { enderecoDeMidia } from "./rotas.js?v=2";
 import { dinheiro, linhas } from "./texto.js";
 
 function preencherFicha(atividade) {
@@ -36,7 +37,7 @@ function preencherFicha(atividade) {
   const imagem = amostra?.querySelector("img");
   if (amostra && imagem && atividade.capa) {
     amostra.hidden = false;
-    imagem.src = atividade.capa;
+    imagem.src = enderecoDeMidia(atividade.capa);
     imagem.alt = atividade.capaAlt || "";
   } else if (amostra) {
     amostra.hidden = true;

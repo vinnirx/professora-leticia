@@ -2,7 +2,7 @@ import { abrirCarrinho, guardarNoCarrinho, pintarCarrinho } from "./carrinho.js?
 import { mesclarOferta, publicarOfertas } from "./ofertas.js";
 import { montarVitrine } from "./vitrine.js";
 import { dinheiro, escapar, linhas } from "./texto.js";
-import { paginaAtividade } from "./rotas.js";
+import { enderecoDeMidia, paginaAtividade } from "./rotas.js?v=2";
 
 const grade = document.querySelector("#grade");
 let catalogo = [];
@@ -47,7 +47,7 @@ function paraCartao(item) {
     destaque: item.destaque !== false,
     explicacao: item.explicacao || "",
     habilidades: Array.isArray(item.habilidades) ? item.habilidades : linhas(item.habilidades),
-    capa: item.capa || "",
+    capa: enderecoDeMidia(item.capa || ""),
     capaAlt: item.capaAlt || "",
   };
 }
