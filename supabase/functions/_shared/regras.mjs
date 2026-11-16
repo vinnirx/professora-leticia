@@ -4,6 +4,83 @@ function verificador(base, pesos) {
   return resto < 2 ? 0 : 11 - resto;
 }
 
+function descricaoSegura(valor) {
+  const texto = String(valor || "").replace(/\s+/g, " ").trim();
+  if (!texto || texto.length > 180) return "";
+  const limpa = texto
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "")
+    .replace(/\d{6,}/g, "")
+    .replace(/bearer\s+\S+/gi, "")
+    .replace(/\$aact_\S+/gi, "")
+    .replace(/access_token\S*/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!limpa || /@|bearer|aact_|access_token/i.test(limpa)) return "";
+  return limpa;
+}
+
+export function diagnosticoAsaas({ etapa, status, json, jsonValido, correlacao }) {
+  const erros = Array.isArray(json?.errors) ? json.errors : [];
+  const codigos = [];
+  for (const item of erros) {
+    const codigo = String(item?.code || "").trim();
+    if (/^[a-z0-9_]{1,40}$/i.test(codigo) && !codigos.includes(codigo)) codigos.push(codigo);
+  }
+  return {
+    evento: "asaas",
+    etapa: String(etapa || ""),
+    status: Number(status) || 0,
+    json_valido: jsonValido !== false,
+    codigos,
+    descricao: descricaoSegura(erros.map((item) => item?.description || "").join(" ")),
+    correlacao: String(correlacao || "").slice(0, 40),
+  };
+}
+
+export function decidirCliente(busca) {
+  if (!busca || busca.status === 504 || busca.jsonValido === false || !busca.ok) return { acao: "aguardar" };
+  if (busca.id) return { acao: "reutilizar", id: String(busca.id) };
+  return { acao: "criar" };
+}
+
+export function decidirConsultaCobranca(consulta) {
+  if (!consulta || consulta.status === 504 || consulta.jsonValido === false || !consulta.ok) return { acao: "aguardar" };
+  if (consulta.id) return { acao: "reconciliar", id: String(consulta.id) };
+  return { acao: "criar" };
+}
+
+export function decidirPosCriacao({ criacao, consulta }) {
+  const idCriado = criacao?.id ? String(criacao.id) : "";
+  const idConsulta = consulta?.id ? String(consulta.id) : "";
+  if (idCriado) return { acao: "gravar", id: idCriado, apagar: false };
+  if (idConsulta) return { acao: "gravar", id: idConsulta, apagar: false };
+  const inconclusiva = !criacao
+    || criacao.status === 504
+    || criacao.jsonValido === false
+    || Number(criacao.status) >= 500
+    || !Number(criacao.status);
+  const ausenciaConfirmada = Boolean(
+    consulta
+    && consulta.ok
+    && consulta.jsonValido !== false
+    && !idConsulta
+    && Number(consulta.status) >= 200
+    && Number(consulta.status) < 300,
+  );
+  if (!ausenciaConfirmada || inconclusiva) {
+    return {
+      acao: "preservar",
+      apagar: false,
+      mensagem: "Não consegui confirmar se esta cobrança já existe. Não gere outro Pix ainda.",
+    };
+  }
+  return {
+    acao: "preservar",
+    apagar: false,
+    mensagem: "O Asaas não criou a cobrança. Se o Pix não aparecer, não pague de novo ainda.",
+  };
+}
+
 export function documentoValido(valor) {
   const digitos = String(valor || "").replace(/\D/g, "");
   if (/^(\d)\1+$/.test(digitos)) return false;

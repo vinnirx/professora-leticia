@@ -10,6 +10,10 @@ import {
   eventoDeConsulta,
   respostaDoWebhook,
   segredosIguais,
+  diagnosticoAsaas,
+  decidirCliente,
+  decidirConsultaCobranca,
+  decidirPosCriacao,
 } from "../supabase/functions/_shared/regras.mjs";
 
 function cpfDeTeste() {
@@ -212,5 +216,51 @@ assert.equal(pendente.status, 500);
 const falha = planoConciliacao({ destinoOk: true, resultados: [{ resultado: "falhou" }], cobrancasAbertas: 0 });
 assert.equal(falha.status, 500);
 assert.equal(falha.corpo.alerta, true);
+
+const aceita = decidirPosCriacao({
+  criacao: { id: "pay_aceita", status: 200, ok: true, jsonValido: true },
+  consulta: null,
+});
+assert.equal(aceita.acao, "gravar");
+assert.equal(aceita.apagar, false);
+const recusada = decidirPosCriacao({
+  criacao: { id: "", status: 400, ok: false, jsonValido: true },
+  consulta: { id: "", status: 200, ok: true, jsonValido: true },
+});
+assert.equal(recusada.acao, "preservar");
+assert.equal(recusada.apagar, false);
+assert.match(recusada.mensagem, /não pague de novo ainda/i);
+const timeoutRemoto = decidirPosCriacao({
+  criacao: { id: "", status: 504, ok: false, jsonValido: false },
+  consulta: { id: "pay_recuperada", status: 200, ok: true, jsonValido: true },
+});
+assert.equal(timeoutRemoto.acao, "gravar");
+assert.equal(timeoutRemoto.id, "pay_recuperada");
+const respostaInvalida = decidirPosCriacao({
+  criacao: { id: "", status: 200, ok: true, jsonValido: false },
+  consulta: { id: "", status: 200, ok: true, jsonValido: true },
+});
+assert.equal(respostaInvalida.acao, "preservar");
+assert.match(respostaInvalida.mensagem, /já existe/i);
+const repeticao = decidirConsultaCobranca({ id: "pay_antiga", status: 200, ok: true, jsonValido: true });
+assert.equal(repeticao.acao, "reconciliar");
+assert.equal(decidirConsultaCobranca({ id: "", status: 200, ok: true, jsonValido: true }).acao, "criar");
+assert.equal(decidirConsultaCobranca({ id: "", status: 500, ok: false, jsonValido: true }).acao, "aguardar");
+assert.equal(decidirCliente({ id: "cus_pronto", status: 200, ok: true, jsonValido: true }).acao, "reutilizar");
+assert.equal(decidirCliente({ id: "", status: 200, ok: true, jsonValido: true }).acao, "criar");
+assert.equal(decidirCliente({ id: "", status: 504, ok: false, jsonValido: false }).acao, "aguardar");
+const diag = diagnosticoAsaas({
+  etapa: "criar_cobranca",
+  status: 400,
+  jsonValido: true,
+  correlacao: "txid-diagnostico",
+  json: { errors: [{ code: "invalid_object", description: "Cobrança recusada para cliente@example.com CPF 12345678901." }] },
+});
+assert.equal(diag.status, 400);
+assert.deepEqual(diag.codigos, ["invalid_object"]);
+assert.equal(diag.descricao.includes("@"), false);
+assert.equal(diag.descricao.includes("12345678901"), false);
+assert.equal(diag.correlacao, "txid-diagnostico");
+assert.equal(JSON.stringify(diag).includes("access_token"), false);
 
 console.log("ok regras de pagamento simuladas");

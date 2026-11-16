@@ -246,7 +246,7 @@ marcar("timeout do Asaas não apaga a cobrança", tempo.status === 502 && Date.n
 modoAsaas({ clientes: [vazio.id], pagamentos: "erro" });
 const chaveErro = `chave-erro-${randomBytes(3).toString("hex")}`;
 const erroAsaas = await chamarFuncao("criar-cobranca", vazio.token, { atividades: ["adicao"], chave: chaveErro, documento });
-marcar("falha do Asaas sem timeout desfaz a cobrança sem Pix", erroAsaas.status === 502 && psql(`select count(*) from public.cobrancas where chave_idempotencia = '${chaveErro}'`) === "0", String(erroAsaas.status));
+marcar("falha ambígua do Asaas preserva a cobrança local", erroAsaas.status === 502 && psql(`select count(*) from public.cobrancas where chave_idempotencia = '${chaveErro}'`) === "1", String(erroAsaas.status));
 
 const semToken = await webhook("", evento("evt_sem", "PAYMENT_RECEIVED", "pay_x", 9.8, 7.81));
 marcar("webhook sem token", semToken.status === 401, String(semToken.status));

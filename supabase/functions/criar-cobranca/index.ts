@@ -1,6 +1,15 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { cabecalhos, responder } from "../_shared/cors.ts";
-import { acessoCobranca, destinoAsaas, documentoValido, identificadorAutenticado } from "../_shared/regras.mjs";
+import {
+  acessoCobranca,
+  decidirCliente,
+  decidirConsultaCobranca,
+  decidirPosCriacao,
+  destinoAsaas,
+  diagnosticoAsaas,
+  documentoValido,
+  identificadorAutenticado,
+} from "../_shared/regras.mjs";
 
 function claimsDoToken(autorizacao: string) {
   const token = autorizacao.replace(/^Bearer\s+/i, "").trim();
@@ -44,16 +53,29 @@ async function asaas(base: string, caminho: string, chave: string, metodo: strin
       signal: AbortSignal.timeout(12000),
     });
   } catch {
-    return { ok: false, status: 504, json: {} as Record<string, unknown> };
+    return { ok: false, status: 504, json: {} as Record<string, unknown>, jsonValido: false };
   }
   const texto = await resposta.text();
-  let json: Record<string, unknown> = {};
+  if (!texto) return { ok: resposta.ok, status: resposta.status, json: {} as Record<string, unknown>, jsonValido: true };
   try {
-    json = texto ? JSON.parse(texto) : {};
+    const json = JSON.parse(texto);
+    if (!json || typeof json !== "object" || Array.isArray(json)) {
+      return { ok: resposta.ok, status: resposta.status, json: {} as Record<string, unknown>, jsonValido: false };
+    }
+    return { ok: resposta.ok, status: resposta.status, json: json as Record<string, unknown>, jsonValido: true };
   } catch {
-    json = {};
+    return { ok: resposta.ok, status: resposta.status, json: {} as Record<string, unknown>, jsonValido: false };
   }
-  return { ok: resposta.ok, status: resposta.status, json };
+}
+
+function registrar(etapa: string, resposta: { status?: number; json?: Record<string, unknown>; jsonValido?: boolean }, correlacao: string) {
+  console.error(JSON.stringify(diagnosticoAsaas({
+    etapa,
+    status: resposta?.status,
+    json: resposta?.json,
+    jsonValido: resposta?.jsonValido,
+    correlacao,
+  })));
 }
 
 function primeiroId(json: Record<string, unknown>) {
@@ -115,10 +137,17 @@ Deno.serve(async (req) => {
     chaveAsaas,
     "GET",
   );
-  if (buscaCliente.status === 504) {
+  const clienteDecidido = decidirCliente({
+    ok: buscaCliente.ok,
+    status: buscaCliente.status,
+    jsonValido: buscaCliente.jsonValido,
+    id: buscaCliente.ok && buscaCliente.jsonValido ? primeiroId(buscaCliente.json) : "",
+  });
+  if (clienteDecidido.acao === "aguardar") {
+    registrar("buscar_cliente", buscaCliente, "");
     return responder(origem, 502, { ok: false, mensagem: "Não consegui confirmar seu cadastro no Asaas. Tente de novo. Não pague ainda." });
   }
-  let clienteId = buscaCliente.ok ? primeiroId(buscaCliente.json) : "";
+  let clienteId = clienteDecidido.id || "";
   if (!clienteId && !documentoValido(documento)) {
     return responder(origem, 400, { ok: false, mensagem: "Informe um CPF ou CNPJ válido para gerar o Pix." });
   }
@@ -149,10 +178,17 @@ Deno.serve(async (req) => {
       chaveAsaas,
       "GET",
     );
-    if (buscaCobranca.status === 504) {
+    const consulta = decidirConsultaCobranca({
+      ok: buscaCobranca.ok,
+      status: buscaCobranca.status,
+      jsonValido: buscaCobranca.jsonValido,
+      id: buscaCobranca.ok && buscaCobranca.jsonValido ? primeiroId(buscaCobranca.json) : "",
+    });
+    if (consulta.acao === "aguardar") {
+      registrar("buscar_cobranca", buscaCobranca, String(preparo.txid || ""));
       return responder(origem, 502, { ok: false, mensagem: "Não consegui confirmar se esta cobrança já existe. Não gere outro Pix ainda." });
     }
-    externa = buscaCobranca.ok ? primeiroId(buscaCobranca.json) : "";
+    if (consulta.acao === "reconciliar") externa = consulta.id;
   }
 
   if (!externa) {
@@ -176,6 +212,7 @@ Deno.serve(async (req) => {
         clienteId = deNovo.ok ? primeiroId(deNovo.json) : "";
       }
       if (!clienteId) {
+        registrar("criar_cliente", cliente, String(preparo.txid || ""));
         return responder(origem, 502, { ok: false, mensagem: "O Asaas não abriu o cliente. Confira o CPF ou CNPJ e tente de novo." });
       }
     }
@@ -189,22 +226,43 @@ Deno.serve(async (req) => {
       externalReference: preparo.txid,
       description: "Inclusão no Cotidiano",
     });
-    externa = String(cobranca.json.id || "");
-    if (!externa) {
+    let depois = decidirPosCriacao({
+      criacao: {
+        id: cobranca.jsonValido ? String(cobranca.json.id || "") : "",
+        status: cobranca.status,
+        ok: cobranca.ok,
+        jsonValido: cobranca.jsonValido,
+      },
+      consulta: null,
+    });
+    if (depois.acao !== "gravar") {
       const recuperada = await asaas(
         base,
         `/payments?externalReference=${encodeURIComponent(preparo.txid)}&limit=1`,
         chaveAsaas,
         "GET",
       );
-      externa = recuperada.ok ? primeiroId(recuperada.json) : "";
+      depois = decidirPosCriacao({
+        criacao: {
+          id: cobranca.jsonValido ? String(cobranca.json.id || "") : "",
+          status: cobranca.status,
+          ok: cobranca.ok,
+          jsonValido: cobranca.jsonValido,
+        },
+        consulta: {
+          id: recuperada.ok && recuperada.jsonValido ? primeiroId(recuperada.json) : "",
+          status: recuperada.status,
+          ok: recuperada.ok,
+          jsonValido: recuperada.jsonValido,
+        },
+      });
+      if (depois.acao !== "gravar") registrar("confirmar_cobranca", recuperada, String(preparo.txid || ""));
     }
-    if (!externa) {
-      if (cobranca.status !== 504 && !preparo.repetida) {
-        await admin.rpc("desfazer_cobranca_sem_pix", { cobranca: preparo.cobranca_id });
-      }
-      return responder(origem, 502, { ok: false, mensagem: "O Asaas não criou a cobrança. Se o Pix não aparecer, não pague de novo ainda." });
+    if (depois.acao !== "gravar") {
+      registrar("criar_cobranca", cobranca, String(preparo.txid || ""));
+      return responder(origem, 502, { ok: false, mensagem: depois.mensagem });
     }
+    externa = depois.id;
     await admin.rpc("gravar_pix_cobranca", {
       cobranca: preparo.cobranca_id,
       externa,
@@ -216,6 +274,7 @@ Deno.serve(async (req) => {
   const qr = await asaas(base, `/payments/${externa}/pixQrCode`, chaveAsaas, "GET");
   const copiaCola = String(qr.json.payload || "");
   if (!qr.ok || !copiaCola) {
+    registrar("buscar_qr", qr, String(preparo.txid || ""));
     return responder(origem, 502, { ok: false, mensagem: "A cobrança existe, mas o Pix ainda não voltou. Use o mesmo pedido para tentar de novo." });
   }
 
