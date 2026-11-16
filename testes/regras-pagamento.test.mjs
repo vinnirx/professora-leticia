@@ -14,6 +14,11 @@ import {
   decidirCliente,
   decidirConsultaCobranca,
   decidirPosCriacao,
+  decidirRetomada,
+  intervaloDaConsulta,
+  cobrancaCompativel,
+  mensagemParaCliente,
+  valorAceitoAsaas,
 } from "../supabase/functions/_shared/regras.mjs";
 
 function cpfDeTeste() {
@@ -262,5 +267,70 @@ assert.equal(diag.descricao.includes("@"), false);
 assert.equal(diag.descricao.includes("12345678901"), false);
 assert.equal(diag.correlacao, "txid-diagnostico");
 assert.equal(JSON.stringify(diag).includes("access_token"), false);
+
+const recusaValor = diagnosticoAsaas({
+  etapa: "criar_cobranca",
+  status: 400,
+  jsonValido: true,
+  correlacao: "58f9374f23",
+  json: { errors: [{ code: "invalid_object", description: "O valor da cobrança não pode ser menor que o mínimo." }] },
+});
+assert.match(mensagemParaCliente(recusaValor), /Nenhuma cobrança foi criada/);
+assert.equal(mensagemParaCliente(diag), "");
+
+const agora = Date.parse("2026-11-16T00:00:00Z");
+assert.equal(decidirRetomada({ encontrada: false }).acao, "negar");
+assert.equal(decidirRetomada({
+  encontrada: true, statusPedido: "aguardando", statusCobranca: "pendente", temPix: true, temExterna: true, expiraEm: "2026-11-17T00:00:00Z", agora,
+}).acao, "continuar");
+assert.equal(valorAceitoAsaas(4.9), false);
+assert.equal(valorAceitoAsaas(5), true);
+assert.equal(valorAceitoAsaas(9.8), true);
+assert.equal(decidirRetomada({
+  encontrada: true, statusPedido: "aguardando", statusCobranca: "criada", temPix: false, temExterna: false, ausenciaConfirmada: true, valor: 4.9, agora,
+}).acao, "abaixo");
+assert.equal(decidirRetomada({
+  encontrada: true, statusPedido: "aguardando", statusCobranca: "criada", temPix: false, temExterna: false, ausenciaConfirmada: true, valor: 9.8, agora,
+}).acao, "tentar");
+assert.equal(decidirRetomada({
+  encontrada: true, statusPedido: "aguardando", statusCobranca: "criada", temPix: false, temExterna: false, ausenciaConfirmada: false, valor: 9.8, agora,
+}).acao, "aguardar");
+assert.equal(decidirRetomada({
+  encontrada: true, statusPedido: "aguardando", statusCobranca: "", temPix: false, temExterna: false, agora,
+}).acao, "manual");
+assert.equal(decidirRetomada({
+  encontrada: true, statusPedido: "pago", statusCobranca: "pago", direito: false, agora,
+}).acao, "confirmar");
+assert.equal(decidirRetomada({
+  encontrada: true, statusPedido: "pago", statusCobranca: "pago", direito: true, agora,
+}).acao, "baixar");
+assert.equal(decidirEvento({ status: "pendente", tipo: "PAYMENT_CONFIRMED", valorEsperado: 4.9, valorRecebido: 4.9 }).liberar, false);
+assert.equal(decidirRetomada({
+  encontrada: true, statusPedido: "aguardando", statusCobranca: "pendente", temPix: true, expiraEm: "2026-11-15T00:00:00Z", agora,
+}).acao, "vencido");
+assert.equal(decidirRetomada({
+  encontrada: true, statusPedido: "aguardando", statusCobranca: "expirada", temPix: true, agora,
+}).renovavel, true);
+assert.equal(decidirRetomada({
+  encontrada: true, statusPedido: "estornado", statusCobranca: "estornada", agora,
+}).acao, "estornado");
+assert.equal(decidirRetomada({
+  encontrada: true, statusPedido: "aguardando", statusCobranca: "analise", agora,
+}).acao, "analise");
+assert.equal(intervaloDaConsulta("continuar"), 15000);
+assert.equal(intervaloDaConsulta("tentar"), 0);
+assert.equal(intervaloDaConsulta("abaixo"), 0);
+assert.equal(intervaloDaConsulta("baixar"), 0);
+assert.equal(intervaloDaConsulta("analise"), 0);
+
+const abertas = [
+  { txid: "antiga", status: "criada", criadoEm: "2026-11-16T00:13:38Z", chave: "chave-antiga", atividades: ["celulas"] },
+  { txid: "recente", status: "criada", criadoEm: "2026-11-16T00:16:17Z", chave: "chave-recente", atividades: ["celulas"] },
+  { txid: "par", status: "pendente", criadoEm: "2026-11-16T00:20:00Z", chave: "chave-par", atividades: ["celulas", "silabas"] },
+];
+assert.equal(cobrancaCompativel(abertas, ["celulas"]).chave, "chave-recente");
+assert.equal(cobrancaCompativel(abertas, ["silabas", "celulas"]).chave, "chave-par");
+assert.equal(cobrancaCompativel(abertas, ["adicao"]), null);
+assert.equal(cobrancaCompativel([{ status: "pago", atividades: ["celulas"], chave: "paga" }], ["celulas"]), null);
 
 console.log("ok regras de pagamento simuladas");

@@ -81,6 +81,74 @@ export function decidirPosCriacao({ criacao, consulta }) {
   };
 }
 
+export const MINIMO_ASAAS_CENTAVOS = 500;
+
+export function valorAceitoAsaas(valor) {
+  const centavos = Math.round(Number(valor) * 100);
+  return Number.isFinite(centavos) && centavos >= MINIMO_ASAAS_CENTAVOS;
+}
+
+export function mensagemParaCliente(diagnostico) {
+  const texto = String(diagnostico?.descricao || "");
+  if (/n[aã]o pode ser menor que/i.test(texto)) {
+    return "O Asaas não aceitou este valor. Nenhuma cobrança foi criada. Não pague.";
+  }
+  return "";
+}
+
+export function decidirRetomada({
+  encontrada,
+  statusPedido,
+  statusCobranca,
+  temPix,
+  temExterna,
+  expiraEm,
+  direito,
+  valor,
+  ausenciaConfirmada,
+  agora = Date.now(),
+}) {
+  if (!encontrada) return { acao: "negar", consultar: false, renovavel: false };
+  if (statusPedido === "pago" && direito) return { acao: "baixar", consultar: false, renovavel: false };
+  if (statusPedido === "pago") return { acao: "confirmar", consultar: true, renovavel: false };
+  if (statusCobranca === "analise" || statusPedido === "analise") {
+    return { acao: "analise", consultar: false, renovavel: false };
+  }
+  if (statusCobranca === "estornada" || statusPedido === "estornado") {
+    return { acao: "estornado", consultar: false, renovavel: false };
+  }
+  if (statusCobranca === "cancelada" || statusPedido === "cancelado") {
+    return { acao: "cancelado", consultar: false, renovavel: false };
+  }
+  const limite = expiraEm ? Date.parse(expiraEm) : Number.NaN;
+  if (statusCobranca === "expirada" || (Number.isFinite(limite) && limite <= agora)) {
+    return { acao: "vencido", consultar: false, renovavel: statusCobranca === "expirada" };
+  }
+  if (!statusCobranca) return { acao: "manual", consultar: false, renovavel: false };
+  if (temPix) return { acao: "continuar", consultar: true, renovavel: false };
+  if (!temExterna) {
+    if (!ausenciaConfirmada) return { acao: "aguardar", consultar: false, renovavel: false };
+    if (!valorAceitoAsaas(valor)) return { acao: "abaixo", consultar: false, renovavel: false };
+    return { acao: "tentar", consultar: false, renovavel: false };
+  }
+  return { acao: "recuperar", consultar: true, renovavel: false };
+}
+
+export function intervaloDaConsulta(acao) {
+  return ["continuar", "recuperar", "confirmar"].includes(acao) ? 15000 : 0;
+}
+
+export function cobrancaCompativel(abertas, atividades) {
+  const alvo = [...(atividades || [])].map(String).filter(Boolean).sort().join(",");
+  if (!alvo) return null;
+  const compativeis = (abertas || []).filter((item) => {
+    const ids = [...(item?.atividades || [])].map(String).filter(Boolean).sort().join(",");
+    return ids === alvo && ["criada", "pendente"].includes(item?.status);
+  });
+  if (!compativeis.length) return null;
+  return [...compativeis].sort((a, b) => String(a.criadoEm || "").localeCompare(String(b.criadoEm || ""))).at(-1);
+}
+
 export function documentoValido(valor) {
   const digitos = String(valor || "").replace(/\D/g, "");
   if (/^(\d)\1+$/.test(digitos)) return false;

@@ -684,6 +684,42 @@ async function iniciar() {
       if (error) return { ok: false, mensagem: traduzir(error) };
       return data || { ok: false, mensagem: "Não foi possível encerrar." };
     },
+    async pedirCobranca(consulta, txid) {
+      const atual = await sessao();
+      if (!atual || !config) return { ok: false, mensagem: "Entre na conta para comprar." };
+      let resposta;
+      try {
+        resposta = await fetch(`${config.url}/functions/v1/criar-cobranca`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${atual.access_token}`,
+            apikey: config.chave,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ consulta, txid: String(txid || "") }),
+        });
+      } catch {
+        return { ok: false, mensagem: "Não consegui consultar este pedido. Tente de novo." };
+      }
+      const corpo = await resposta.json().catch(() => ({}));
+      if (!resposta.ok || corpo.ok === false) {
+        return { ok: false, mensagem: corpo.mensagem || "Não consegui consultar este pedido." };
+      }
+      return {
+        ok: true,
+        acao: corpo.acao || "",
+        status: corpo.status || "",
+        mensagem: corpo.mensagem || "",
+        txid: corpo.txid || txid,
+        valor: corpo.valor,
+        titulos: Array.isArray(corpo.titulos) ? corpo.titulos : [],
+        expiraEm: corpo.expiraEm || "",
+        copiaCola: corpo.copiaCola || "",
+        imagem: corpo.imagem || "",
+        renovavel: corpo.renovavel === true,
+        liberado: corpo.liberado === true,
+      };
+    },
     async pixAutomaticoDisponivel() {
       try {
         const atual = await sessao();
@@ -730,6 +766,12 @@ async function iniciar() {
         expiraEm: corpo.expiraEm || "",
         status: corpo.status || "pendente",
       };
+    },
+    async retomarPedido(txid) {
+      return this.pedirCobranca("retomar", txid);
+    },
+    async consultarPedido(txid) {
+      return this.pedirCobranca("situacao", txid);
     },
     async definirPapel(alvo, novoPapel) {
       const acesso = await usuarioConfirmado();

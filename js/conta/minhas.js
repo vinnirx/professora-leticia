@@ -2,6 +2,7 @@ import { aviso, moeda } from "./avisos.js";
 import { acionarSaida } from "./saida.js";
 import { resumoAdministrativo } from "./apresentacao.js?v=2";
 import { administra } from "./papeis.js";
+import { apresentacao, intervaloDaTela } from "./retomada.js";
 import { rota } from "../rotas.js";
 import { linkAjuda } from "../texto.js";
 
@@ -47,23 +48,30 @@ function cartaoPedido(pedido, loja) {
       estado,
       contato(pedido, "Meu Pix ainda não foi confirmado."),
     );
-    estado.textContent = "O pagamento ainda não entrou. O PDF fica bloqueado até a confirmação. Se o banco recusou ou apareceu outro nome, fale com a Letícia.";
+    estado.textContent = "O pagamento ainda não entrou. O PDF fica bloqueado até a confirmação.";
+    artigo.append(botaoDaConta(pedido, "continuar"));
+    acompanharPedido(artigo, pedido, loja, "continuar");
     return artigo;
   }
-  artigo.append(selo("ok", "Pagamento confirmado"));
+  artigo.append(selo("ok", "Pagamento confirmado"), estado, contato(pedido, "Preciso de ajuda com este pedido."));
+  estado.textContent = "Pagamento confirmado. O material aparece quando a liberação estiver pronta.";
+  acompanharPedido(artigo, pedido, loja, "confirmar");
+  return artigo;
+}
+
+function botaoDownload(pedido, loja) {
   const botao = document.createElement("button");
   botao.className = "botao";
   botao.type = "button";
   botao.textContent = "Baixar atividade";
-  estado.hidden = true;
   botao.addEventListener("click", async () => {
-    estado.hidden = false;
+    const estado = botao.parentElement?.querySelector(".aviso-conta");
     botao.disabled = true;
     try {
       await loja.baixar(pedido.atividade_id);
-      aviso(estado, "O download começou.", true);
+      if (estado) aviso(estado, "O download começou.", true);
     } catch (erro) {
-      artigo.querySelector(".situacao")?.replaceWith(selo("problema", "Problema para baixar"));
+      botao.parentElement?.querySelector(".situacao")?.replaceWith(selo("problema", "Problema para baixar"));
       const mensagem = erro?.message === "entrar"
         ? "Entre de novo para baixar este material."
         : erro?.message === "negado"
@@ -71,15 +79,191 @@ function cartaoPedido(pedido, loja) {
           : erro?.message === "tentar"
             ? "O download não respondeu. Tente de novo."
             : "O PDF não saiu. Fale com a Letícia e informe o código do pedido.";
-      aviso(estado, mensagem);
-      if (!artigo.querySelector("a[href^='mailto:']")) {
-        artigo.append(contato(pedido, "O pagamento está confirmado, mas o PDF não baixou."));
+      if (estado) aviso(estado, mensagem);
+      if (estado && !botao.parentElement.querySelector("a[href^='mailto:']")) {
+        botao.parentElement.append(contato(pedido, "O pagamento está confirmado, mas o PDF não baixou."));
       }
     }
     botao.disabled = false;
   });
-  artigo.append(botao, estado, contato(pedido, "Preciso de ajuda com este pedido."));
-  return artigo;
+  return botao;
+}
+
+function botaoDaConta(pedido, acao) {
+  const visual = apresentacao(acao);
+  const botao = document.createElement("button");
+  botao.className = "botao";
+  botao.type = "button";
+  botao.dataset.acao = acao;
+  botao.textContent = visual.botao;
+  return botao;
+}
+
+function mostrarPix(artigo, resultado) {
+  let caixa = artigo.querySelector(".pix-retomado");
+  if (!caixa) {
+    caixa = document.createElement("div");
+    caixa.className = "pix-retomado";
+    artigo.append(caixa);
+  }
+  caixa.replaceChildren();
+  const valor = document.createElement("p");
+  const titulos = (resultado.titulos || []).filter(Boolean).join(", ");
+  valor.textContent = `Valor ${moeda.format(Number(resultado.valor || 0))}${titulos ? ` · ${titulos}` : ""}`;
+  const prazo = document.createElement("p");
+  prazo.textContent = resultado.expiraEm
+    ? `Vencimento ${new Date(resultado.expiraEm).toLocaleString("pt-BR")}`
+    : "Use este mesmo Pix até o vencimento informado pelo banco.";
+  const recebedor = document.createElement("p");
+  recebedor.textContent = "Confira o recebedor no aplicativo do banco antes de pagar.";
+  caixa.append(valor, prazo, recebedor);
+  if (resultado.imagem) {
+    const imagem = document.createElement("img");
+    imagem.alt = "QR Code Pix da cobrança";
+    imagem.width = 180;
+    imagem.height = 180;
+    imagem.src = String(resultado.imagem).startsWith("data:")
+      ? resultado.imagem
+      : `data:image/png;base64,${resultado.imagem}`;
+    caixa.append(imagem);
+  }
+  if (resultado.copiaCola) {
+    const codigo = document.createElement("textarea");
+    codigo.readOnly = true;
+    codigo.rows = 3;
+    codigo.value = resultado.copiaCola;
+    caixa.append(codigo);
+  }
+}
+
+function idsDoPedido(pedido) {
+  return Array.isArray(pedido.atividades) && pedido.atividades.length
+    ? pedido.atividades
+    : [pedido.atividade_id];
+}
+
+async function agirNoPedido(artigo, pedido, loja) {
+  const estado = artigo.querySelector(".aviso-conta");
+  const botao = artigo.querySelector("button.botao");
+  const acao = botao?.dataset.acao || "continuar";
+  if (botao) botao.disabled = true;
+  if (acao === "vencido") {
+    const consulta = await loja.consultarPedido(pedido.txid);
+    if (!consulta.ok || !consulta.renovavel) {
+      aviso(estado, consulta.mensagem || "A cobrança anterior ainda não pode ser renovada.");
+      if (botao) botao.disabled = false;
+      return;
+    }
+    await gerarNoPedido(artigo, pedido, loja, estado, botao);
+    return;
+  }
+  if (acao === "tentar") {
+    const consulta = await loja.consultarPedido(pedido.txid);
+    if (!consulta.ok || consulta.acao !== "tentar") {
+      if (consulta.ok) aplicarSituacao(artigo, pedido, loja, consulta);
+      else aviso(estado, consulta.mensagem || "Não consegui confirmar se esta cobrança já existe. Não gere outro Pix ainda.");
+      return;
+    }
+    await gerarNoPedido(artigo, pedido, loja, estado, botao);
+    return;
+  }
+  const resultado = await loja.retomarPedido(pedido.txid);
+  if (!resultado.ok) {
+    aviso(estado, resultado.mensagem || "Não consegui consultar este pedido.");
+    if (botao) botao.disabled = false;
+    return;
+  }
+  aplicarSituacao(artigo, pedido, loja, resultado);
+  const atual = artigo.querySelector("button.botao");
+  if (atual) atual.disabled = false;
+}
+
+async function gerarNoPedido(artigo, pedido, loja, estado, botao) {
+  const gerada = await loja.criarCobranca(idsDoPedido(pedido), crypto.randomUUID(), "");
+  const recusada = /não aceitou este valor/i.test(gerada.mensagem || "");
+  aviso(estado, gerada.mensagem || (gerada.ok ? "O Pix foi gerado neste mesmo pedido." : "Não foi possível gerar o Pix."));
+  if (gerada.ok) mostrarPix(artigo, gerada);
+  if (botao) botao.disabled = recusada;
+}
+
+function aplicarSituacao(artigo, pedido, loja, resultado) {
+  const visual = apresentacao(resultado.acao);
+  const marca = artigo.querySelector(".situacao");
+  if (marca) {
+    marca.className = `situacao situacao-${visual.tipo}`;
+    marca.textContent = visual.titulo;
+  }
+  const estado = artigo.querySelector(".aviso-conta");
+  if (estado) {
+    estado.hidden = false;
+    if (resultado.mensagem) aviso(estado, resultado.mensagem, resultado.liberado === true);
+  }
+  if (resultado.copiaCola || resultado.imagem) mostrarPix(artigo, resultado);
+  const antigo = artigo.querySelector("button.botao");
+  if (resultado.liberado) {
+    antigo?.remove();
+    if (!artigo.querySelector("button.botao")) artigo.insertBefore(botaoDownload(pedido, loja), estado);
+    return;
+  }
+  if (!visual.botao) {
+    antigo?.remove();
+    return;
+  }
+  const botao = antigo || botaoDaConta(pedido, resultado.acao);
+  botao.dataset.acao = resultado.acao;
+  botao.textContent = visual.botao;
+  botao.disabled = false;
+  if (!antigo) artigo.insertBefore(botao, estado);
+  ligarBotao(artigo, pedido, loja, botao);
+}
+
+function ligarBotao(artigo, pedido, loja, botao) {
+  if (!botao || botao.dataset.ligado) return;
+  botao.dataset.ligado = "sim";
+  botao.addEventListener("click", () => agirNoPedido(artigo, pedido, loja));
+}
+
+function acompanharPedido(artigo, pedido, loja, acaoInicial) {
+  if (!loja.consultarPedido) return;
+  let acao = acaoInicial;
+  let timer = 0;
+  let encerrado = false;
+  ligarBotao(artigo, pedido, loja, artigo.querySelector("button.botao"));
+  const parar = () => {
+    encerrado = true;
+    if (timer) clearInterval(timer);
+    timer = 0;
+  };
+  const consultar = async () => {
+    if (encerrado || document.hidden) return;
+    const resultado = await loja.consultarPedido(pedido.txid);
+    if (encerrado) return;
+    if (!resultado?.ok) {
+      if (acao === "confirmar" && !artigo.querySelector("button.botao")) {
+        const estado = artigo.querySelector(".aviso-conta");
+        artigo.insertBefore(botaoDownload(pedido, loja), estado);
+      }
+      return;
+    }
+    acao = resultado.acao || acao;
+    aplicarSituacao(artigo, pedido, loja, resultado);
+    if (!intervaloDaTela(acao, false)) parar();
+  };
+  const retomar = () => {
+    if (encerrado || timer || !intervaloDaTela(acao, false)) return;
+    consultar();
+    timer = setInterval(consultar, 15000);
+  };
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      if (timer) clearInterval(timer);
+      timer = 0;
+      return;
+    }
+    retomar();
+  });
+  window.addEventListener("pagehide", parar, { once: true });
+  retomar();
 }
 
 function ligarSaida(loja) {
@@ -274,5 +458,11 @@ export async function iniciarMinhas(loja) {
     }
     return;
   }
-  pedidos.forEach((pedido) => lista.append(cartaoPedido(pedido, loja)));
+  const porCodigo = new Map();
+  pedidos.forEach((pedido) => {
+    const ids = porCodigo.get(pedido.txid) || [];
+    ids.push(pedido.atividade_id);
+    porCodigo.set(pedido.txid, ids);
+  });
+  pedidos.forEach((pedido) => lista.append(cartaoPedido({ ...pedido, atividades: porCodigo.get(pedido.txid) }, loja)));
 }

@@ -171,8 +171,10 @@ export async function abrirPix(atividade) {
         documento,
       );
       if (!automatica.ok || !automatica.copiaCola) {
-        marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: automatica.mensagem || "A cobrança automática não saiu." }));
-        aviso.textContent = automatica.mensagem || "A cobrança automática não está disponível.";
+        const texto = automatica.mensagem || "A cobrança automática não está disponível.";
+        const semCobranca = /nenhum pix foi gerado/i.test(texto);
+        marcarEstado("problema", semCobranca ? "Pix não gerado" : "Problema no pagamento", linkAjuda({ email, motivo: texto }));
+        aviso.textContent = texto;
         return;
       }
       if (!cobrancaReutilizavel({ status: automatica.status, expiraEm: automatica.expiraEm })) {
