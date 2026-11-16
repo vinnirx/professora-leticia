@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { mensagemFator, origemDoQr, resultadoDaConfirmacao } from "../js/conta/mfa.js";
+import { avisoListaContas, mensagemFator, origemDoQr, resultadoDaConfirmacao } from "../js/conta/mfa.js";
 
 const raiz = new URL("..", import.meta.url);
 const ler = (caminho) => readFileSync(new URL(caminho, raiz), "utf8");
@@ -73,5 +73,11 @@ assert.ok(confirmacao.indexOf("mfa.verify") < confirmacao.indexOf("listFactors")
 assert.match(confirmacao, /resultadoDaConfirmacao/);
 assert.match(confirmacao, /factorId/);
 assert.doesNotMatch(mfa, /O código confere/);
+assert.equal(avisoListaContas({ ok: true, atual: "aal2" }), "");
+assert.match(avisoListaContas({ ok: true, atual: "aal1" }), /Confirme o segundo fator/);
+assert.match(avisoListaContas({ ok: false }), /incompleta/);
+assert.match(admin, /Excluir definitivamente/);
+assert.match(admin, /tabela-atividades/);
+assert.doesNotMatch(admin, /aal2/);
 
 console.log("ok mfa administrativo");

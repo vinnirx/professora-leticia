@@ -1,3 +1,9 @@
+export function avisoListaContas(nivel) {
+  if (nivel?.atual === "aal2") return "";
+  if (!nivel?.ok) return "Não consegui confirmar o segundo fator. A lista de contas pode estar incompleta.";
+  return "Confirme o segundo fator para ver todas as contas. Enquanto isso, a lista mostra só esta sessão.";
+}
+
 export function resultadoDaConfirmacao({ fatores, nivel }) {
   const verificado = (fatores || []).some((fator) => fator.factor_type === "totp" && fator.status === "verified");
   if (!verificado || nivel !== "aal2") {
@@ -137,17 +143,20 @@ export function montarSegundoFator(loja, raiz) {
       }
       const manual = document.createElement("p");
       manual.className = "texto-secao";
-      manual.textContent = "Se o QR Code não abrir, digite esta chave no aplicativo. Ela aparece só agora. Ao cancelar, essa chave deixa de valer.";
-      const chave = document.createElement("p");
+      manual.textContent = "Se o celular não cadastrou a leitura, cancele este QR antes de gerar outro. A chave anterior deixa de valer. Digite a chave atual só se a leitura falhar, sem espaços.";
+      const chave = document.createElement("input");
       chave.className = "chave-fator";
-      chave.textContent = inscricao.segredo || "";
+      chave.readOnly = true;
+      chave.value = inscricao.segredo || "";
+      chave.setAttribute("aria-label", "Chave manual do autenticador");
+      chave.spellcheck = false;
       const cancelar = document.createElement("button");
       cancelar.type = "button";
       cancelar.className = "botao botao-secundario";
       cancelar.textContent = "Cancelar cadastro";
       cancelar.addEventListener("click", async () => {
         cancelar.disabled = true;
-        chave.textContent = "";
+        chave.value = "";
         const resultado = await loja.removerFator(inscricao.id);
         if (!resultado?.ok) {
           mostrarEstado(resultado?.mensagem);

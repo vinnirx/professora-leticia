@@ -7,7 +7,7 @@ import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
 import { agruparPedidos, resumirVendas } from "./grupos-pedido.js";
 import { fecharCaixa, linhaExportada, origemFinanceira } from "./caixa.js";
 import { celulaCsv } from "./csv.js";
-import { desafiarFator, montarSegundoFator } from "./mfa.js?v=6";
+import { avisoListaContas, desafiarFator, montarSegundoFator } from "./mfa.js?v=7";
 import { acionarSaida } from "./saida.js";
 import { paginaAtividade, rota } from "../rotas.js";
 import { podeVoltarALoja, semVenda } from "../vitrine.js";
@@ -182,6 +182,13 @@ function menuAcoes(itens) {
   lista.className = "menu-acoes-lista";
   lista.hidden = true;
   itens.forEach((item) => {
+    if (item.inativo) {
+      const nota = document.createElement("p");
+      nota.className = "menu-acoes-nota";
+      nota.textContent = item.texto;
+      lista.append(nota);
+      return;
+    }
     const controle = item.href ? document.createElement("a") : document.createElement("button");
     if (item.href) {
       controle.href = item.href;
@@ -728,25 +735,28 @@ export async function iniciarAdmin(loja) {
         const acoes = document.createElement("div");
         acoes.className = "acoes";
         acoes.append(botaoAcao("Editar", () => abrirEdicao(atividade)));
+        const menu = [
+          { texto: "Ver na loja", href: paginaAtividade(atividade.id) },
+          { texto: "Gerenciar PDF", aoClicar: () => {
+            location.hash = "arquivos";
+            document.querySelector(`#lista-pdfs [data-atividade="${CSS.escape(atividade.id)}"]`)?.scrollIntoView({ block: "center" });
+          } },
+        ];
         if (dados?.papel === "owner" && !atividade.foraDoBanco) {
           if (atividade.arquivada_em) {
             acoes.append(botaoAcao("Restaurar", () => reporAtividade(atividade)));
-            if (semVenda(memoria.pedidos, atividade.id)) {
-              acoes.append(botaoAcao("Excluir cadastro", () => apagarCadastro(atividade), "botao-perigo"));
-            }
           } else {
             acoes.append(botaoAcao("Arquivar", () => retirarAtividade(atividade), "botao-perigo"));
           }
+          if (atividade.arquivada_em && semVenda(memoria.pedidos, atividade.id)) {
+            menu.push({ texto: "Excluir definitivamente", aoClicar: () => apagarCadastro(atividade) });
+          } else if (!semVenda(memoria.pedidos, atividade.id)) {
+            menu.push({ texto: "A exclusão definitiva não está disponível: esta atividade já tem pedido. Use arquivar.", inativo: true });
+          } else {
+            menu.push({ texto: "A exclusão definitiva só aparece depois de arquivar e o servidor confirmar que não há venda nem download.", inativo: true });
+          }
         }
-        acoes.append(
-          menuAcoes([
-            { texto: "Ver na loja", href: paginaAtividade(atividade.id) },
-            { texto: "Gerenciar PDF", aoClicar: () => {
-              location.hash = "arquivos";
-              document.querySelector(`#lista-pdfs [data-atividade="${CSS.escape(atividade.id)}"]`)?.scrollIntoView({ block: "center" });
-            } },
-          ]),
-        );
+        acoes.append(menuAcoes(menu));
         return {
           tr,
           celulas: [
@@ -760,7 +770,8 @@ export async function iniciarAdmin(loja) {
           ],
         };
       }),
-      ["4.5rem", "24%", "12%", "6.5rem", "18%", "8rem", "16%"],
+      ["4.5rem", "22%", "12%", "6.5rem", "14%", "7.5rem", "17rem"],
+      "tabela-atividades",
     );
     lista.replaceChildren(tabela);
     if (!visiveis.size) lista.prepend(vazio("Nenhuma atividade com esse filtro."));
@@ -1097,9 +1108,11 @@ export async function iniciarAdmin(loja) {
     const pagina = contas.slice(memoria.paginaClientes * tamanho, memoria.paginaClientes * tamanho + tamanho);
     const nota = document.createElement("p");
     nota.className = "texto-secao";
-    nota.textContent = memoria.contasExtra
-      ? `${contas.length} contas. A confirmação do e-mail e o último acesso vêm do cadastro protegido.`
-      : `${contas.length} contas no cadastro da loja, inclusive quem ainda não comprou. A data de cadastro, a confirmação do e-mail e o último acesso dependem da migração de atendimento, que ainda não foi aplicada.`;
+    nota.textContent = memoria.avisoContas
+      ? memoria.avisoContas
+      : memoria.contasExtra
+        ? `${contas.length} contas. A confirmação do e-mail e o último acesso vêm do cadastro protegido.`
+        : `${contas.length} contas no cadastro da loja, inclusive quem ainda não comprou. A data de cadastro, a confirmação do e-mail e o último acesso dependem da migração de atendimento, que ainda não foi aplicada.`;
     destino.replaceChildren(nota);
     destino.append(montarTabela(
       ["Nome", "E-mail", "Papel", "Pedidos pagos", "Materiais pagos", "Ações"],
@@ -1350,10 +1363,29 @@ export async function iniciarAdmin(loja) {
     pintarClientes();
   });
   async function completarContas() {
-    if (!loja.listarContas) return;
+    const nivel = loja.nivelAcesso ? await loja.nivelAcesso() : null;
+    memoria.avisoContas = avisoListaContas(nivel);
+    if (!loja.listarContas) {
+      pintarClientes();
+      return;
+    }
     const resultado = await loja.listarContas();
-    if (!resultado.ok) return;
+    if (!resultado.ok) {
+      if (!memoria.avisoContas && resultado.mensagem) memoria.avisoContas = resultado.mensagem;
+      pintarClientes();
+      return;
+    }
+    memoria.avisoContas = "";
     memoria.contasExtra = new Map(resultado.contas.map((conta) => [conta.id, conta]));
+    if (resultado.contas.length > memoria.contas.length) {
+      memoria.contas = resultado.contas.map((conta) => ({
+        id: conta.id,
+        nome: conta.nome,
+        email: conta.email,
+        papel: conta.papel,
+        acesso_financeiro: conta.acesso_financeiro,
+      }));
+    }
     pintarClientes();
   }
   function historicoSolicitacao(mensagens) {
