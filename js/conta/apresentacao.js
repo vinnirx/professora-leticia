@@ -37,7 +37,6 @@ export function textoAdministrativo(perfil) {
       ? "de superadministração"
       : "de administração";
   const partes = ["As atividades", "os PDFs", "os pedidos"];
-  if (podeFinanceiro(perfil)) partes.push("o financeiro");
   const ultima = partes.pop();
   return `Você está na conta ${lugar}. ${partes.join(", ")} e ${ultima} ficam à mão.`;
 }
@@ -47,7 +46,6 @@ export function resumoAdministrativo({ perfil, atividades, pedidos }) {
     { texto: "Atividades", hash: "atividades" },
     { texto: "Arquivos PDF", hash: "arquivos" },
     { texto: "Pedidos", hash: "pedidos" },
-    ...(podeFinanceiro(perfil) ? [{ texto: "Financeiro", hash: "financeiro" }] : []),
   ];
   const base = {
     nome: perfil?.nome || "",
@@ -97,7 +95,7 @@ export function textoDaLista({ area, total, visiveis, leitura }) {
   if (leitura === "permissao") {
     return {
       titulo: "A sessão ainda não tem permissão para ver o histórico da loja.",
-      detalhe: "Confirme o segundo fator. Enquanto isso, os pedidos das outras contas ficam de fora e a tela não representa a loja vazia.",
+      detalhe: "Abra Configurações, cadastre o segundo fator e entre de novo com o código. A tela não representa a loja vazia.",
     };
   }
   if (!total) {
@@ -109,6 +107,32 @@ export function textoDaLista({ area, total, visiveis, leitura }) {
     return financeiro
       ? { titulo: "Nenhuma venda no período selecionado.", detalhe: "Amplie as datas para consultar registros anteriores. O zero deste intervalo não apaga o histórico." }
       : { titulo: "Nenhum pedido encontrado no período selecionado.", detalhe: "Limpe a busca, mude a situação ou amplie as datas." };
+  }
+  return null;
+}
+
+export function textoDasContas({ leitura, total, consulta }) {
+  if (leitura === "erro" || consulta === "erro") {
+    return {
+      tipo: "erro",
+      titulo: "Não consegui consultar as contas.",
+      detalhe: "Este aviso não é uma lista vazia. Tente de novo.",
+    };
+  }
+  if (leitura === "permissao" || consulta === "parcial") {
+    return {
+      tipo: "parcial",
+      titulo: "As outras contas ficam ocultas até o segundo fator.",
+      detalhe: "Em Configurações, cadastre o autenticador no celular e entre de novo com o código.",
+      destino: "configuracoes",
+    };
+  }
+  if (!total) {
+    return {
+      tipo: "vazio",
+      titulo: "Nenhuma conta cadastrada.",
+      detalhe: "Quando alguém criar uma conta, ela aparece aqui.",
+    };
   }
   return null;
 }

@@ -299,11 +299,46 @@
 
 .downloads-pedido {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.65rem;
 }
 
-.downloads-pedido .acoes span {
+.downloads-pedido .linha-download {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 9.5rem;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.downloads-pedido .linha-download span {
+  min-width: 0;
   font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.downloads-pedido .linha-download .botao {
+  width: 100%;
+  min-height: 2.75rem;
+}
+
+.item-conta .acoes-alinhadas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.item-conta .acoes-alinhadas .botao,
+.item-conta .acoes-alinhadas a.botao {
+  width: 100%;
+  min-height: 2.75rem;
+  margin-top: 0;
+}
+
+.item-conta .acoes-alinhadas > p { grid-column: 1 / -1; margin: 0; }
+
+@media (max-width: 520px) {
+  .downloads-pedido .linha-download,
+  .item-conta .acoes-alinhadas { grid-template-columns: 1fr; }
 }
 
 .item-conta .acoes .botao,

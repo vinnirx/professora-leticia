@@ -11,8 +11,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="../css/styles.css?v=87" />
-    <link rel="stylesheet" href="../css/conta.css?v=15" />
-    <link rel="stylesheet" href="../css/painel.css?v=18" />
+    <link rel="stylesheet" href="../css/conta.css?v=16" />
+    <link rel="stylesheet" href="../css/painel.css?v=19" />
   </head>
   <body data-pagina="admin">
     <header class="cabecalho">
@@ -59,7 +59,7 @@
             <button type="button" data-secao="atividades"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6Z"/><path d="M15 4v3h3M8 12h8M8 16h6"/></svg>Atividades</button>
             <button type="button" data-secao="arquivos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v4h4M8 13h8M8 17h5"/></svg>Arquivos PDF</button>
             <button type="button" data-secao="pedidos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>Pedidos</button>
-            <button type="button" data-secao="financeiro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18V6M4 18h16"/><path d="m7 14 3-4 3 2 4-6"/></svg>Financeiro</button>
+            <button type="button" data-secao="financeiro" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18V6M4 18h16"/><path d="m7 14 3-4 3 2 4-6"/></svg>Financeiro</button>
             <button type="button" data-secao="clientes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16.5 11a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M3.5 19c.4-2.4 2.3-4 4.5-4s4.1 1.6 4.5 4M14 15.2c1.4-.1 2.8.5 3.6 1.8"/></svg>Clientes</button>
             <button type="button" data-secao="suporte"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v9H8l-3 3V6Z"/></svg>Suporte</button>
             <button type="button" data-secao="equipe"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 14 8l5 .4-3.8 3.2 1.2 4.9L12 14.2 7.6 16.5 8.8 11.6 5 8.4 10 8Z"/></svg>Equipe e permissões</button>
@@ -70,16 +70,15 @@
               <div class="secao-cabeca">
                 <div>
                   <h2 id="titulo-visao">Visão geral</h2>
-                  <p class="texto-secao">Os valores vêm dos pedidos já confirmados. Cobrança criada ou Pix pendente não entra como venda.</p>
+                  <p class="texto-secao">Pedidos confirmados, receita bruta e o que ainda aguarda pagamento. A tarifa e o líquido ficam no detalhe de cada pedido.</p>
                 </div>
               </div>
               <div class="indicadores indicadores-principais" id="indicadores-visao"></div>
-              <div class="indicadores indicadores-apoio" id="indicadores-visao-apoio"></div>
               <div class="atalhos-painel" id="atalhos-visao"></div>
-              <h3>Pedidos recentes</h3>
-              <div id="vendas-recentes"></div>
-              <h3>Atividades mais vendidas</h3>
-              <div id="mais-vendidas"></div>
+              <div id="bloco-recentes">
+                <h3>Últimos pedidos</h3>
+                <div id="vendas-recentes"></div>
+              </div>
             </section>
 
             <section class="admin-bloco" data-painel="atividades" hidden aria-labelledby="titulo-atividades-admin">
@@ -400,6 +399,6 @@
     <script src="../js/loja.js?v=48"></script>
     <script src="../js/vendor/supabase.js?v=1"></script>
     <script type="module" src="../js/sessao.js?v=44"></script>
-    <script type="module" src="../js/conta.js?v=55"></script>
+    <script type="module" src="../js/conta.js?v=56"></script>
   </body>
 </html>

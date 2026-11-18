@@ -8,14 +8,14 @@ import { agruparPedidos, resumirVendas } from "./grupos-pedido.js";
 import { fecharCaixa, linhaExportada, origemFinanceira } from "./caixa.js";
 import { celulaCsv } from "./csv.js";
 import { avisoListaContas, desafiarFator, montarSegundoFator } from "./mfa.js?v=8";
-import { leituraAdministrativa, textoDaLista } from "./apresentacao.js?v=3";
+import { leituraAdministrativa, textoDaLista, textoDasContas } from "./apresentacao.js?v=4";
 import { acionarSaida } from "./saida.js";
 import { paginaAtividade, rota } from "../rotas.js";
 import { podeVoltarALoja, semVenda } from "../vitrine.js";
 
 const travaPdf = criarTrava();
 
-const SECOES = ["visao", "atividades", "arquivos", "pedidos", "financeiro", "clientes", "suporte", "equipe", "configuracoes"];
+const SECOES = ["visao", "atividades", "arquivos", "pedidos", "clientes", "suporte", "equipe", "configuracoes"];
 
 function rotuloStatus(status) {
   if (status === "pago") return ["Pago", "ok"];
@@ -476,80 +476,66 @@ export async function iniciarAdmin(loja) {
     return agruparPedidos(memoria.pedidos);
   }
 
+  function irParaSegundoFator() {
+    location.hash = "configuracoes";
+    requestAnimationFrame(() => document.querySelector("#segundo-fator")?.scrollIntoView({ block: "start" }));
+  }
+
+  function avisoDeSessao(leitura) {
+    const caixa = vazio(
+      leitura === "erro" ? "Não consegui consultar estes dados." : "Estes dados ficam ocultos até o segundo fator.",
+      leitura === "erro"
+        ? "Este aviso não significa que a loja está sem vendas. Tente de novo."
+        : "Abra Configurações, cadastre o autenticador no celular e entre de novo com o código.",
+    );
+    if (leitura === "permissao") caixa.append(botaoAcao("Abrir segundo fator", irParaSegundoFator, "principal"));
+    return caixa;
+  }
+
   function pintarVisao() {
-    const pagos = grupos().filter((grupo) => grupo.status === "pago");
-    const unidades = memoria.pedidos.filter((pedido) => pedido.status === "pago").length;
-    const caixaVisao = fecharCaixa(pagos, memoria.cobrancas, memoria.cobrancasDisponiveis);
+    const leitura = leituraAdministrativa(memoria.nivel, dados?.papel);
     const caixa = document.querySelector("#indicadores-visao");
-    const apoioVisao = document.querySelector("#indicadores-visao-apoio");
-    if (podeFinanceiro(dados)) {
-      caixa.replaceChildren(
-        indicador("Receita bruta", moeda.format(pagos.reduce((soma, grupo) => soma + grupo.valor, 0)), "Só pedidos pagos"),
-        indicador("Receita líquida", caixaVisao.liquido == null ? indisponivel() : moeda.format(caixaVisao.liquido), caixaVisao.motivo),
-      );
-    } else caixa.replaceChildren();
-    if (apoioVisao) {
-      apoioVisao.replaceChildren(
-        indicador("Vendas confirmadas", String(pagos.length), "Um código de pedido conta uma vez"),
-        indicador("Atividades vendidas", String(unidades), "Cada material pago conta uma unidade"),
-      );
-    }
+    const recentes = document.querySelector("#vendas-recentes");
+    const blocoRecentes = document.querySelector("#bloco-recentes");
     const atalhos = document.querySelector("#atalhos-visao");
     atalhos.replaceChildren();
     [
       ["Ver atividades", "atividades", "principal"],
       ["Ver pedidos", "pedidos", ""],
-      ...(podeFinanceiro(dados) ? [["Ver financeiro", "financeiro", ""]] : []),
     ].forEach(([texto, secao, estilo]) => {
       atalhos.append(botaoAcao(texto, () => {
         if (secao === "atividades") document.dispatchEvent(new CustomEvent("mostrar-lista-atividades"));
         location.hash = secao;
       }, estilo));
     });
-    const recentes = document.querySelector("#vendas-recentes");
+    if (leitura !== "ok") {
+      caixa.replaceChildren(avisoDeSessao(leitura));
+      if (blocoRecentes) blocoRecentes.hidden = true;
+      recentes?.replaceChildren();
+      return;
+    }
+    if (blocoRecentes) blocoRecentes.hidden = false;
+    const pagos = grupos().filter((grupo) => grupo.status === "pago");
+    const aguardando = grupos().filter((grupo) => grupo.status === "aguardando");
+    const bruto = pagos.reduce((soma, grupo) => soma + grupo.valor, 0);
+    caixa.replaceChildren(
+      indicador("Pedidos confirmados", String(pagos.length)),
+      indicador("Receita bruta", podeFinanceiro(dados) ? moeda.format(bruto) : "Restrito"),
+      indicador("Aguardando pagamento", String(aguardando.length)),
+    );
     const lista = grupos().slice(0, 5);
-    if (!lista.length) {
-      recentes.replaceChildren(vazio("Nenhuma venda registrada."));
-    } else {
-      const colunasRecentes = podeFinanceiro(dados)
-        ? ["Data", "Pedido", "Cliente", "Valor", "Status"]
-        : ["Data", "Pedido", "Cliente", "Status"];
+    if (!lista.length) recentes.replaceChildren(vazio("Nenhum pedido cadastrado.", "Quando alguém comprar, o pedido aparece aqui."));
+    else {
       recentes.replaceChildren(montarTabela(
-        colunasRecentes,
+        ["Data", "Pedido", "Cliente", "Valor", "Status"],
         lista.map((grupo) => ({
           tr: document.createElement("tr"),
           celulas: [
             celula("Data", quando.format(new Date(grupo.criado_em))),
             celula("Pedido", grupo.txid),
             celula("Cliente", nomeCliente(grupo)),
-            ...(podeFinanceiro(dados) ? [celula("Valor", moeda.format(grupo.valor), "numero")] : []),
+            celula("Valor", podeFinanceiro(dados) ? moeda.format(grupo.valor) : "Restrito", "numero"),
             celula("Status", selo(...rotuloStatus(grupo.status))),
-          ],
-        })),
-      ));
-    }
-    const ranking = new Map();
-    memoria.pedidos.filter((pedido) => pedido.status === "pago").forEach((pedido) => {
-      const atual = ranking.get(pedido.titulo) || { quantidade: 0, valor: 0 };
-      atual.quantidade += 1;
-      atual.valor += Number(pedido.valor) || 0;
-      ranking.set(pedido.titulo, atual);
-    });
-    const mais = [...ranking.entries()].sort((a, b) => b[1].quantidade - a[1].quantidade).slice(0, 5);
-    const destino = document.querySelector("#mais-vendidas");
-    if (!mais.length) destino.replaceChildren(vazio("Nenhuma atividade vendida com pagamento confirmado."));
-    else {
-      const colunasRanking = podeFinanceiro(dados)
-        ? ["Atividade", "Unidades", "Receita bruta"]
-        : ["Atividade", "Unidades"];
-      destino.replaceChildren(montarTabela(
-        colunasRanking,
-        mais.map(([nome, info]) => ({
-          tr: document.createElement("tr"),
-          celulas: [
-            celula("Atividade", nome),
-            celula("Unidades", String(info.quantidade)),
-            ...(podeFinanceiro(dados) ? [celula("Receita bruta", moeda.format(info.valor))] : []),
           ],
         })),
       ));
@@ -883,14 +869,18 @@ export async function iniciarAdmin(loja) {
     const busca = document.querySelector("#busca-pedido").value;
     const lista = filtrarGrupos(grupos(), { inicio, fim, status: situacao, busca });
     const destino = document.querySelector("#lista-pedidos");
+    const leituraPedidos = leituraAdministrativa(memoria.nivel, dados?.papel);
     const avisoLista = textoDaLista({
       area: "pedidos",
       total: grupos().length,
       visiveis: lista.length,
-      leitura: leituraAdministrativa(memoria.nivel, dados?.papel),
+      leitura: leituraPedidos,
     });
     if (avisoLista) {
-      destino.replaceChildren(vazio(avisoLista.titulo, avisoLista.detalhe));
+      const caixa = leituraPedidos === "ok"
+        ? vazio(avisoLista.titulo, avisoLista.detalhe)
+        : avisoDeSessao(leituraPedidos);
+      destino.replaceChildren(caixa);
       return;
     }
     destino.replaceChildren(montarTabela(
@@ -956,7 +946,15 @@ export async function iniciarAdmin(loja) {
         ],
       })),
     ));
-    destino.append(vazio("Identificador da cobrança no Asaas: não disponível. A loja ainda não grava esse código."));
+    if (leituraAdministrativa(memoria.nivel, dados?.papel) === "ok" && podeFinanceiro(dados)) {
+      const leitura = leituraFinanceira(grupo, memoria);
+      const taxa = leitura.taxa == null ? "não gravada" : moeda.format(leitura.taxa);
+      const liquido = leitura.liquido == null ? "não gravado" : moeda.format(leitura.liquido);
+      const valores = document.createElement("p");
+      valores.className = "texto-secao";
+      valores.textContent = `Valor bruto ${moeda.format(grupo.valor)}. Tarifa Asaas ${taxa}. Valor líquido ${liquido}.`;
+      destino.append(valores);
+    }
   }
 
   function intervalosFinanceiro() {
@@ -1107,6 +1105,19 @@ export async function iniciarAdmin(loja) {
 
   function pintarClientes() {
     const destino = document.querySelector("#lista-clientes");
+    const leitura = leituraAdministrativa(memoria.nivel, dados?.papel);
+    const avisoContas = textoDasContas({
+      leitura,
+      total: memoria.contas.length,
+      consulta: memoria.consultaContas,
+    });
+    if (avisoContas) {
+      const caixa = vazio(avisoContas.titulo, avisoContas.detalhe);
+      if (avisoContas.destino) caixa.append(botaoAcao("Abrir segundo fator", irParaSegundoFator, "principal"));
+      destino.replaceChildren(caixa);
+      document.querySelector("#cliente-aberto")?.replaceChildren();
+      return;
+    }
     const termo = (document.querySelector("#busca-cliente")?.value || "").trim().toLocaleLowerCase("pt-BR");
     const filtro = document.querySelector("#filtro-cliente")?.value || "";
     const contas = memoria.contas.filter((conta) => {
@@ -1130,9 +1141,7 @@ export async function iniciarAdmin(loja) {
     const pagina = contas.slice(memoria.paginaClientes * tamanho, memoria.paginaClientes * tamanho + tamanho);
     const nota = document.createElement("p");
     nota.className = "texto-secao";
-    nota.textContent = memoria.avisoContas
-      ? memoria.avisoContas
-      : memoria.contasExtra
+    nota.textContent = memoria.contasExtra
         ? `${contas.length} contas. A confirmação do e-mail e o último acesso vêm do cadastro protegido.`
         : `${contas.length} contas no cadastro da loja, inclusive quem ainda não comprou. A data de cadastro, a confirmação do e-mail e o último acesso dependem da migração de atendimento, que ainda não foi aplicada.`;
     destino.replaceChildren(nota);
@@ -1293,7 +1302,7 @@ export async function iniciarAdmin(loja) {
     pintarConfig();
   });
   const botaoFinanceiro = document.querySelector("[data-secao='financeiro']");
-  if (botaoFinanceiro) botaoFinanceiro.hidden = !podeFinanceiro(dados);
+  if (botaoFinanceiro) botaoFinanceiro.hidden = true;
 
   async function pintarConciliacao() {
     const bloco = document.querySelector("#conciliacao");
@@ -1388,11 +1397,14 @@ export async function iniciarAdmin(loja) {
     const nivel = loja.nivelAcesso ? await loja.nivelAcesso() : null;
     if (nivel?.ok && memoria.nivel?.atual !== nivel.atual) {
       memoria.nivel = nivel;
+      pintarVisao();
       pintarPedidos();
       pintarFinanceiro();
     } else if (nivel?.ok) {
       memoria.nivel = nivel;
     }
+    const leituraContas = leituraAdministrativa(memoria.nivel, dados?.papel);
+    memoria.consultaContas = leituraContas === "permissao" ? "parcial" : leituraContas === "erro" ? "erro" : "ok";
     memoria.avisoContas = avisoListaContas(nivel || memoria.nivel);
     if (!loja.listarContas) {
       pintarClientes();
@@ -1400,10 +1412,12 @@ export async function iniciarAdmin(loja) {
     }
     const resultado = await loja.listarContas();
     if (!resultado.ok) {
-      if (!memoria.avisoContas && resultado.mensagem) memoria.avisoContas = resultado.mensagem;
+      if (leituraContas !== "ok") memoria.consultaContas = "parcial";
+      else if (!memoria.contas.length) memoria.consultaContas = "erro";
       pintarClientes();
       return;
     }
+    memoria.consultaContas = leituraContas === "ok" ? "ok" : "parcial";
     memoria.avisoContas = "";
     memoria.contasExtra = new Map(resultado.contas.map((conta) => [conta.id, conta]));
     if (resultado.contas.length > memoria.contas.length) {
@@ -1626,6 +1640,8 @@ export async function iniciarAdmin(loja) {
     document.dispatchEvent(new CustomEvent("atividade-salva", { detail: criada }));
   });
   memoria.nivel = loja.nivelAcesso ? await loja.nivelAcesso() : { ok: false };
+  const leituraInicial = leituraAdministrativa(memoria.nivel, dados?.papel);
+  memoria.consultaContas = leituraInicial === "ok" ? "ok" : leituraInicial === "erro" ? "erro" : "parcial";
   memoria.avisoContas = avisoListaContas(memoria.nivel);
   pintarTudo();
 }

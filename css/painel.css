@@ -314,6 +314,17 @@ body[data-pagina="admin"] {
   align-content: end;
 }
 
+.filtros-painel.filtros-quarta label > input,
+.filtros-painel.filtros-quarta label > select,
+.filtros-painel.filtros-financeiro label > input,
+.filtros-painel.filtros-financeiro label > select {
+  height: var(--adm-altura);
+  max-height: var(--adm-altura);
+  box-sizing: border-box;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 .painel .filtros-painel .filtros {
   flex-wrap: nowrap;
   margin: 0;

@@ -1,7 +1,7 @@
 import { origemDaImagemPix } from "../imagem-pix.js?v=1";
 import { aviso, moeda } from "./avisos.js";
 import { acionarSaida } from "./saida.js";
-import { resumoAdministrativo } from "./apresentacao.js?v=2";
+import { leituraAdministrativa, resumoAdministrativo } from "./apresentacao.js?v=4";
 import { administra } from "./papeis.js";
 import { agruparPorCodigo, apresentacao, intervaloDaTela, podeOcultar, prioridadeDaAcao } from "./retomada.js?v=2";
 import { rota } from "../rotas.js";
@@ -110,7 +110,7 @@ function mostrarDownloads(artigo, pedido, loja, estado) {
   caixa.dataset.downloads = "sim";
   materiaisDoPedido(pedido).forEach((material) => {
     const linha = document.createElement("div");
-    linha.className = "acoes";
+    linha.className = "linha-download";
     const nome = document.createElement("span");
     nome.textContent = material.titulo;
     linha.append(nome, botaoDownload(pedido, loja, material));
@@ -275,10 +275,12 @@ function ordenarLista(lista) {
 }
 
 function botoesSecundarios(artigo, pedido, loja, resultado) {
+  const ajuda = artigo.querySelector("a.botao") || contato(pedido, "Preciso de ajuda com este pedido.");
   artigo.querySelector("[data-secundario]")?.remove();
   const caixa = document.createElement("div");
-  caixa.className = "acoes";
+  caixa.className = "acoes acoes-alinhadas";
   caixa.dataset.secundario = "sim";
+  caixa.append(ajuda);
   if (resultado.cancelavel) caixa.append(botaoSecundario("Cancelar pedido", () => confirmarCancelamento(artigo, pedido, loja)));
   if (resultado.ocultavel && !pedido.oculto) caixa.append(botaoSecundario("Ocultar do meu histórico", () => alterarVisibilidade(artigo, pedido, loja, true)));
   if (pedido.oculto) caixa.append(botaoSecundario("Mostrar de novo", () => alterarVisibilidade(artigo, pedido, loja, false)));
@@ -414,7 +416,9 @@ function mostrarAdministracao(dados, resumo) {
   const avisoIndicadores = document.querySelector("#indicadores-aviso");
   if (!resumo.indicadores) {
     avisoIndicadores.hidden = false;
-    avisoIndicadores.textContent = "Não consegui ler os números da loja agora. O gerenciamento continua disponível.";
+    avisoIndicadores.textContent = resumo.bloqueio === "permissao"
+      ? "Os números da loja aparecem depois do segundo fator. No painel, abra Configurações."
+      : "Não consegui ler os números da loja agora. O gerenciamento continua disponível.";
   } else {
     caixa.replaceChildren(...resumo.indicadores.map(indicador));
     if (resumo.semPedidos) {
@@ -546,6 +550,9 @@ export async function iniciarMinhas(loja) {
     } catch {
       resumo = resumoAdministrativo({ perfil: dados, atividades: null, pedidos: null });
     }
+    const nivel = loja.nivelAcesso ? await loja.nivelAcesso() : { ok: false };
+    const leitura = leituraAdministrativa(nivel, dados?.papel);
+    if (leitura !== "ok") resumo = { ...resumo, indicadores: null, bloqueio: leitura };
     mostrarAdministracao(dados, resumo);
   }
   const pedidos = await loja.meusPedidos();

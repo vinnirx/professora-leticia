@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { leituraAdministrativa, pedidoDeEntrada, resumoAdministrativo, textoDaLista } from "../js/conta/apresentacao.js";
+import { leituraAdministrativa, pedidoDeEntrada, resumoAdministrativo, textoDaLista, textoDasContas } from "../js/conta/apresentacao.js";
 import { destinoInterno } from "../js/rotas.js";
 
 const proprietaria = { nome: "Dona Fictícia", papel: "owner", acesso_financeiro: false };
@@ -37,7 +37,7 @@ const dona = resumoAdministrativo({ perfil: proprietaria, atividades, pedidos })
 assert.equal(dona.cargo, "Proprietária");
 assert.match(dona.texto, /proprietária/);
 assert.equal(dona.texto.includes("não tem atividades"), false);
-assert.deepEqual(dona.atalhos.map((item) => item.hash), ["atividades", "arquivos", "pedidos", "financeiro"]);
+assert.deepEqual(dona.atalhos.map((item) => item.hash), ["atividades", "arquivos", "pedidos"]);
 assert.deepEqual(dona.indicadores.map((item) => [item.rotulo, item.valor]), [
   ["Atividades", "3"],
   ["Arquivos PDF", "2"],
@@ -48,7 +48,7 @@ assert.equal(dona.semPedidos, false);
 
 const gestor = resumoAdministrativo({ perfil: administrador, atividades, pedidos });
 assert.equal(gestor.cargo, "Administrador");
-assert.equal(gestor.atalhos.some((item) => item.hash === "financeiro"), true);
+assert.equal(gestor.atalhos.some((item) => item.hash === "financeiro"), false);
 
 const apoio = resumoAdministrativo({ perfil: semFinanceiro, atividades, pedidos });
 assert.equal(apoio.atalhos.some((item) => item.hash === "financeiro"), false);
@@ -65,7 +65,7 @@ assert.equal(semVendas.indicadores.find((item) => item.dinheiro).valor, 0);
 
 const indisponivel = resumoAdministrativo({ perfil: proprietaria, atividades: null, pedidos: null });
 assert.equal(indisponivel.indicadores, null);
-assert.equal(indisponivel.atalhos.length, 4);
+assert.equal(indisponivel.atalhos.length, 3);
 
 const clienteResumo = resumoAdministrativo({ perfil: cliente, atividades, pedidos });
 assert.equal(clienteResumo.cargo, "Cliente");
@@ -83,6 +83,19 @@ assert.match(textoDaLista({ area: "pedidos", total: 0, visiveis: 0, leitura: "er
 assert.match(textoDaLista({ area: "financeiro", total: 2, visiveis: 0, leitura: "permissao" }).titulo, /não tem permissão/);
 assert.equal(textoDaLista({ area: "pedidos", total: 2, visiveis: 1, leitura: "ok" }), null);
 assert.match(textoDaLista({ area: "financeiro", total: 3, visiveis: 0, leitura: "ok" }).detalhe, /Amplie as datas/);
+assert.match(textoDaLista({ area: "pedidos", total: 2, visiveis: 0, leitura: "permissao" }).detalhe, /Configurações/);
+assert.equal(textoDasContas({ leitura: "permissao", total: 1, consulta: "parcial" }).tipo, "parcial");
+assert.equal(textoDasContas({ leitura: "permissao", total: 1, consulta: "parcial" }).destino, "configuracoes");
+assert.equal(textoDasContas({ leitura: "erro", total: 0, consulta: "erro" }).tipo, "erro");
+assert.equal(textoDasContas({ leitura: "ok", total: 0, consulta: "ok" }).tipo, "vazio");
+assert.equal(textoDasContas({ leitura: "ok", total: 5, consulta: "ok" }), null);
+assert.match(readFileSync(new URL("../css/conta.css", import.meta.url), "utf8"), /\.downloads-pedido \.linha-download \{[^}]*grid-template-columns: minmax\(0, 1fr\) 9\.5rem/s);
+const painelHtml = readFileSync(new URL("../gerenciar/index.html", import.meta.url), "utf8");
+assert.match(painelHtml, /data-secao="financeiro" hidden/);
+const visaoHtml = painelHtml.slice(painelHtml.indexOf('data-painel="visao"'), painelHtml.indexOf('data-painel="atividades"'));
+assert.equal(visaoHtml.includes("Atividades mais vendidas"), false);
+assert.equal(visaoHtml.includes("Saiba mais"), false);
+assert.match(painelHtml, /id="tabela-financeiro"/);
 const cancelado = tela.slice(tela.indexOf('pedido.status === "estornado" || pedido.status === "cancelado"'), tela.indexOf('pedido.status !== "pago"'));
 assert.match(cancelado, /acompanharPedido/);
 assert.match(cancelado, /podeOcultar/);
