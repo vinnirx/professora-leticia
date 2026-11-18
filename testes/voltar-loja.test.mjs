@@ -31,7 +31,9 @@ paginas.forEach((pagina, indice) => {
   assert.match(html, /data-voltar-loja/);
   assert.match(html, /Voltar à loja/);
   assert.match(html, /voltar-loja\.js\?v=1/);
-  assert.match(html, /styles\.css\?v=89/);
+  assert.match(html, /styles\.css\?v=91/);
+  assert.match(html, /class="conta documento"/);
+  assert.match(html, /leitura-aviso/);
   assert.match(html, new RegExp(textos[indice]));
   assert.equal(html.includes("href=\"https://"), false);
 });
