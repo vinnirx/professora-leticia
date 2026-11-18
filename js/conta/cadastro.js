@@ -87,16 +87,16 @@ function validarEtapa(formulario, numero) {
 function preencherRevisao(formulario) {
   const lista = document.querySelector("#revisao-atividade");
   if (!lista) return;
+  const area = formulario.querySelector('[name="area"]').value;
+  const tema = formulario.querySelector('[name="tema"]').value;
   const campos = [
-    ["Atividade", formulario.querySelector('[name="titulo"]').value.trim()],
-    ["Área", formulario.querySelector('[name="area"]').value || "—"],
-    ["Tema", formulario.querySelector('[name="tema"]').value || "—"],
+    ["Nome", formulario.querySelector('[name="titulo"]').value.trim()],
+    ["Área e tema", [area, tema].filter(Boolean).join(" · ") || "—"],
     ["Preço", dinheiro(formulario.querySelector('[name="preco"]').value)],
     ["Descrição", formulario.querySelector('[name="resumo"]').value.trim()],
-    ["Categoria", formulario.querySelector('[name="info_categoria"]').value.trim() || "—"],
     ["Capa", formulario.querySelector('[name="capa"]').files[0]?.name || formulario.dataset.capaAtual || (formulario.dataset.editando ? "Mantém a capa atual" : "Não escolhida")],
     ["PDF", formulario.querySelector('[name="pdf"]').files[0]?.name || formulario.dataset.arquivoAtual || "Nenhum PDF novo"],
-    ["Destaque", formulario.querySelector('[name="destaque"]').checked ? "Entra na vitrine, se ainda houver vaga" : "Não entra na vitrine"],
+    ["Situação", "Será publicada ao confirmar. O banco não guarda rascunho."],
   ];
   lista.replaceChildren();
   campos.forEach(([rotulo, valor]) => {
@@ -280,7 +280,7 @@ function lerFormularioEdicao(formulario) {
     tema: campos.get("tema"),
     inclui: campos.get("inclui"),
     habilidades: campos.get("habilidades"),
-    destaque: campos.get("destaque") === "sim",
+    destaque: fichaAberta?.destaque === true,
     informacoes,
   };
 }
@@ -303,7 +303,8 @@ export function abrirEdicao(atividade) {
   formulario.dataset.destaqueAtual = ficha.destaque ? "sim" : "";
   formulario.querySelector('[name="titulo"]').value = ficha.campos.titulo || "";
   formulario.querySelector('[name="preco"]').value = ficha.campos.preco || "";
-  formulario.querySelector('[name="destaque"]').checked = ficha.destaque;
+  const caixaDestaque = formulario.querySelector('[name="destaque"]');
+  if (caixaDestaque) caixaDestaque.checked = ficha.destaque === true;
   formulario.querySelector('[name="resumo"]').value = ficha.campos.resumo || "";
   formulario.querySelector('[name="explicacao"]').value = ficha.campos.explicacao || "";
   formulario.querySelector('[name="habilidades"]').value = ficha.campos.habilidades || "";
@@ -456,7 +457,7 @@ function lerCadastro(formulario, existentes, idAtual = "") {
       resumo,
       explicacao,
       preco,
-      destaque: campos.get("destaque") === "sim",
+      destaque: false,
       area,
       tema,
       uso: "",
@@ -481,9 +482,7 @@ function mostrarPrevia(atividade) {
   previa.replaceChildren();
   const avisoPrevia = paragrafo("Prévia. Nada foi salvo na loja.");
   avisoPrevia.className = "aviso-conta aviso-ok";
-  const lugar = paragrafo(atividade.destaque
-    ? `Entra em Materiais em destaque e também em ${atividade.area}${atividade.tema ? ` > ${atividade.tema}` : ""}.`
-    : `Não entra em Materiais em destaque. Aparece em ${atividade.area}${atividade.tema ? ` > ${atividade.tema}` : ""}.`);
+  const lugar = paragrafo(`Aparece em ${atividade.area}${atividade.tema ? ` > ${atividade.tema}` : ""}.`);
   if (!atividade.tema && !(temasPorArea[atividade.area] || []).length) {
     lugar.textContent += " Essa área ainda não tem temas no menu.";
   }
@@ -557,6 +556,29 @@ function mostrarPrevia(atividade) {
   previa.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function textoDaRecusa(mensagem) {
+  if (mensagem === "Sem permissão.") {
+    return "O banco recusou a gravação. Esta sessão não administra a loja ou não está mais ativa. Nada foi gravado.";
+  }
+  return mensagem;
+}
+
+async function impedimentoDeGravacao(loja) {
+  if (!loja?.configurada || !loja.nivelAcesso) return "";
+  try {
+    const nivel = await loja.nivelAcesso();
+    if (!nivel?.ok) return nivel?.mensagem || "Não consegui confirmar a sessão. Nada foi publicado.";
+    if (nivel.atual === "aal2") return "";
+    const confirmado = (nivel.fatores || []).some((fator) => fator.status === "verified");
+    if (!confirmado) {
+      return "A publicação foi recusada porque esta sessão entrou só com a senha. Esta conta ainda não tem um autenticador confirmado. Em Configurações, cadastre o segundo fator e entre de novo com o código. Nada foi gravado.";
+    }
+    return "A publicação foi recusada porque esta sessão entrou só com a senha. Confirme o segundo fator e entre de novo. Nada foi gravado.";
+  } catch {
+    return "Não consegui confirmar a sessão. Nada foi publicado.";
+  }
+}
+
 async function salvarEdicao(evento, formulario, loja) {
   evento.preventDefault();
   if (!travaSalvar.entrar()) return;
@@ -569,6 +591,13 @@ async function salvarEdicao(evento, formulario, loja) {
   });
   const estado = document.querySelector("#edicao-status");
   try {
+    if (loja?.configurada) {
+      const impedimento = await impedimentoDeGravacao(loja);
+      if (impedimento) {
+        aviso(estado, impedimento);
+        return;
+      }
+    }
     if (!fichaAberta) return;
     const plano = payloadEdicao(lerFormularioEdicao(formulario), fichaAberta);
     if (!plano.ok) {
@@ -623,7 +652,7 @@ async function salvarEdicao(evento, formulario, loja) {
         return;
       }
       if (!resultado?.ok) {
-        aviso(estado, resultado?.mensagem || "Não foi possível salvar. Os dados anteriores foram mantidos.");
+        aviso(estado, textoDaRecusa(resultado?.mensagem) || "Não foi possível salvar. Os dados anteriores foram mantidos.");
         return;
       }
       confirmarFicha(fichaAberta, plano.mudancas);
@@ -917,7 +946,7 @@ export function prepararCadastro(loja, existentes, aoCriar) {
       tema: campos.get("tema"),
       inclui: campos.get("inclui"),
       habilidades: campos.get("habilidades"),
-      destaque: campos.get("destaque") === "sim",
+      destaque: fichaAberta?.destaque === true,
       informacoes,
     };
   }
@@ -938,9 +967,18 @@ export function prepararCadastro(loja, existentes, aoCriar) {
     }
     if (!travaSalvar.entrar()) return;
     const botaoEnvio = formulario.querySelector('[type="submit"]');
+    const rotuloEnvio = botaoEnvio.textContent;
     botaoEnvio.disabled = true;
+    botaoEnvio.textContent = editando ? "Salvando…" : "Publicando…";
     const estado = document.querySelector("#nova-status");
     try {
+    if (loja?.configurada) {
+      const impedimento = await impedimentoDeGravacao(loja);
+      if (impedimento) {
+        aviso(estado, impedimento);
+        return;
+      }
+    }
     if (editando && fichaAberta) {
       const plano = payloadEdicao(lerCamposEdicao(formulario), fichaAberta);
       if (!plano.ok) {
@@ -989,7 +1027,7 @@ export function prepararCadastro(loja, existentes, aoCriar) {
       if (decisao.acao === "editar_campos") {
         const resultado = await loja.editarAtividade(plano.atividade);
         if (!resultado.ok) {
-          aviso(estado, resultado.mensagem);
+          aviso(estado, textoDaRecusa(resultado.mensagem));
           return;
         }
         salva = resultado.atividade || {};
@@ -1059,7 +1097,7 @@ export function prepararCadastro(loja, existentes, aoCriar) {
       const gravar = atividadeEmEdicao?.foraDoBanco ? loja.criarAtividade(atividade) : loja.editarAtividade(atividade);
       const resultado = await gravar;
       if (!resultado.ok) {
-        aviso(estado, resultado.mensagem);
+        aviso(estado, textoDaRecusa(resultado.mensagem));
         return;
       }
       const salva = resultado.atividade || {};
@@ -1116,7 +1154,7 @@ export function prepararCadastro(loja, existentes, aoCriar) {
     }
     const resultado = await loja.criarAtividade(atividade);
     if (!resultado.ok) {
-      aviso(estado, resultado.mensagem);
+      aviso(estado, textoDaRecusa(resultado.mensagem));
       return;
     }
     existentes.add(atividade.id);
@@ -1163,15 +1201,17 @@ export function prepararCadastro(loja, existentes, aoCriar) {
     const link = document.createElement("a");
     link.href = paginaAtividade(atividade.id);
     link.textContent = "Abrir a página exclusiva";
+    avisarLista("Atividade publicada. Ela já aparece nesta lista.");
     const status = document.querySelector("#admin-status");
     if (status) {
       status.classList.add("aviso-ok");
-      status.replaceChildren("Atividade criada. O card já entra na loja. ", link);
+      status.replaceChildren("Atividade publicada. ", link);
     }
     definirTrabalho(false);
     } finally {
       travaSalvar.sair();
       botaoEnvio.disabled = false;
+      botaoEnvio.textContent = rotuloEnvio;
     }
   });
 }

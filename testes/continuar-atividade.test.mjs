@@ -14,10 +14,15 @@ assert.doesNotMatch(cadastro, /aviso\(estado, erro\)/);
 assert.match(cadastro, /aria-invalid/);
 assert.match(html, /<p class="aviso-conta" id="nova-status" role="status"><\/p>\s*<div class="etapas-acoes">/);
 assert.match(html, /id="etapa-seguir" type="button"/);
-assert.match(html, /conta\.js\?v=60/);
+assert.match(html, /conta\.js\?v=61/);
 assert.match(html, /painel\.css\?v=21/);
-assert.match(admin, /cadastro\.js\?v=7/);
-assert.match(conta, /admin\.js\?v=29/);
+assert.match(admin, /cadastro\.js\?v=8/);
+assert.match(conta, /admin\.js\?v=30/);
+assert.doesNotMatch(html, /Mostrar em Materiais em destaque/);
+assert.match(cadastro, /Será publicada ao confirmar/);
+assert.match(cadastro, /entrou só com a senha/);
+assert.match(cadastro, /destaque: false/);
+assert.doesNotMatch(html, /Salvar rascunho/);
 assert.match(painel, /#nova-atividade \[data-etapa="1"\] \.grade-campos/);
 assert.match(painel, /\.campo-invalido input/);
 
