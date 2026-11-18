@@ -1,3 +1,4 @@
+import { origemDaImagemPix } from "../imagem-pix.js?v=1";
 import { aviso, moeda } from "./avisos.js";
 import { acionarSaida } from "./saida.js";
 import { resumoAdministrativo } from "./apresentacao.js?v=2";
@@ -60,19 +61,31 @@ function cartaoPedido(pedido, loja) {
   return artigo;
 }
 
-function botaoDownload(pedido, loja) {
+function materiaisDoPedido(pedido) {
+  const ids = Array.isArray(pedido.atividades) && pedido.atividades.length
+    ? pedido.atividades
+    : [pedido.atividade_id].filter(Boolean);
+  const titulos = Array.isArray(pedido.titulos) ? pedido.titulos : [];
+  return ids.map((id, indice) => ({
+    id,
+    titulo: titulos[indice] || "Material",
+  }));
+}
+
+function botaoDownload(pedido, loja, material) {
   const botao = document.createElement("button");
   botao.className = "botao";
   botao.type = "button";
-  botao.textContent = "Baixar atividade";
+  botao.textContent = "Baixar PDF";
   botao.addEventListener("click", async () => {
-    const estado = botao.parentElement?.querySelector(".aviso-conta");
+    const artigo = botao.closest(".item-conta");
+    const estado = artigo?.querySelector(".aviso-conta");
     botao.disabled = true;
     try {
-      await loja.baixar(pedido.atividade_id);
+      await loja.baixar(material.id);
       if (estado) aviso(estado, "O download começou.", true);
     } catch (erro) {
-      botao.parentElement?.querySelector(".situacao")?.replaceWith(selo("problema", "Problema para baixar"));
+      artigo?.querySelector(".situacao")?.replaceWith(selo("problema", "Problema para baixar"));
       const mensagem = erro?.message === "entrar"
         ? "Entre de novo para baixar este material."
         : erro?.message === "negado"
@@ -81,13 +94,29 @@ function botaoDownload(pedido, loja) {
             ? "O download não respondeu. Tente de novo."
             : "O PDF não saiu. Fale com a Letícia e informe o código do pedido.";
       if (estado) aviso(estado, mensagem);
-      if (estado && !botao.parentElement.querySelector("a[href^='mailto:']")) {
-        botao.parentElement.append(contato(pedido, "O pagamento está confirmado, mas o PDF não baixou."));
+      if (estado && artigo && !artigo.querySelector("a[href^='mailto:']")) {
+        artigo.append(contato(pedido, "O pagamento está confirmado, mas o PDF não baixou."));
       }
     }
     botao.disabled = false;
   });
   return botao;
+}
+
+function mostrarDownloads(artigo, pedido, loja, estado) {
+  if (artigo.querySelector("[data-downloads]")) return;
+  const caixa = document.createElement("div");
+  caixa.className = "downloads-pedido";
+  caixa.dataset.downloads = "sim";
+  materiaisDoPedido(pedido).forEach((material) => {
+    const linha = document.createElement("div");
+    linha.className = "acoes";
+    const nome = document.createElement("span");
+    nome.textContent = material.titulo;
+    linha.append(nome, botaoDownload(pedido, loja, material));
+    caixa.append(linha);
+  });
+  artigo.insertBefore(caixa, estado);
 }
 
 function botaoDaConta(pedido, acao) {
@@ -118,14 +147,13 @@ function mostrarPix(artigo, resultado) {
   const recebedor = document.createElement("p");
   recebedor.textContent = "Confira o recebedor no aplicativo do banco antes de pagar.";
   caixa.append(valor, prazo, recebedor);
-  if (resultado.imagem) {
+  const origem = origemDaImagemPix(resultado.imagem);
+  if (origem) {
     const imagem = document.createElement("img");
     imagem.alt = "QR Code Pix da cobrança";
     imagem.width = 180;
     imagem.height = 180;
-    imagem.src = String(resultado.imagem).startsWith("data:")
-      ? resultado.imagem
-      : `data:image/png;base64,${resultado.imagem}`;
+    imagem.src = origem;
     caixa.append(imagem);
   }
   if (resultado.copiaCola) {
@@ -202,8 +230,10 @@ function aplicarSituacao(artigo, pedido, loja, resultado) {
   if (resultado.copiaCola || resultado.imagem) mostrarPix(artigo, resultado);
   const antigo = artigo.querySelector("button.botao");
   if (resultado.liberado) {
-    antigo?.remove();
-    if (!artigo.querySelector("button.botao")) artigo.insertBefore(botaoDownload(pedido, loja), estado);
+    artigo.querySelectorAll("button.botao").forEach((botao) => {
+      if (!botao.closest("[data-downloads]") && !botao.closest("[data-secundario]")) botao.remove();
+    });
+    mostrarDownloads(artigo, pedido, loja, estado);
     return;
   }
   if (!visual.botao) {
@@ -317,9 +347,7 @@ function acompanharPedido(artigo, pedido, loja, acaoInicial) {
       }
       const estado = artigo.querySelector(".aviso-conta");
       if (estado) aviso(estado, resultado?.mensagem || "Não consegui consultar este pedido. Nenhum pagamento novo foi gerado.");
-      if (acao === "confirmar" && !artigo.querySelector("button.botao")) {
-        artigo.insertBefore(botaoDownload(pedido, loja), estado);
-      }
+      if (acao === "confirmar") mostrarDownloads(artigo, pedido, loja, estado);
       return;
     }
     acao = resultado.acao || acao;

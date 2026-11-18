@@ -297,6 +297,15 @@
   align-items: center;
 }
 
+.downloads-pedido {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.downloads-pedido .acoes span {
+  font-weight: 800;
+}
+
 .item-conta .acoes .botao,
 .item-conta input[type="file"],
 .admin-bloco input[type="file"] {

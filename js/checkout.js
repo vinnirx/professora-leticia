@@ -1,3 +1,4 @@
+import { origemDaImagemPix } from "./imagem-pix.js?v=1";
 import { documentoValido, mascararDocumento } from "./documento.js";
 import { cobrancaReutilizavel, gravarTentativa, lerTentativa, limparTentativa } from "./tentativa-compra.js";
 import { rota } from "./rotas.js";
@@ -190,12 +191,11 @@ export async function abrirPix(atividade) {
       pixAtual = automatica.copiaCola;
       const caixaAutomatica = document.querySelector("#pix-imagem");
       caixaAutomatica.replaceChildren();
-      if (automatica.imagem) {
+      const origem = origemDaImagemPix(automatica.imagem);
+      if (origem) {
         const imagem = document.createElement("img");
         imagem.alt = "QR Code Pix da cobrança";
-        imagem.src = String(automatica.imagem).startsWith("data:")
-          ? automatica.imagem
-          : `data:image/png;base64,${automatica.imagem}`;
+        imagem.src = origem;
         caixaAutomatica.append(imagem);
       }
       document.querySelector("#pix-codigo").textContent = automatica.txid;
