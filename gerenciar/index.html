@@ -326,11 +326,28 @@
               <div class="secao-cabeca">
                 <div>
                   <h2 id="titulo-suporte">Suporte</h2>
-                  <p class="texto-secao">As solicitações gravadas pela Central de Ajuda aparecem aqui, com o cliente, o pedido e o assunto. A instalação no banco ainda depende de autorização.</p>
+                  <p class="texto-secao">As mensagens da Central de Ajuda aparecem aqui. Uma resposta fica no chamado e não altera cobrança nem pagamento.</p>
                 </div>
               </div>
+              <div class="filtros-painel">
+                <label class="campo-largo">Buscar <input id="busca-suporte" type="search" placeholder="Cliente, protocolo ou pedido" /></label>
+                <label>Situação
+                  <select id="filtro-suporte">
+                    <option value="">Todas</option>
+                    <option value="aguardando">Aguardando resposta</option>
+                    <option value="aberto">Aberto</option>
+                    <option value="atendimento">Em atendimento</option>
+                    <option value="resolvido">Resolvido</option>
+                  </select>
+                </label>
+              </div>
+              <form id="suporte-resposta" class="filtros-painel" hidden>
+                <p id="suporte-resposta-titulo"></p>
+                <label class="campo-largo">Resposta <textarea id="suporte-resposta-texto" rows="4"></textarea></label>
+                <button class="botao" type="submit">Enviar resposta</button>
+              </form>
               <p class="aviso-conta" id="suporte-aviso" role="status"></p>
-              <div id="lista-suporte"></div>
+              <div class="tabela-rolagem" id="lista-suporte"></div>
             </section>
 
             <section class="admin-bloco" data-painel="equipe" hidden aria-labelledby="titulo-equipe">
@@ -408,7 +425,7 @@
 
     <script src="../js/loja.js?v=48"></script>
     <script src="../js/vendor/supabase.js?v=1"></script>
-    <script type="module" src="../js/sessao.js?v=44"></script>
-    <script type="module" src="../js/conta.js?v=56"></script>
+    <script type="module" src="../js/sessao.js?v=45"></script>
+    <script type="module" src="../js/conta.js?v=57"></script>
   </body>
 </html>

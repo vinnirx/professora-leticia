@@ -627,12 +627,28 @@ async function iniciar() {
         texto: String(texto || "").slice(0, 2000),
       });
       if (mensagem.error) return { ok: false, mensagem: traduzir(mensagem.error) };
+      return { ok: true, id: criada.data.id };
+    },
+    async responderSolicitacao(id, texto) {
+      const atual = await sessao();
+      if (!atual) return { ok: false, mensagem: "Entre na conta para responder." };
+      const corpo = String(texto || "").trim().slice(0, 2000);
+      if (corpo.length < 2) return { ok: false, mensagem: "Escreva a resposta." };
+      const mensagem = await cliente.from("solicitacao_mensagens").insert({
+        solicitacao_id: id,
+        autor_id: atual.user.id,
+        texto: corpo,
+      });
+      if (mensagem.error && /schema cache|does not exist|could not find/i.test(String(mensagem.error.message || ""))) {
+        return { ok: false, ausente: true };
+      }
+      if (mensagem.error) return { ok: false, mensagem: traduzir(mensagem.error) };
       return { ok: true };
     },
     async listarSolicitacoes() {
       const { data, error } = await cliente
         .from("solicitacoes")
-        .select("id, txid, assunto, status, criado_em, perfis(nome, email), solicitacao_mensagens(texto, criado_em)")
+        .select("id, usuario_id, txid, assunto, status, criado_em, perfis(nome, email), solicitacao_mensagens(autor_id, texto, criado_em)")
         .order("criado_em", { ascending: false });
       if (error && /schema cache|does not exist|could not find/i.test(String(error.message || ""))) {
         return { ok: false, ausente: true };
@@ -645,7 +661,11 @@ async function iniciar() {
           nome: item.perfis?.nome || "",
           email: item.perfis?.email || "",
           mensagens: (item.solicitacao_mensagens || [])
-            .map((mensagem) => ({ texto: mensagem.texto, criado_em: mensagem.criado_em }))
+            .map((mensagem) => ({
+              autor_id: mensagem.autor_id,
+              texto: mensagem.texto,
+              criado_em: mensagem.criado_em,
+            }))
             .sort((a, b) => String(a.criado_em).localeCompare(String(b.criado_em))),
         })),
       };

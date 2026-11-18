@@ -12,6 +12,7 @@ import { leituraAdministrativa, textoDaLista, textoDasContas } from "./apresenta
 import { acionarSaida } from "./saida.js";
 import { paginaAtividade, rota } from "../rotas.js";
 import { podeVoltarALoja, semVenda } from "../vitrine.js";
+import { aguardaResposta, protocoloVisivel, rotuloAssunto, rotuloSolicitacao } from "../suporte.js?v=1";
 
 const travaPdf = criarTrava();
 
@@ -1365,7 +1366,7 @@ export async function iniciarAdmin(loja) {
     pintarEquipe();
     pintarConfig();
     pintarConciliacao();
-    pintarSuporte();
+    carregarSuporte();
     completarContas();
   }
 
@@ -1431,69 +1432,163 @@ export async function iniciarAdmin(loja) {
     }
     pintarClientes();
   }
-  function historicoSolicitacao(mensagens) {
+  function historicoSolicitacao(item) {
     const lista = document.createElement("div");
-    const itens = mensagens || [];
+    const itens = item.mensagens || [];
     if (!itens.length) {
       lista.textContent = "Sem mensagens.";
       return lista;
     }
     for (const mensagem of itens) {
       const linha = document.createElement("p");
-      linha.textContent = mensagem.texto;
+      const quem = mensagem.autor_id === item.usuario_id ? "Cliente" : "Equipe";
+      const data = mensagem.criado_em ? quando.format(new Date(mensagem.criado_em)) : "";
+      linha.textContent = `${quem}${data ? ` · ${data}` : ""}: ${mensagem.texto}`;
       lista.append(linha);
     }
     return lista;
   }
 
-  async function pintarSuporte() {
+  let suporteItens = [];
+  let suporteAberto = "";
+
+  function solicitacaoAberta() {
+    return suporteItens.find((item) => item.id === suporteAberto) || null;
+  }
+
+  function valorDoChamado(item) {
+    if (!item.txid) return "—";
+    const cobranca = memoria.cobrancas.find((registro) => registro.txid === item.txid);
+    if (cobranca?.valor_bruto != null) return moeda.format(Number(cobranca.valor_bruto));
+    const soma = memoria.pedidos
+      .filter((pedido) => pedido.txid === item.txid)
+      .reduce((total, pedido) => total + (Number(pedido.valor) || 0), 0);
+    return soma ? moeda.format(soma) : "—";
+  }
+
+  function mostrarResposta(item) {
+    const formulario = document.querySelector("#suporte-resposta");
+    if (!formulario) return;
+    suporteAberto = item?.id || "";
+    formulario.hidden = !item;
+    if (!item) return;
+    document.querySelector("#suporte-resposta-titulo").textContent = `${protocoloVisivel(item)} · ${item.nome || item.email || "Cliente"}`;
+    document.querySelector("#suporte-resposta-texto").value = "";
+  }
+
+  function pintarSuporte() {
     const destino = document.querySelector("#lista-suporte");
     if (!destino) return;
-    if (!loja.listarSolicitacoes) {
-      destino.replaceChildren(vazio("A central de ajuda ainda não está ligada.", "A migração precisa ser autorizada antes de gravar solicitações."));
-      return;
-    }
-    const resultado = await loja.listarSolicitacoes();
-    if (!resultado.ok) {
+    const busca = document.querySelector("#busca-suporte")?.value.trim().toLowerCase() || "";
+    const situacao = document.querySelector("#filtro-suporte")?.value || "";
+    const visiveis = suporteItens.filter((item) => {
+      const texto = [item.nome, item.email, rotuloAssunto(item.assunto), protocoloVisivel(item), item.txid, item.status]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (busca && !texto.includes(busca)) return false;
+      if (situacao === "aguardando") return aguardaResposta(item);
+      if (situacao) return item.status === situacao;
+      return true;
+    });
+    if (!visiveis.length) {
       destino.replaceChildren(vazio(
-        resultado.ausente ? "A central de ajuda ainda não está instalada no banco." : "Não foi possível ler as solicitações.",
-        resultado.ausente ? "Nenhuma mensagem foi gravada. O envio pelo painel começa depois da migração autorizada." : resultado.mensagem,
+        suporteItens.length ? "Nenhuma solicitação com esse filtro." : "Nenhuma solicitação aberta.",
+        suporteItens.length ? "Limpe a busca para ver os outros chamados." : "Quando um cliente pedir ajuda, ela aparece aqui.",
       ));
       return;
     }
-    if (!resultado.solicitacoes.length) {
-      destino.replaceChildren(vazio("Nenhuma solicitação aberta.", "Quando um cliente pedir ajuda, ela aparece aqui."));
-      return;
-    }
     destino.replaceChildren(montarTabela(
-      ["Data", "Cliente", "Assunto", "Pedido", "Histórico", "Status", "Ações"],
-      resultado.solicitacoes.map((item) => {
+      ["Data", "Cliente", "Assunto", "Protocolo", "Pedido", "Valor", "Histórico", "Status", "Ações"],
+      visiveis.map((item) => {
         const acoes = document.createElement("div");
         acoes.className = "acoes";
-        if (item.status !== "resolvido") {
-          acoes.append(botaoAcao("Registrar solução", async () => {
-            const texto = window.prompt("Escreva a solução registrada para o cliente.");
-            if (!texto) return;
-            const gravado = await loja.atualizarSolicitacao(item.id, "resolvido", texto);
-            aviso(document.querySelector("#suporte-aviso"), gravado.ok ? "Solicitação resolvida." : gravado.mensagem, Boolean(gravado.ok));
-            if (gravado.ok) pintarSuporte();
-          }));
+        acoes.append(botaoAcao("Responder", () => mostrarResposta(item)));
+        if (item.status !== "atendimento") {
+          acoes.append(botaoAcao("Em atendimento", () => mudarSuporte(item, "atendimento")));
         }
+        if (item.status !== "resolvido") {
+          acoes.append(botaoAcao("Resolvido", () => mudarSuporte(item, "resolvido")));
+        }
+        const cliente = document.createElement("div");
+        const nome = document.createElement("strong");
+        nome.textContent = item.nome || "Conta";
+        cliente.append(nome);
+        if (item.email) {
+          const email = document.createElement("p");
+          email.textContent = item.email;
+          cliente.append(email);
+        }
+        const situacaoTexto = aguardaResposta(item)
+          ? `${rotuloSolicitacao(item.status)} · Aguardando resposta`
+          : rotuloSolicitacao(item.status);
         return {
           tr: document.createElement("tr"),
           celulas: [
             celula("Data", quando.format(new Date(item.criado_em))),
-            celula("Cliente", item.nome || item.email || "Conta"),
-            celula("Assunto", item.assunto),
+            celula("Cliente", cliente),
+            celula("Assunto", rotuloAssunto(item.assunto)),
+            celula("Protocolo", protocoloVisivel(item) || "—"),
             celula("Pedido", item.txid || "—"),
-            celula("Histórico", historicoSolicitacao(item.mensagens)),
-            celula("Status", item.status === "atendimento" ? "Em atendimento" : item.status === "resolvido" ? "Resolvido" : "Aberto"),
+            celula("Valor", valorDoChamado(item), "numero"),
+            celula("Histórico", historicoSolicitacao(item)),
+            celula("Status", situacaoTexto),
             celula("Ações", acoes),
           ],
         };
       }),
     ));
   }
+
+  async function mudarSuporte(item, status) {
+    const gravado = await loja.atualizarSolicitacao(item.id, status, "");
+    aviso(document.querySelector("#suporte-aviso"), gravado.ok ? "Situação atualizada. Nenhuma cobrança foi alterada." : gravado.mensagem, Boolean(gravado.ok));
+    if (gravado.ok) carregarSuporte();
+  }
+
+  async function carregarSuporte() {
+    const destino = document.querySelector("#lista-suporte");
+    if (!destino) return;
+    if (!loja.listarSolicitacoes) {
+      destino.replaceChildren(vazio("A central de ajuda ainda não está ligada.", "As mensagens aparecem aqui quando a conta administrativa está autorizada."));
+      return;
+    }
+    const resultado = await loja.listarSolicitacoes();
+    if (!resultado.ok) {
+      suporteItens = [];
+      destino.replaceChildren(vazio(
+        resultado.ausente ? "A central de ajuda ainda não está instalada no banco." : "Não foi possível ler as solicitações.",
+        resultado.ausente ? "Nenhuma mensagem foi gravada." : resultado.mensagem,
+      ));
+      return;
+    }
+    suporteItens = resultado.solicitacoes;
+    if (suporteAberto && !solicitacaoAberta()) mostrarResposta(null);
+    pintarSuporte();
+  }
+  document.querySelector("#busca-suporte")?.addEventListener("input", pintarSuporte);
+  document.querySelector("#filtro-suporte")?.addEventListener("change", pintarSuporte);
+  document.querySelector("#suporte-resposta")?.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    const item = solicitacaoAberta();
+    const formulario = evento.currentTarget;
+    const texto = document.querySelector("#suporte-resposta-texto").value.trim();
+    if (!item || formulario.dataset.enviando === "1") return;
+    if (texto.length < 2) {
+      aviso(document.querySelector("#suporte-aviso"), "Escreva a resposta para o cliente.");
+      return;
+    }
+    formulario.dataset.enviando = "1";
+    const status = item.status === "aberto" ? "atendimento" : item.status;
+    const gravado = await loja.atualizarSolicitacao(item.id, status, texto);
+    delete formulario.dataset.enviando;
+    aviso(
+      document.querySelector("#suporte-aviso"),
+      gravado.ok ? "Resposta registrada. Nenhuma cobrança foi alterada." : gravado.mensagem,
+      Boolean(gravado.ok),
+    );
+    if (gravado.ok) carregarSuporte();
+  });
   async function restaurarPdf(atividade) {
     if (!loja.restaurarPdf || !atividade.pdfAnterior || atividade.pdfAnterior === atividade.arquivo) return;
     if (!window.confirm("Voltar ao PDF anterior? O arquivo novo permanece guardado, mas os downloads passam a usar o anterior.")) return;

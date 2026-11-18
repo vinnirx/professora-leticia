@@ -1,5 +1,6 @@
 import { origemDaImagemPix } from "../imagem-pix.js?v=1";
-import { aviso, moeda } from "./avisos.js";
+import { aviso, moeda, quando } from "./avisos.js";
+import { protocoloVisivel, rotuloSolicitacao } from "../suporte.js?v=1";
 import { acionarSaida } from "./saida.js";
 import { leituraAdministrativa, resumoAdministrativo } from "./apresentacao.js?v=4";
 import { administra } from "./papeis.js";
@@ -470,13 +471,40 @@ async function mostrarSolicitacoes(loja) {
   for (const item of resultado.solicitacoes) {
     const artigo = document.createElement("article");
     const cabeca = document.createElement("p");
-    cabeca.textContent = `${rotuloStatus(item.status)}${item.txid ? ` · Pedido ${item.txid}` : ""}`;
+    const protocolo = protocoloVisivel(item);
+    cabeca.textContent = `${rotuloSolicitacao(item.status)}${protocolo ? ` · ${protocolo}` : ""}${item.txid ? ` · Pedido ${item.txid}` : ""}`;
     artigo.append(cabeca);
     for (const mensagem of item.mensagens || []) {
       const linha = document.createElement("p");
-      linha.textContent = mensagem.texto;
+      const quem = mensagem.autor_id === item.usuario_id ? "Você" : "Equipe";
+      const data = mensagem.criado_em ? quando.format(new Date(mensagem.criado_em)) : "";
+      linha.textContent = `${quem}${data ? ` · ${data}` : ""}: ${mensagem.texto}`;
       artigo.append(linha);
     }
+    const resposta = document.createElement("form");
+    const campo = document.createElement("textarea");
+    campo.rows = 3;
+    campo.required = true;
+    campo.placeholder = "Escreva uma nova mensagem";
+    const enviar = document.createElement("button");
+    enviar.className = "botao botao-secundario";
+    enviar.type = "submit";
+    enviar.textContent = "Enviar resposta";
+    resposta.append(campo, enviar);
+    resposta.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+      if (resposta.dataset.enviando === "1") return;
+      const texto = campo.value.trim();
+      if (texto.length < 2 || !loja.responderSolicitacao) return;
+      resposta.dataset.enviando = "1";
+      enviar.disabled = true;
+      const gravado = await loja.responderSolicitacao(item.id, texto);
+      delete resposta.dataset.enviando;
+      enviar.disabled = false;
+      aviso(document.querySelector("#ajuda-aviso"), gravado.ok ? "Resposta enviada." : gravado.mensagem, Boolean(gravado.ok));
+      if (gravado.ok) mostrarSolicitacoes(loja);
+    });
+    artigo.append(resposta);
     destino.append(artigo);
   }
 }
@@ -514,7 +542,16 @@ export async function iniciarMinhas(loja) {
     const pedido = String(campos.get("pedido") || "").trim();
     const texto = String(campos.get("texto") || "").trim();
     const estado = document.querySelector("#ajuda-aviso");
+    const botao = formulario.querySelector("button[type=submit]");
+    if (formulario.dataset.enviando === "1") return;
+    formulario.dataset.enviando = "1";
+    if (botao) botao.disabled = true;
+    const liberar = () => {
+      delete formulario.dataset.enviando;
+      if (botao) botao.disabled = false;
+    };
     if (texto.length < 8) {
+      liberar();
       aviso(estado, "Escreva a mensagem com um pouco mais de detalhe.");
       return;
     }
@@ -523,11 +560,13 @@ export async function iniciarMinhas(loja) {
       ? await loja.abrirSolicitacao({ assunto, txid: pedido, texto: relato })
       : { ok: false, ausente: true };
     if (resultado.ok) {
-      aviso(estado, "Pedido de ajuda registrado. A Letícia consegue acompanhá-lo no painel.", true);
+      aviso(estado, `Pedido de ajuda registrado. Protocolo ${protocoloVisivel(resultado)}. A Letícia responde por aqui.`, true);
       formulario.reset();
+      liberar();
       await mostrarSolicitacoes(loja);
       return;
     }
+    liberar();
     if (resultado.ausente) {
       const link = document.createElement("a");
       link.href = linkAjuda({ txid: pedido, motivo: texto });
