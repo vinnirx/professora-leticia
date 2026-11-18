@@ -677,7 +677,7 @@ export async function iniciarAdmin(loja) {
         titulo: "Excluir atividade",
         alerta: "A exclusão é definitiva. O cadastro não volta para a loja.",
         texto: `${atividade.titulo} será apagada do catálogo. Os pedidos e os PDFs das outras atividades não são alterados.`,
-        confirmar: "Excluir atividade",
+        confirmar: "Confirmar exclusão",
         perigo: true,
       });
       if (!confirmou) return;

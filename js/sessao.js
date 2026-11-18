@@ -819,7 +819,15 @@ async function iniciar() {
       return this.pedirCobranca("cancelar", txid);
     },
     async definirVisibilidade(txid, ocultar) {
-      return this.pedirCobranca(ocultar ? "ocultar" : "mostrar", txid);
+      const acesso = await usuarioConfirmado();
+      if (!acesso.ok) return acesso;
+      const { data, error } = await cliente.rpc("definir_visibilidade_pedido", {
+        codigo: String(txid || ""),
+        ocultar: ocultar === true,
+      });
+      if (error) return { ok: false, mensagem: traduzir(error) };
+      if (!data?.ok) return { ok: false, mensagem: data?.mensagem || "A visualização não mudou." };
+      return { ok: true, oculto: data.oculto === true, mensagem: data.mensagem || "" };
     },
     async definirPapel(alvo, novoPapel) {
       const acesso = await usuarioConfirmado();

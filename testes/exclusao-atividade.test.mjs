@@ -6,7 +6,7 @@ const corpo = admin.slice(admin.indexOf("async function apagarCadastro"), admin.
 
 assert.match(corpo, /travaExclusao\.entrar\(\)/);
 assert.match(corpo, /apagarAtividadeSemVenda\(atividade\.id\)/);
-assert.match(corpo, /Excluir atividade/);
+assert.match(corpo, /Confirmar exclusão/);
 assert.match(corpo, /executarArquivamento\(atividade\)/);
 assert.doesNotMatch(corpo, /elegibilidadeAtividade/);
 const recusa = corpo.indexOf("if (!resultado.ok)");
