@@ -283,9 +283,31 @@ function botoesSecundarios(artigo, pedido, loja, resultado) {
   caixa.dataset.secundario = "sim";
   caixa.append(ajuda);
   if (resultado.cancelavel) caixa.append(botaoSecundario("Cancelar pedido", () => confirmarCancelamento(artigo, pedido, loja)));
-  if (resultado.ocultavel && !pedido.oculto) caixa.append(botaoSecundario("Ocultar do meu histórico", () => alterarVisibilidade(artigo, pedido, loja, true)));
-  if (pedido.oculto) caixa.append(botaoSecundario("Mostrar de novo", () => alterarVisibilidade(artigo, pedido, loja, false)));
+  if (resultado.ocultavel && !pedido.oculto) caixa.append(botaoSecundario("Excluir pedido", () => confirmarExclusao(artigo, pedido, loja, resultado)));
   if (caixa.childElementCount) artigo.append(caixa);
+}
+
+function confirmarExclusao(artigo, pedido, loja, resultado) {
+  const caixa = artigo.querySelector("[data-secundario]");
+  if (!caixa || caixa.dataset.excluindo === "1") return;
+  caixa.replaceChildren();
+  const texto = document.createElement("p");
+  texto.textContent = "O pedido será removido da visualização da conta.";
+  const confirmar = botaoSecundario("Confirmar exclusão", async () => {
+    if (caixa.dataset.excluindo === "1") return;
+    caixa.dataset.excluindo = "1";
+    confirmar.disabled = true;
+    await alterarVisibilidade(artigo, pedido, loja, true);
+    if (!pedido.oculto) {
+      delete caixa.dataset.excluindo;
+      confirmar.disabled = false;
+    }
+  });
+  caixa.append(
+    texto,
+    confirmar,
+    botaoSecundario("Cancelar", () => botoesSecundarios(artigo, pedido, loja, resultado)),
+  );
 }
 
 function confirmarCancelamento(artigo, pedido, loja) {
@@ -604,42 +626,28 @@ export async function iniciarMinhas(loja) {
     }
     return;
   }
-  const grupos = agruparPorCodigo(pedidos);
-  let verOcultos = false;
-  const alternar = document.createElement("button");
-  alternar.type = "button";
-  alternar.className = "botao botao-secundario";
-  const quantidadeOculta = () => grupos.filter((pedido) => pedido.oculto).length;
-  alternar.hidden = quantidadeOculta() === 0;
+  const grupos = agruparPorCodigo(pedidos).filter((pedido) => !pedido.oculto);
+  if (!grupos.length) {
+    vazio.hidden = false;
+    if (gestao) {
+      vazio.textContent = "Nenhuma compra nesta conta. Os materiais da loja continuam cadastrados.";
+    } else {
+      escrever(vazio, "Você ainda não comprou materiais. Quando o pagamento for confirmado, o PDF aparece aqui.", rota("atividades/"), "Ver materiais");
+    }
+    return;
+  }
   const pintar = () => {
-    const visiveis = grupos.filter((pedido) => verOcultos || !pedido.oculto);
-    alternar.hidden = quantidadeOculta() === 0;
-    alternar.textContent = verOcultos ? "Voltar às compras visíveis" : `Ver pedidos ocultos (${quantidadeOculta()})`;
-    alternar.setAttribute("aria-pressed", String(verOcultos));
-    lista.dataset.ocultos = verOcultos ? "sim" : "nao";
+    const visiveis = grupos.filter((pedido) => !pedido.oculto);
     lista.replaceChildren();
     if (!visiveis.length) {
-      const nota = document.createElement("p");
-      nota.textContent = verOcultos ? "Nenhum pedido oculto." : "Nenhuma compra visível. As tentativas ocultas continuam guardadas.";
-      lista.append(nota);
+      vazio.hidden = false;
+      if (gestao) vazio.textContent = "Nenhuma compra nesta conta. Os materiais da loja continuam cadastrados.";
+      else escrever(vazio, "Você ainda não comprou materiais. Quando o pagamento for confirmado, o PDF aparece aqui.", rota("atividades/"), "Ver materiais");
       return;
     }
+    vazio.hidden = true;
     visiveis.forEach((pedido) => lista.append(cartaoPedido(pedido, loja)));
   };
-  alternar.addEventListener("click", () => {
-    verOcultos = !verOcultos;
-    pintar();
-  });
-  lista.addEventListener("visibilidade-pedido", () => {
-    alternar.hidden = quantidadeOculta() === 0;
-    alternar.textContent = verOcultos ? "Voltar às compras visíveis" : `Ver pedidos ocultos (${quantidadeOculta()})`;
-    if (!verOcultos && grupos.every((pedido) => pedido.oculto)) {
-      lista.replaceChildren();
-      const nota = document.createElement("p");
-      nota.textContent = "Nenhuma compra visível. As tentativas ocultas continuam guardadas.";
-      lista.append(nota);
-    }
-  });
-  lista.before(alternar);
+  lista.addEventListener("visibilidade-pedido", pintar);
   pintar();
 }
