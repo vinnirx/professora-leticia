@@ -303,6 +303,14 @@
   max-width: 100%;
 }
 
+.item-conta .acoes .botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  margin-top: 0;
+}
+
 .item-conta .acoes a { font-weight: 800; color: var(--azul-vivo); }
 
 .conta a.so-admin { display: none; }

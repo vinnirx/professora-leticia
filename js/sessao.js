@@ -356,9 +356,22 @@ async function iniciar() {
       try {
         const acesso = await contaAdministra();
         if (!acesso.ok) return acesso;
-        const resposta = await cliente.auth.mfa.getAuthenticatorAssuranceLevel();
+        const [resposta, lista] = await Promise.all([
+          cliente.auth.mfa.getAuthenticatorAssuranceLevel(),
+          cliente.auth.mfa.listFactors(),
+        ]);
         if (resposta?.error || !resposta?.data) return { ok: false, mensagem: mensagemFator(resposta?.error) };
-        return { ok: true, atual: resposta.data.currentLevel || null, proximo: resposta.data.nextLevel || null };
+        const fatores = lista?.error
+          ? null
+          : (lista.data?.all || [])
+            .filter((fator) => fator.factor_type === "totp")
+            .map((fator) => ({ factor_type: fator.factor_type, status: fator.status }));
+        return {
+          ok: true,
+          atual: resposta.data.currentLevel || null,
+          proximo: resposta.data.nextLevel || null,
+          fatores,
+        };
       } catch {
         return { ok: false, mensagem: "Não consegui confirmar a sessão. Tente de novo." };
       }

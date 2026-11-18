@@ -2,7 +2,7 @@ import { aviso, moeda } from "./avisos.js";
 import { acionarSaida } from "./saida.js";
 import { resumoAdministrativo } from "./apresentacao.js?v=2";
 import { administra } from "./papeis.js";
-import { agruparPorCodigo, apresentacao, intervaloDaTela, prioridadeDaAcao } from "./retomada.js?v=2";
+import { agruparPorCodigo, apresentacao, intervaloDaTela, podeOcultar, prioridadeDaAcao } from "./retomada.js?v=2";
 import { rota } from "../rotas.js";
 import { linkAjuda } from "../texto.js";
 
@@ -32,14 +32,16 @@ function cartaoPedido(pedido, loja) {
   const estado = document.createElement("p");
   estado.className = "aviso-conta";
   estado.setAttribute("role", "status");
-  if (pedido.status === "estornado") {
-    artigo.append(selo("problema", "Pagamento estornado"), estado, contato(pedido, "Meu pagamento foi estornado."));
-    estado.textContent = "Este pagamento foi estornado. O PDF deixa de ficar disponível.";
-    return artigo;
-  }
-  if (pedido.status === "cancelado") {
-    artigo.append(selo("problema", "Pagamento cancelado"), estado, contato(pedido, "Minha cobrança foi cancelada."));
-    estado.textContent = "Esta cobrança foi cancelada. O PDF continua bloqueado.";
+  if (pedido.status === "estornado" || pedido.status === "cancelado") {
+    const acao = pedido.status === "estornado" ? "estornado" : "tentativa";
+    const visual = apresentacao(acao);
+    const motivo = pedido.status === "estornado" ? "Meu pagamento foi estornado." : "Meu pedido foi cancelado.";
+    artigo.append(selo(visual.tipo, visual.titulo), estado, contato(pedido, motivo));
+    estado.textContent = pedido.status === "estornado"
+      ? "Este pagamento foi estornado. O PDF deixa de ficar disponível."
+      : "Este pedido foi cancelado. O PDF continua bloqueado.";
+    botoesSecundarios(artigo, pedido, loja, { cancelavel: false, ocultavel: podeOcultar(acao) });
+    acompanharPedido(artigo, pedido, loja, acao);
     return artigo;
   }
   if (pedido.status !== "pago") {
@@ -282,6 +284,7 @@ async function alterarVisibilidade(artigo, pedido, loja, ocultar) {
     return;
   }
   pedido.oculto = ocultar;
+  artigo.dispatchEvent(new CustomEvent("visibilidade-pedido", { bubbles: true }));
   if (ocultar && artigo.parentElement?.dataset.ocultos !== "sim") artigo.remove();
   else botoesSecundarios(artigo, pedido, loja, { cancelavel: false, ocultavel: !ocultar });
 }
@@ -529,14 +532,15 @@ export async function iniciarMinhas(loja) {
   }
   const grupos = agruparPorCodigo(pedidos);
   let verOcultos = false;
-  const ocultos = grupos.filter((pedido) => pedido.oculto);
   const alternar = document.createElement("button");
   alternar.type = "button";
   alternar.className = "botao botao-secundario";
-  alternar.hidden = ocultos.length === 0;
+  const quantidadeOculta = () => grupos.filter((pedido) => pedido.oculto).length;
+  alternar.hidden = quantidadeOculta() === 0;
   const pintar = () => {
     const visiveis = grupos.filter((pedido) => verOcultos || !pedido.oculto);
-    alternar.textContent = verOcultos ? "Voltar às compras visíveis" : `Ver pedidos ocultos (${ocultos.length})`;
+    alternar.hidden = quantidadeOculta() === 0;
+    alternar.textContent = verOcultos ? "Voltar às compras visíveis" : `Ver pedidos ocultos (${quantidadeOculta()})`;
     alternar.setAttribute("aria-pressed", String(verOcultos));
     lista.dataset.ocultos = verOcultos ? "sim" : "nao";
     lista.replaceChildren();
@@ -551,6 +555,16 @@ export async function iniciarMinhas(loja) {
   alternar.addEventListener("click", () => {
     verOcultos = !verOcultos;
     pintar();
+  });
+  lista.addEventListener("visibilidade-pedido", () => {
+    alternar.hidden = quantidadeOculta() === 0;
+    alternar.textContent = verOcultos ? "Voltar às compras visíveis" : `Ver pedidos ocultos (${quantidadeOculta()})`;
+    if (!verOcultos && grupos.every((pedido) => pedido.oculto)) {
+      lista.replaceChildren();
+      const nota = document.createElement("p");
+      nota.textContent = "Nenhuma compra visível. As tentativas ocultas continuam guardadas.";
+      lista.append(nota);
+    }
   });
   lista.before(alternar);
   pintar();

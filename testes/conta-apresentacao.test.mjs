@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { pedidoDeEntrada, resumoAdministrativo } from "../js/conta/apresentacao.js";
+import { leituraAdministrativa, pedidoDeEntrada, resumoAdministrativo, textoDaLista } from "../js/conta/apresentacao.js";
 import { destinoInterno } from "../js/rotas.js";
 
 const proprietaria = { nome: "Dona Fictícia", papel: "owner", acesso_financeiro: false };
@@ -73,6 +73,21 @@ assert.equal(clienteResumo.atalhos.some((item) => item.hash === "financeiro"), f
 
 const tela = readFileSync(new URL("../js/conta/minhas.js", import.meta.url), "utf8");
 const entrada = readFileSync(new URL("../js/conta/entrar.js", import.meta.url), "utf8");
+assert.equal(leituraAdministrativa({ ok: true, atual: "aal2" }, "owner"), "ok");
+assert.equal(leituraAdministrativa({ ok: true, atual: "aal1" }, "owner"), "permissao");
+assert.equal(leituraAdministrativa({ ok: false }, "admin"), "erro");
+assert.equal(leituraAdministrativa(null, "cliente"), "ok");
+assert.match(textoDaLista({ area: "pedidos", total: 0, visiveis: 0, leitura: "ok" }).titulo, /Nenhum pedido cadastrado/);
+assert.match(textoDaLista({ area: "pedidos", total: 4, visiveis: 0, leitura: "ok" }).titulo, /período selecionado/);
+assert.match(textoDaLista({ area: "pedidos", total: 0, visiveis: 0, leitura: "erro" }).titulo, /Não consegui consultar/);
+assert.match(textoDaLista({ area: "financeiro", total: 2, visiveis: 0, leitura: "permissao" }).titulo, /não tem permissão/);
+assert.equal(textoDaLista({ area: "pedidos", total: 2, visiveis: 1, leitura: "ok" }), null);
+assert.match(textoDaLista({ area: "financeiro", total: 3, visiveis: 0, leitura: "ok" }).detalhe, /Amplie as datas/);
+const cancelado = tela.slice(tela.indexOf('pedido.status === "estornado" || pedido.status === "cancelado"'), tela.indexOf('pedido.status !== "pago"'));
+assert.match(cancelado, /acompanharPedido/);
+assert.match(cancelado, /podeOcultar/);
+assert.match(tela, /Ocultar do meu histórico/);
+assert.equal(cancelado.includes("Excluir"), false);
 assert.equal(tela.includes("Você ainda não tem atividades"), false);
 assert.equal(tela.includes("location.href"), false);
 assert.equal(tela.includes("location.replace"), false);

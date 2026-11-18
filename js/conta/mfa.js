@@ -1,6 +1,11 @@
 export function avisoListaContas(nivel) {
   if (nivel?.atual === "aal2") return "";
   if (!nivel?.ok) return "Não consegui confirmar o segundo fator. A lista de contas pode estar incompleta.";
+  const confirmado = Array.isArray(nivel.fatores)
+    && nivel.fatores.some((fator) => fator.factor_type === "totp" && fator.status === "verified");
+  if (Array.isArray(nivel.fatores) && !confirmado) {
+    return "Esta conta ainda não tem um autenticador confirmado. Em Configurações, cadastre o segundo fator no celular e entre de novo com o código. Até lá, a lista mostra só esta sessão.";
+  }
   return "Confirme o segundo fator para ver todas as contas. Enquanto isso, a lista mostra só esta sessão.";
 }
 

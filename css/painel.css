@@ -88,7 +88,7 @@ body[data-pagina="admin"] {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  min-height: 2.6rem;
+  min-height: var(--adm-altura);
   padding: 0.4rem 0.75rem;
   border: 1px solid transparent;
   border-radius: 0.7rem;
@@ -504,13 +504,13 @@ body[data-pagina="admin"] {
 }
 
 .tabela-admin .botao {
-  min-height: 2.15rem;
+  min-height: var(--adm-altura);
   padding: 0 0.7rem;
   font-size: 0.84rem;
   white-space: nowrap;
 }
 
-.tabela-admin .botao-icone { width: 2.15rem; }
+.tabela-admin .botao-icone { width: var(--adm-altura); }
 
 .tabela-admin td.celula-acoes { padding-inline: 0.85rem 0.7rem; overflow: visible; }
 
@@ -714,7 +714,7 @@ body[data-pagina="admin"] {
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: 2.15rem;
+  min-height: var(--adm-altura);
   padding: 0 0.65rem;
   border: 0;
   border-radius: 0.45rem;
@@ -765,7 +765,7 @@ body[data-pagina="admin"] {
 }
 
 .passos button {
-  min-height: 2.6rem;
+  min-height: var(--adm-altura);
   padding: 0.35rem 0.55rem;
   border: 1px solid var(--adm-linha);
   border-radius: 0.65rem;

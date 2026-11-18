@@ -78,3 +78,37 @@ export function resumoAdministrativo({ perfil, atividades, pedidos }) {
   }
   return { ...base, indicadores, semPedidos: grupos.length === 0 };
 }
+
+export function leituraAdministrativa(nivel, papel) {
+  if (papel !== "owner" && papel !== "super_admin" && papel !== "admin") return "ok";
+  if (!nivel) return "ok";
+  if (!nivel.ok) return "erro";
+  if (nivel.atual !== "aal2") return "permissao";
+  return "ok";
+}
+
+export function textoDaLista({ area, total, visiveis, leitura }) {
+  const financeiro = area === "financeiro";
+  if (leitura === "erro") {
+    return financeiro
+      ? { titulo: "Não consegui consultar o financeiro.", detalhe: "Este aviso não é um total zero. Tente de novo." }
+      : { titulo: "Não consegui consultar os pedidos.", detalhe: "Este aviso não é uma lista vazia. Tente de novo." };
+  }
+  if (leitura === "permissao") {
+    return {
+      titulo: "A sessão ainda não tem permissão para ver o histórico da loja.",
+      detalhe: "Confirme o segundo fator. Enquanto isso, os pedidos das outras contas ficam de fora e a tela não representa a loja vazia.",
+    };
+  }
+  if (!total) {
+    return financeiro
+      ? { titulo: "Nenhuma venda cadastrada.", detalhe: "Quando um pagamento for confirmado, a receita aparece aqui." }
+      : { titulo: "Nenhum pedido cadastrado.", detalhe: "Quando alguém comprar, o pedido aparece aqui." };
+  }
+  if (!visiveis) {
+    return financeiro
+      ? { titulo: "Nenhuma venda no período selecionado.", detalhe: "Amplie as datas para consultar registros anteriores. O zero deste intervalo não apaga o histórico." }
+      : { titulo: "Nenhum pedido encontrado no período selecionado.", detalhe: "Limpe a busca, mude a situação ou amplie as datas." };
+  }
+  return null;
+}

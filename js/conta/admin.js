@@ -7,7 +7,8 @@ import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
 import { agruparPedidos, resumirVendas } from "./grupos-pedido.js";
 import { fecharCaixa, linhaExportada, origemFinanceira } from "./caixa.js";
 import { celulaCsv } from "./csv.js";
-import { avisoListaContas, desafiarFator, montarSegundoFator } from "./mfa.js?v=7";
+import { avisoListaContas, desafiarFator, montarSegundoFator } from "./mfa.js?v=8";
+import { leituraAdministrativa, textoDaLista } from "./apresentacao.js?v=3";
 import { acionarSaida } from "./saida.js";
 import { paginaAtividade, rota } from "../rotas.js";
 import { podeVoltarALoja, semVenda } from "../vitrine.js";
@@ -882,12 +883,14 @@ export async function iniciarAdmin(loja) {
     const busca = document.querySelector("#busca-pedido").value;
     const lista = filtrarGrupos(grupos(), { inicio, fim, status: situacao, busca });
     const destino = document.querySelector("#lista-pedidos");
-    if (!lista.length) {
-      const temPedidos = grupos().length > 0;
-      destino.replaceChildren(vazio(
-        temPedidos ? "Nenhum pedido com esse filtro." : "Nenhum pedido ainda.",
-        temPedidos ? "Limpe a busca ou amplie o período." : "Quando alguém comprar, o pedido aparece aqui.",
-      ));
+    const avisoLista = textoDaLista({
+      area: "pedidos",
+      total: grupos().length,
+      visiveis: lista.length,
+      leitura: leituraAdministrativa(memoria.nivel, dados?.papel),
+    });
+    if (avisoLista) {
+      destino.replaceChildren(vazio(avisoLista.titulo, avisoLista.detalhe));
       return;
     }
     destino.replaceChildren(montarTabela(
@@ -978,15 +981,34 @@ export async function iniciarAdmin(loja) {
     }
     const { inicio, fim } = intervalosFinanceiro();
     const noPeriodo = memoria.pedidos.filter((pedido) => dentroDoIntervalo(pedido.criado_em, inicio, fim));
+    const leituraPainel = leituraAdministrativa(memoria.nivel, dados?.papel);
+    const avisoLista = textoDaLista({
+      area: "financeiro",
+      total: memoria.pedidos.length,
+      visiveis: noPeriodo.length,
+      leitura: leituraPainel,
+    });
+    if (avisoLista && (leituraPainel !== "ok" || !noPeriodo.length)) {
+      document.querySelector("#indicadores-financeiro").replaceChildren(vazio(avisoLista.titulo, avisoLista.detalhe));
+      if (apoio) apoio.replaceChildren();
+      document.querySelector("#grafico-bruto").replaceChildren();
+      document.querySelector("#lista-periodos").replaceChildren();
+      document.querySelector("#ranking-vendas")?.replaceChildren();
+      document.querySelector("#tabela-financeiro").replaceChildren();
+      return;
+    }
     const resumo = resumirVendas(noPeriodo);
     const pagos = noPeriodo.filter((pedido) => pedido.status === "pago");
     const gruposPagos = agruparPedidos(pagos);
+    const notaReceita = !gruposPagos.length && memoria.pedidos.length
+      ? "Nenhuma venda paga neste período. Amplie as datas para ver registros anteriores."
+      : "Soma dos pedidos em que todos os materiais estão pagos. Pendente e cancelado não entram.";
     const caixaPeriodo = fecharCaixa(gruposPagos, memoria.cobrancas, memoria.cobrancasDisponiveis);
     const estornos = memoria.cobrancasDisponiveis
       ? memoria.cobrancas.filter((item) => item.status === "estornada" && dentroDoIntervalo(item.atualizado_em, inicio, fim))
       : null;
     document.querySelector("#indicadores-financeiro").replaceChildren(
-      indicador("Receita bruta", moeda.format(resumo.bruto), "Soma dos pedidos em que todos os materiais estão pagos. Pendente não entra."),
+      indicador("Receita bruta", moeda.format(resumo.bruto), notaReceita),
       indicador("Receita líquida", caixaPeriodo.liquido == null ? indisponivel() : moeda.format(caixaPeriodo.liquido), caixaPeriodo.motivo),
       indicador("Vendas confirmadas", String(resumo.pedidosPagos), "Um código com várias atividades conta uma venda. O valor soma todos os materiais pagos."),
       indicador("Aguardando pagamento", String(resumo.aguardando), "Pedidos ainda não confirmados. Não entram na receita."),
@@ -1364,7 +1386,14 @@ export async function iniciarAdmin(loja) {
   });
   async function completarContas() {
     const nivel = loja.nivelAcesso ? await loja.nivelAcesso() : null;
-    memoria.avisoContas = avisoListaContas(nivel);
+    if (nivel?.ok && memoria.nivel?.atual !== nivel.atual) {
+      memoria.nivel = nivel;
+      pintarPedidos();
+      pintarFinanceiro();
+    } else if (nivel?.ok) {
+      memoria.nivel = nivel;
+    }
+    memoria.avisoContas = avisoListaContas(nivel || memoria.nivel);
     if (!loja.listarContas) {
       pintarClientes();
       return;
@@ -1596,5 +1625,7 @@ export async function iniciarAdmin(loja) {
   prepararCadastro(loja, new Set(memoria.atividades.map((item) => item.id)), (criada) => {
     document.dispatchEvent(new CustomEvent("atividade-salva", { detail: criada }));
   });
+  memoria.nivel = loja.nivelAcesso ? await loja.nivelAcesso() : { ok: false };
+  memoria.avisoContas = avisoListaContas(memoria.nivel);
   pintarTudo();
 }
