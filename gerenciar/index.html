@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="../css/styles.css?v=89" />
     <link rel="stylesheet" href="../css/conta.css?v=16" />
-    <link rel="stylesheet" href="../css/painel.css?v=20" />
+    <link rel="stylesheet" href="../css/painel.css?v=21" />
   </head>
   <body data-pagina="admin">
     <header class="cabecalho">
@@ -92,17 +92,12 @@
                 </div>
                 <p class="aviso-conta" id="atividades-status" role="status"></p>
                 <div class="acoes" id="abas-atividades" role="tablist" aria-label="Situação das atividades">
-                  <button class="botao" type="button" data-situacao="ativas" aria-selected="true">Ativas</button>
+                  <button class="botao" type="button" data-situacao="publicadas" aria-selected="true">Publicadas</button>
+                  <button class="botao botao-secundario" type="button" data-situacao="rascunhos" aria-selected="false">Rascunhos</button>
                   <button class="botao botao-secundario" type="button" data-situacao="arquivadas" aria-selected="false">Arquivadas</button>
-                  <button class="botao botao-secundario" type="button" data-situacao="todas" aria-selected="false">Todas</button>
                 </div>
-                <div class="filtros-painel filtros-quarta">
-                  <label>Buscar pelo nome <input id="busca-atividade" type="search" /></label>
-                  <label>Área <select id="filtro-area-lista"><option value="">Todas</option></select></label>
-                  <label>Categoria <select id="filtro-categoria-lista"><option value="">Todas</option></select></label>
-                  <label>Destaque <select id="filtro-destaque-lista"><option value="">Todos</option><option value="sim">Em destaque</option><option value="nao">Sem destaque</option></select></label>
-                </div>
-                <div class="tabela-rolagem" id="lista-atividades"></div>
+                <label class="busca-atividade">Buscar pelo título <input id="busca-atividade" type="search" /></label>
+                <div id="lista-atividades"></div>
               </div>
               <div id="cadastro-atividade" hidden>
                 <div class="secao-cabeca">
@@ -426,6 +421,6 @@
     <script src="../js/loja.js?v=49"></script>
     <script src="../js/vendor/supabase.js?v=1"></script>
     <script type="module" src="../js/sessao.js?v=45"></script>
-    <script type="module" src="../js/conta.js?v=58"></script>
+    <script type="module" src="../js/conta.js?v=59"></script>
   </body>
 </html>

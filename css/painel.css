@@ -475,6 +475,50 @@ body[data-pagina="admin"] {
   container-type: inline-size;
 }
 
+.busca-atividade {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.8rem 0;
+  font-weight: 800;
+}
+
+.busca-atividade input { width: 100%; }
+
+.lista-atividades-simples {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.cartao-atividade {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--adm-linha);
+  border-radius: 0.85rem;
+  background: #fff;
+}
+
+.cartao-atividade h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.cartao-atividade p {
+  margin: 0.25rem 0 0;
+  color: var(--adm-mudo);
+}
+
+.acoes-atividade {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.acoes-atividade .botao { width: auto; }
+
 .tabela-admin {
   width: 100%;
   border: 1px solid var(--adm-linha);
@@ -963,6 +1007,33 @@ body[data-pagina="admin"] {
 
 .dialogo-admin h3 { margin: 0; }
 
+.dialogo-admin .alerta-exclusao {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #e7b2ab;
+  border-radius: 0.7rem;
+  background: #fff4f2;
+  color: #9e2b2b;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.dialogo-admin .acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.dialogo-admin .botao-perigo {
+  border-color: #9e2b2b;
+  background: #9e2b2b;
+  color: #fff;
+  font-weight: 800;
+}
+
+.dialogo-admin .botao-perigo:hover { background: #7e2222; }
+
 .painel [hidden] { display: none !important; }
 
 @media (min-width: 1100px) {
@@ -1002,6 +1073,9 @@ body[data-pagina="admin"] {
   .grade-arquivos,
   #nova-atividade .grade-campos,
   #nova-atividade [data-etapa="1"] .grade-campos { grid-template-columns: 1fr; }
+
+  .acoes-atividade,
+  .acoes-atividade .botao { width: 100%; }
 
   .campo-largo { grid-column: auto; }
 }

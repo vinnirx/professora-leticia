@@ -15,6 +15,7 @@ import { podeVoltarALoja, semVenda } from "../vitrine.js";
 import { aguardaResposta, protocoloVisivel, rotuloAssunto, rotuloSolicitacao } from "../suporte.js?v=1";
 
 const travaPdf = criarTrava();
+const travaExclusao = criarTrava();
 
 const SECOES = ["visao", "atividades", "arquivos", "pedidos", "clientes", "suporte", "equipe", "configuracoes"];
 
@@ -460,18 +461,20 @@ export async function iniciarAdmin(loja) {
   const categorias = [...new Set(memoria.atividades.map(categoriaDe).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
   const filtroArea = document.querySelector("#filtro-area-lista");
   const filtroCategoria = document.querySelector("#filtro-categoria-lista");
-  areas.forEach((nome) => {
-    const opcao = document.createElement("option");
-    opcao.value = nome;
-    opcao.textContent = nome;
-    filtroArea.append(opcao);
-  });
-  categorias.forEach((nome) => {
-    const opcao = document.createElement("option");
-    opcao.value = nome;
-    opcao.textContent = nome;
-    filtroCategoria.append(opcao);
-  });
+  if (filtroArea && filtroCategoria) {
+    areas.forEach((nome) => {
+      const opcao = document.createElement("option");
+      opcao.value = nome;
+      opcao.textContent = nome;
+      filtroArea.append(opcao);
+    });
+    categorias.forEach((nome) => {
+      const opcao = document.createElement("option");
+      opcao.value = nome;
+      opcao.textContent = nome;
+      filtroCategoria.append(opcao);
+    });
+  }
 
   function grupos() {
     return agruparPedidos(memoria.pedidos);
@@ -543,11 +546,12 @@ export async function iniciarAdmin(loja) {
     }
   }
 
-  let situacaoAtividade = "ativas";
+  let situacaoAtividade = "publicadas";
 
-  function pedirConfirmacao({ titulo, texto, confirmar, perigo }) {
+  function pedirConfirmacao({ titulo, alerta, texto, confirmar, perigo }) {
     return new Promise((resolve) => {
       const dialogo = document.createElement("dialog");
+      dialogo.className = "dialogo-admin";
       const cabeca = document.createElement("h3");
       cabeca.textContent = titulo;
       const corpo = document.createElement("p");
@@ -562,7 +566,12 @@ export async function iniciarAdmin(loja) {
       aceitar.type = "button";
       aceitar.className = perigo ? "botao botao-perigo" : "botao";
       aceitar.textContent = confirmar;
+      let encerrado = false;
       const fechar = (valor) => {
+        if (encerrado) return;
+        encerrado = true;
+        cancelar.disabled = true;
+        aceitar.disabled = true;
         dialogo.close();
         dialogo.remove();
         resolve(valor);
@@ -574,25 +583,42 @@ export async function iniciarAdmin(loja) {
         fechar(false);
       });
       acoes.append(cancelar, aceitar);
-      dialogo.append(cabeca, corpo, acoes);
+      dialogo.append(cabeca);
+      if (alerta) {
+        const avisoIrreversivel = document.createElement("p");
+        avisoIrreversivel.className = "alerta-exclusao";
+        avisoIrreversivel.textContent = alerta;
+        dialogo.append(avisoIrreversivel);
+      }
+      dialogo.append(corpo, acoes);
       document.body.append(dialogo);
       dialogo.showModal();
+      cancelar.focus();
     });
+  }
+
+  async function executarArquivamento(atividade) {
+    const resultado = await loja.arquivarAtividade(atividade.id);
+    const status = document.querySelector("#atividades-status");
+    if (!resultado.ok) {
+      aviso(status, resultado.mensagem);
+      return false;
+    }
+    atividade.arquivada_em = new Date().toISOString();
+    aviso(status, `${atividade.titulo} foi arquivada, não excluída. Ela saiu da vitrine e os arquivos de quem comprou permanecem.`, true);
+    pintarAtividades();
+    return true;
   }
 
   async function retirarAtividade(atividade) {
     const confirmou = await pedirConfirmacao({
-      titulo: "Retirar da loja",
-      texto: `${atividade.titulo} sai do catálogo e não poderá ser comprada. Pedidos, financeiro e PDFs de quem já comprou permanecem.`,
+      titulo: "Arquivar atividade",
+      texto: `${atividade.titulo} sai da vitrine. Ela fica arquivada, não excluída. Pedidos, pagamentos e os PDFs de quem já comprou permanecem.`,
       confirmar: "Arquivar",
-      perigo: true,
+      perigo: false,
     });
     if (!confirmou) return;
-    const resultado = await loja.arquivarAtividade(atividade.id);
-    aviso(document.querySelector("#atividades-status"), resultado.mensagem, resultado.ok);
-    if (!resultado.ok) return;
-    atividade.arquivada_em = new Date().toISOString();
-    pintarAtividades();
+    await executarArquivamento(atividade);
   }
 
   async function reporAtividade(atividade) {
@@ -612,157 +638,115 @@ export async function iniciarAdmin(loja) {
     aviso(document.querySelector("#atividades-status"), resultado.mensagem, resultado.ok);
     if (!resultado.ok) return;
     atividade.arquivada_em = null;
+    atividade.exclusao = null;
     pintarAtividades();
   }
 
-  async function apagarCadastro(atividade) {
-    if (!semVenda(memoria.pedidos, atividade.id)) {
-      aviso(document.querySelector("#atividades-status"), "Esta atividade já tem venda. O cadastro e o PDF permanecem.");
-      return;
+  function explicacaoExclusao(atividade) {
+    if (atividade.foraDoBanco) return "Essa atividade ainda não foi publicada. Não há cadastro no banco para excluir.";
+    if (dados?.papel !== "owner") return "Só a proprietária pode excluir ou arquivar uma atividade.";
+    if (!atividade.arquivada_em) {
+      if (!semVenda(memoria.pedidos, atividade.id)) {
+        return `${atividade.titulo} já tem pedidos. A exclusão definitiva não é permitida. Arquivar tira a atividade da vitrine e preserva pedidos, pagamentos e os PDFs de quem comprou.`;
+      }
+      return `${atividade.titulo} ainda está publicada. A exclusão definitiva só acontece depois de arquivar, e somente se não houver venda nem download.`;
     }
-    const confirmou = await pedirConfirmacao({
-      titulo: "Apagar cadastro",
-      texto: `${atividade.titulo} nunca foi vendida. O cadastro sai da lista. O PDF no espaço privado não é apagado.`,
-      confirmar: "Apagar cadastro",
-      perigo: true,
-    });
-    if (!confirmou) return;
-    const resultado = await loja.apagarAtividadeSemVenda(atividade.id);
-    aviso(document.querySelector("#atividades-status"), resultado.mensagem, resultado.ok);
-    if (!resultado.ok) return;
-    memoria.atividades = memoria.atividades.filter((item) => item.id !== atividade.id);
-    pintarAtividades();
+    if (!semVenda(memoria.pedidos, atividade.id)) {
+      return `${atividade.titulo} está arquivada e não pode ser excluída porque já tem venda ou download. Pedidos e PDFs de quem comprou permanecem.`;
+    }
+    return "";
+  }
+
+  async function apagarCadastro(atividade) {
+    if (!travaExclusao.entrar()) return;
+    const status = document.querySelector("#atividades-status");
+    try {
+      const impedimento = explicacaoExclusao(atividade);
+      if (impedimento) {
+        const podeArquivar = dados?.papel === "owner" && !atividade.foraDoBanco && !atividade.arquivada_em;
+        const confirmou = await pedirConfirmacao({
+          titulo: "Esta atividade não pode ser excluída",
+          texto: impedimento,
+          confirmar: podeArquivar ? "Arquivar" : "Entendi",
+          perigo: false,
+        });
+        if (confirmou && podeArquivar) await executarArquivamento(atividade);
+        return;
+      }
+      const confirmou = await pedirConfirmacao({
+        titulo: "Excluir atividade",
+        alerta: "A exclusão é definitiva. O cadastro não volta para a loja.",
+        texto: `${atividade.titulo} será apagada do catálogo. Os pedidos e os PDFs das outras atividades não são alterados.`,
+        confirmar: "Excluir atividade",
+        perigo: true,
+      });
+      if (!confirmou) return;
+      const resultado = await loja.apagarAtividadeSemVenda(atividade.id);
+      if (!resultado.ok) {
+        aviso(status, resultado.mensagem || "A exclusão foi recusada. Nada foi alterado.");
+        return;
+      }
+      memoria.atividades = memoria.atividades.filter((item) => item.id !== atividade.id);
+      aviso(status, resultado.mensagem || "A atividade foi excluída.", true);
+      pintarAtividades();
+    } finally {
+      travaExclusao.sair();
+    }
   }
 
   function atividadesFiltradas() {
     const termo = document.querySelector("#busca-atividade").value.trim().toLocaleLowerCase("pt-BR");
-    const area = filtroArea.value;
-    const categoria = filtroCategoria.value;
-    const destaque = document.querySelector("#filtro-destaque-lista").value;
     return memoria.atividades.filter((item) => {
-      if (situacaoAtividade === "ativas" && item.arquivada_em) return false;
+      if (situacaoAtividade === "publicadas" && (item.arquivada_em || item.foraDoBanco)) return false;
       if (situacaoAtividade === "arquivadas" && !item.arquivada_em) return false;
+      if (situacaoAtividade === "rascunhos" && !item.foraDoBanco) return false;
       if (termo && !item.titulo.toLocaleLowerCase("pt-BR").includes(termo)) return false;
-      if (area && item.area !== area) return false;
-      if (categoria && categoriaDe(item) !== categoria) return false;
-      const emDestaque = item.destaque !== false && !item.foraDoBanco;
-      if (destaque === "sim" && !emDestaque) return false;
-      if (destaque === "nao" && emDestaque) return false;
       return true;
     });
   }
 
+  function situacaoAtividadeTexto(atividade) {
+    if (atividade.arquivada_em) return "Arquivada";
+    if (atividade.foraDoBanco) return "Rascunho";
+    return "Publicada";
+  }
+
   function pintarAtividades() {
     const lista = document.querySelector("#lista-atividades");
-    const visiveis = new Set(atividadesFiltradas().map((item) => item.id));
-    if (!memoria.atividades.length) {
-      lista.replaceChildren(vazio("Nenhuma atividade no site ainda."));
-      return;
-    }
+    const visiveis = atividadesFiltradas();
     const resumoLista = document.querySelector("#atividades-resumo");
     if (resumoLista) {
-      const cadastradas = memoria.atividades.filter((item) => !item.foraDoBanco).length;
-      resumoLista.textContent = cadastradas
-        ? `${cadastradas} ${cadastradas === 1 ? "material cadastrado" : "materiais cadastrados"}. Editar abre a ficha do material. Nova atividade abre o cadastro completo.`
-        : "Nenhum material cadastrado ainda. Nova atividade abre o cadastro completo.";
+      resumoLista.textContent = "Busque pelo título. Editar, Arquivar e Excluir ficam em cada atividade.";
     }
-    const tabela = montarTabela(
-      ["Capa", "Atividade", "Categoria", "Preço", "PDF", "Destaque", "Ações"],
-      memoria.atividades.map((atividade) => {
-        const tr = document.createElement("tr");
-        tr.dataset.atividade = atividade.id;
-        tr.hidden = !visiveis.has(atividade.id);
-        const capa = document.createElement("span");
-        capa.className = "capa-admin";
-        if (atividade.capa) {
-          const img = document.createElement("img");
-          img.src = atividade.capa;
-          img.alt = "";
-          capa.append(img);
-        } else capa.textContent = "Sem capa";
-        const preco = document.createElement("span");
-        preco.dataset.campo = "preco";
-        preco.textContent = moeda.format(Number(atividade.preco) || 0);
-        const destaque = document.createElement("label");
-        destaque.className = "interruptor";
-        const caixa = document.createElement("input");
-        caixa.type = "checkbox";
-        caixa.dataset.destaque = atividade.id;
-        caixa.checked = atividade.destaque !== false && !atividade.foraDoBanco;
-        caixa.setAttribute("aria-label", `Destaque de ${atividade.titulo}`);
-        caixa.addEventListener("change", async () => {
-          const ligar = caixa.checked;
-          const marcadas = document.querySelectorAll("#lista-atividades [data-destaque]:checked").length;
-          if (ligar && marcadas > 4) {
-            caixa.checked = false;
-            aviso(status, "A vitrine mostra no máximo 4. Tire uma do destaque antes.");
-            return;
-          }
-          if (atividade.foraDoBanco) {
-            caixa.checked = !ligar;
-            aviso(status, "Essa atividade ainda não está no banco, então a escolha não fica salva.");
-            return;
-          }
-          caixa.disabled = true;
-          const resultado = await loja.definirDestaque(atividade.id, ligar);
-          caixa.disabled = false;
-          if (!resultado.ok) {
-            caixa.checked = !ligar;
-            aviso(status, resultado.mensagem);
-            return;
-          }
-          atividade.destaque = ligar;
-          aviso(status, ligar ? "Entrou em Materiais em destaque." : "Saiu de Materiais em destaque.", true);
-        });
-        const trilho = document.createElement("span");
-        trilho.className = "interruptor-trilho";
-        const leitor = document.createElement("span");
-        leitor.className = "so-leitor";
-        leitor.textContent = "Em destaque";
-        destaque.append(caixa, trilho, leitor);
-        const acoes = document.createElement("div");
-        acoes.className = "acoes";
-        acoes.append(botaoAcao("Editar", () => abrirEdicao(atividade)));
-        const menu = [
-          { texto: "Ver na loja", href: paginaAtividade(atividade.id) },
-          { texto: "Gerenciar PDF", aoClicar: () => {
-            location.hash = "arquivos";
-            document.querySelector(`#lista-pdfs [data-atividade="${CSS.escape(atividade.id)}"]`)?.scrollIntoView({ block: "center" });
-          } },
-        ];
-        if (dados?.papel === "owner" && !atividade.foraDoBanco) {
-          if (atividade.arquivada_em) {
-            acoes.append(botaoAcao("Restaurar", () => reporAtividade(atividade)));
-          } else {
-            acoes.append(botaoAcao("Arquivar", () => retirarAtividade(atividade), "botao-perigo"));
-          }
-          if (atividade.arquivada_em && semVenda(memoria.pedidos, atividade.id)) {
-            menu.push({ texto: "Excluir definitivamente", aoClicar: () => apagarCadastro(atividade) });
-          } else if (!semVenda(memoria.pedidos, atividade.id)) {
-            menu.push({ texto: "A exclusão definitiva não está disponível: esta atividade já tem pedido. Use arquivar.", inativo: true });
-          } else {
-            menu.push({ texto: "A exclusão definitiva só aparece depois de arquivar e o servidor confirmar que não há venda nem download.", inativo: true });
-          }
-        }
-        acoes.append(menuAcoes(menu));
-        return {
-          tr,
-          celulas: [
-            celula("Capa", capa),
-            celula("Atividade", tituloDuas(atividade.titulo, "titulo")),
-            celula("Categoria", categoriaDe(atividade) || "—"),
-            celula("Preço", preco, "numero"),
-            celula("PDF", atividade.arquivo || "Sem PDF"),
-            celula("Destaque", destaque, "celula-centro"),
-            celula("Ações", acoes, "celula-acoes"),
-          ],
-        };
-      }),
-      ["4.5rem", "22%", "12%", "6.5rem", "14%", "7.5rem", "17rem"],
-      "tabela-atividades",
-    );
-    lista.replaceChildren(tabela);
-    if (!visiveis.size) lista.prepend(vazio("Nenhuma atividade com esse filtro."));
+    if (!visiveis.length) {
+      const vazioDe = situacaoAtividade === "rascunhos"
+        ? "Nenhum rascunho. A atividade só aparece nesta lista depois de publicada."
+        : (memoria.atividades.length ? "Nenhuma atividade com esse filtro." : "Nenhuma atividade no site ainda.");
+      lista.replaceChildren(vazio(vazioDe));
+      return;
+    }
+    const grade = document.createElement("div");
+    grade.className = "lista-atividades-simples";
+    visiveis.forEach((atividade) => {
+      const artigo = document.createElement("article");
+      artigo.className = "cartao-atividade";
+      artigo.dataset.atividade = atividade.id;
+      const info = document.createElement("div");
+      const titulo = document.createElement("h3");
+      titulo.textContent = atividade.titulo;
+      const meta = document.createElement("p");
+      meta.textContent = `${categoriaDe(atividade) || "Sem categoria"} · ${moeda.format(Number(atividade.preco) || 0)} · ${situacaoAtividadeTexto(atividade)}`;
+      info.append(titulo, meta);
+      const acoes = document.createElement("div");
+      acoes.className = "acoes-atividade";
+      acoes.append(botaoAcao("Editar", () => abrirEdicao(atividade)));
+      if (!atividade.foraDoBanco && atividade.arquivada_em) acoes.append(botaoAcao("Restaurar", () => reporAtividade(atividade)));
+      if (!atividade.foraDoBanco && !atividade.arquivada_em) acoes.append(botaoAcao("Arquivar", () => retirarAtividade(atividade)));
+      acoes.append(botaoAcao("Excluir", () => apagarCadastro(atividade), "botao-perigo"));
+      artigo.append(info, acoes);
+      grade.append(artigo);
+    });
+    lista.replaceChildren(grade);
   }
 
   function textoPdf(atividade) {
@@ -1372,7 +1356,7 @@ export async function iniciarAdmin(loja) {
 
   document.querySelectorAll("#abas-atividades [data-situacao]").forEach((botao) => {
     botao.addEventListener("click", () => {
-      situacaoAtividade = botao.dataset.situacao || "ativas";
+      situacaoAtividade = botao.dataset.situacao || "publicadas";
       document.querySelectorAll("#abas-atividades [data-situacao]").forEach((item) => {
         const escolhido = item === botao;
         item.className = escolhido ? "botao" : "botao botao-secundario";
@@ -1381,10 +1365,7 @@ export async function iniciarAdmin(loja) {
       pintarAtividades();
     });
   });
-  ["#busca-atividade", "#filtro-area-lista", "#filtro-categoria-lista", "#filtro-destaque-lista"].forEach((seletor) => {
-    document.querySelector(seletor).addEventListener("input", pintarAtividades);
-    document.querySelector(seletor).addEventListener("change", pintarAtividades);
-  });
+  document.querySelector("#busca-atividade")?.addEventListener("input", pintarAtividades);
   document.addEventListener("click", fecharMenus);
   document.querySelector("#busca-cliente")?.addEventListener("input", () => {
     memoria.paginaClientes = 0;
