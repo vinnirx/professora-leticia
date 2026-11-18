@@ -43,5 +43,11 @@ paginas.forEach(([pagina, prefixo]) => {
   links.forEach(([destino, rotulo]) => {
     assert.match(html, new RegExp(`href="${prefixo}${destino}">${rotulo}</a>`));
   });
-  assert.match(html, /Responsável: Professora Letícia Pimentel de Macedo\./);
+  const rodapeHtml = html.slice(html.indexOf('<footer class="rodape">'));
+  if (pagina === "ajuda/index.html") {
+    assert.match(rodapeHtml, /mailto:leticiapimenteldemacedo@gmail\.com/);
+    assert.doesNotMatch(rodapeHtml, /CPF ou CNPJ|endereço comercial/);
+    return;
+  }
+  assert.match(rodapeHtml, /Responsável: Professora Letícia Pimentel de Macedo/);
 });
