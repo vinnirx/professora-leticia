@@ -819,6 +819,21 @@ body[data-pagina="admin"] {
 
 .campo-largo { grid-column: 1 / -1; }
 
+#nova-atividade [data-etapa="1"] .grade-campos {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr) minmax(7.5rem, 0.55fr);
+}
+
+#nova-atividade .campo-invalido input,
+#nova-atividade .campo-invalido textarea,
+#nova-atividade .campo-invalido select {
+  border-color: #9a4d42;
+  box-shadow: 0 0 0 3px #f6d5d0;
+}
+
+#nova-atividade #nova-status:not(:empty) {
+  margin: 0.2rem 0 0;
+}
+
 .zona-arquivo {
   display: grid;
   align-content: start;
@@ -984,7 +999,9 @@ body[data-pagina="admin"] {
 
   .passos,
   .grade-campos,
-  .grade-arquivos { grid-template-columns: 1fr; }
+  .grade-arquivos,
+  #nova-atividade .grade-campos,
+  #nova-atividade [data-etapa="1"] .grade-campos { grid-template-columns: 1fr; }
 
   .campo-largo { grid-column: auto; }
 }

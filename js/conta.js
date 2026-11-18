@@ -1,4 +1,4 @@
-import { iniciarAdmin } from "./conta/admin.js?v=26";
+import { iniciarAdmin } from "./conta/admin.js?v=27";
 import { iniciarEntrar } from "./conta/entrar.js?v=11";
 import { iniciarMinhas } from "./conta/minhas.js?v=16";
 

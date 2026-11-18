@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="../css/styles.css?v=89" />
     <link rel="stylesheet" href="../css/conta.css?v=16" />
-    <link rel="stylesheet" href="../css/painel.css?v=19" />
+    <link rel="stylesheet" href="../css/painel.css?v=20" />
   </head>
   <body data-pagina="admin">
     <header class="cabecalho">
@@ -168,13 +168,13 @@
                     </label>
                     <p>A atividade fica visível na loja quando é publicada. Ainda não existe um botão separado para esconder um material já salvo.</p>
                   </fieldset>
+                  <p class="aviso-conta" id="nova-status" role="status"></p>
                   <div class="etapas-acoes">
                     <button class="botao botao-secundario" id="etapa-voltar" type="button" hidden>Voltar</button>
                     <button class="botao" id="etapa-seguir" type="button">Continuar</button>
                     <button class="botao" type="submit">Publicar atividade</button>
                     <button class="botao botao-secundario" id="cancelar-edicao" type="button" hidden>Cancelar</button>
                   </div>
-                  <p class="aviso-conta" id="nova-status" role="status"></p>
                 </form>
                 <div id="previa-atividade" hidden></div>
               </div>
@@ -426,6 +426,6 @@
     <script src="../js/loja.js?v=49"></script>
     <script src="../js/vendor/supabase.js?v=1"></script>
     <script type="module" src="../js/sessao.js?v=45"></script>
-    <script type="module" src="../js/conta.js?v=57"></script>
+    <script type="module" src="../js/conta.js?v=58"></script>
   </body>
 </html>

@@ -1,0 +1,24 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+const cadastro = readFileSync(new URL("../js/conta/cadastro.js", import.meta.url), "utf8");
+const html = readFileSync(new URL("../gerenciar/index.html", import.meta.url), "utf8");
+const admin = readFileSync(new URL("../js/conta/admin.js", import.meta.url), "utf8");
+const conta = readFileSync(new URL("../js/conta.js", import.meta.url), "utf8");
+const painel = readFileSync(new URL("../css/painel.css", import.meta.url), "utf8");
+
+assert.match(cadastro, /import \{ aviso \} from "\.\/avisos\.js";/);
+assert.match(cadastro, /Escreva uma descrição breve, com pelo menos 10 letras\./);
+assert.match(cadastro, /mostrarErroEtapa\(formulario, estado, erro\)/);
+assert.doesNotMatch(cadastro, /aviso\(estado, erro\)/);
+assert.match(cadastro, /aria-invalid/);
+assert.match(html, /<p class="aviso-conta" id="nova-status" role="status"><\/p>\s*<div class="etapas-acoes">/);
+assert.match(html, /id="etapa-seguir" type="button"/);
+assert.match(html, /conta\.js\?v=58/);
+assert.match(html, /painel\.css\?v=20/);
+assert.match(admin, /cadastro\.js\?v=7/);
+assert.match(conta, /admin\.js\?v=27/);
+assert.match(painel, /#nova-atividade \[data-etapa="1"\] \.grade-campos/);
+assert.match(painel, /\.campo-invalido input/);
+
+console.log("ok continuar atividade");

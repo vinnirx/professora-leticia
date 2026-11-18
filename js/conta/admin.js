@@ -1,6 +1,6 @@
 import { formatarTamanho, validarPdf } from "../pdf-troca.js";
 import { criarTrava } from "../trava.js";
-import { abrirEdicao, prepararCadastro } from "./cadastro.js?v=6";
+import { abrirEdicao, prepararCadastro } from "./cadastro.js?v=7";
 import { prepararEquipe } from "./equipe.js";
 import { aviso, moeda, quando } from "./avisos.js";
 import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";

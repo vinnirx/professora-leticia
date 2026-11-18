@@ -1,6 +1,7 @@
 import { validarNovaAtividade } from "../cadastro-regras.js";
 import { validarCapa } from "../capa-loja.js";
 import { avisoCatalogo, confirmarFicha, decidirGravacao, fichaInicial, mensagemFuncaoAusente, payloadEdicao, rotulosInformacao } from "../edicao-atividade.js?v=4";
+import { aviso } from "./avisos.js";
 import { formatarTamanho, validarPdf } from "../pdf-troca.js";
 import { dinheiro, linhas } from "../texto.js";
 import { areas, temasPorArea } from "../temas.js";
@@ -25,6 +26,33 @@ function temRascunho(formulario) {
   return Boolean(formulario.dataset.editando || titulo || resumo || explicacao);
 }
 
+function limparErros(formulario) {
+  formulario.querySelectorAll(".campo-invalido").forEach((rotulo) => {
+    rotulo.classList.remove("campo-invalido");
+    rotulo.querySelector("input, textarea, select")?.removeAttribute("aria-invalid");
+  });
+}
+
+function marcarCampo(formulario, nome) {
+  const entrada = formulario.querySelector(`[name="${nome}"]`);
+  const rotulo = entrada?.closest("label");
+  if (!entrada || !rotulo) return;
+  rotulo.classList.add("campo-invalido");
+  entrada.setAttribute("aria-invalid", "true");
+  entrada.focus({ preventScroll: true });
+}
+
+function mostrarErroEtapa(formulario, estado, erro) {
+  limparErros(formulario);
+  if (!erro) {
+    if (estado) estado.textContent = "";
+    return;
+  }
+  marcarCampo(formulario, erro.campo);
+  aviso(estado, erro.mensagem);
+  estado?.scrollIntoView({ block: "nearest" });
+}
+
 function validarEtapa(formulario, numero) {
   const titulo = formulario.querySelector('[name="titulo"]').value.trim();
   const preco = Number(formulario.querySelector('[name="preco"]').value);
@@ -34,25 +62,26 @@ function validarEtapa(formulario, numero) {
   const explicacao = formulario.querySelector('[name="explicacao"]').value.trim();
   const quantidade = formulario.querySelector('[name="info_quantidade"]').value.trim();
   const formato = formulario.querySelector('[name="info_formato"]').value.trim();
+  const falha = (mensagem, campo) => ({ mensagem, campo });
   if (numero === 1) {
-    if (titulo.length < 3) return "Diga qual é a atividade.";
-    if (!area) return "Escolha a área da loja.";
+    if (titulo.length < 3) return falha("Diga qual é a atividade.", "titulo");
+    if (!area) return falha("Escolha a área da loja.", "area");
     const temas = temasPorArea[area] || [];
-    if (temas.length && !temas.includes(tema)) return "Escolha o tema dessa área.";
-    if (!preco || preco <= 0) return "O valor precisa ser maior que zero.";
-    if (resumo.length < 10) return "Escreva uma descrição breve, com pelo menos 10 letras.";
+    if (temas.length && !temas.includes(tema)) return falha("Escolha o tema dessa área.", "tema");
+    if (!preco || preco <= 0) return falha("O valor precisa ser maior que zero.", "preco");
+    if (resumo.length < 10) return falha("Escreva uma descrição breve, com pelo menos 10 letras.", "resumo");
   }
   if (numero === 2) {
-    if (explicacao.length < 20) return "Escreva o texto da página, com pelo menos 20 letras.";
-    if (!quantidade) return "Diga a quantidade do material.";
-    if (!formato) return "Diga o formato do material.";
+    if (explicacao.length < 20) return falha("Escreva o texto da página, com pelo menos 20 letras.", "explicacao");
+    if (!quantidade) return falha("Diga a quantidade do material.", "info_quantidade");
+    if (!formato) return falha("Diga o formato do material.", "info_formato");
   }
   if (numero === 3) {
     const capa = formulario.querySelector('[name="capa"]').files[0];
-    if (!formulario.dataset.editando && !capa) return "Escolha a imagem da capa.";
-    if (capa && !/^image\/(jpeg|png|webp)$/.test(capa.type)) return "A capa precisa ser JPG, PNG ou WebP.";
+    if (!formulario.dataset.editando && !capa) return falha("Escolha a imagem da capa.", "capa");
+    if (capa && !/^image\/(jpeg|png|webp)$/.test(capa.type)) return falha("A capa precisa ser JPG, PNG ou WebP.", "capa");
   }
-  return "";
+  return null;
 }
 
 function preencherRevisao(formulario) {
@@ -827,13 +856,13 @@ export function prepararCadastro(loja, existentes, aoCriar) {
         for (let numero = etapaAtual; numero < destino; numero += 1) {
           const erro = validarEtapa(formulario, numero);
           if (erro) {
-            aviso(estado, erro);
+            mostrarErroEtapa(formulario, estado, erro);
             mostrarEtapa(formulario, numero);
             return;
           }
         }
       }
-      estado.textContent = "";
+      mostrarErroEtapa(formulario, estado, null);
       mostrarEtapa(formulario, destino);
     });
   });
@@ -841,16 +870,17 @@ export function prepararCadastro(loja, existentes, aoCriar) {
     const estado = document.querySelector("#nova-status");
     const erro = validarEtapa(formulario, etapaAtual);
     if (erro) {
-      aviso(estado, erro);
+      mostrarErroEtapa(formulario, estado, erro);
       return;
     }
-    estado.textContent = "";
+    mostrarErroEtapa(formulario, estado, null);
     mostrarEtapa(formulario, etapaAtual + 1);
   });
   document.querySelector("#voltar-lista")?.addEventListener("click", () => {
     definirTrabalho(false);
   });
   document.querySelector("#etapa-voltar")?.addEventListener("click", () => {
+    limparErros(formulario);
     document.querySelector("#nova-status").textContent = "";
     mostrarEtapa(formulario, etapaAtual - 1);
   });
