@@ -129,3 +129,4 @@ grant execute on function public.definir_visibilidade_pedido(text, boolean) to a
 grant select on public.pedidos to service_role;
 grant select on public.cobrancas to service_role;
 grant select on public.direitos_acesso to service_role;
+grant select (id, preco, arquivada_em) on public.atividades to service_role;

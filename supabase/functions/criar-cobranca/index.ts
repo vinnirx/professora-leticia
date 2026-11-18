@@ -14,6 +14,7 @@ import {
   identificadorAutenticado,
   mensagemParaCliente,
   organizarPedido,
+  resultadoDoPreco,
   valorAceitoAsaas,
 } from "../_shared/regras.mjs";
 
@@ -147,7 +148,16 @@ Deno.serve(async (req) => {
   const atividades = Array.isArray(pedido?.atividades) ? pedido.atividades.map(String) : [];
   const oficial = await totalOficial(admin, atividades);
   if (!oficial.ok) {
-    return responder(origem, 400, { ok: false, mensagem: "Não foi possível confirmar o preço. Nenhum Pix foi gerado." });
+    const mensagensPreco = {
+      consulta: "Não consegui consultar o preço cadastrado. Nenhum Pix foi gerado.",
+      produto: "Não encontrei todas as atividades desta compra. Nenhum Pix foi gerado.",
+      inativo: "Uma das atividades não está disponível. Nenhum Pix foi gerado.",
+    };
+    return responder(origem, oficial.motivo === "consulta" ? 503 : 400, {
+      ok: false,
+      acao: oficial.motivo,
+      mensagem: mensagensPreco[oficial.motivo] || mensagensPreco.consulta,
+    });
   }
   if (!valorAceitoAsaas(oficial.valor)) {
     return responder(origem, 400, {
@@ -353,13 +363,11 @@ function txidValido(valor) {
 }
 
 async function totalOficial(admin, atividades) {
-  const ids = atividades.map(String).filter(Boolean);
-  if (!ids.length || ids.length > 12 || new Set(ids).size !== ids.length) return { ok: false, valor: 0 };
-  const { data, error } = await admin.from("atividades").select("id, preco, arquivada_em").in("id", ids);
-  if (error || !data || data.length !== ids.length) return { ok: false, valor: 0 };
-  if (data.some((item) => item.arquivada_em)) return { ok: false, valor: 0 };
-  const centavos = data.reduce((soma, item) => soma + Math.round(Number(item.preco) * 100), 0);
-  return { ok: true, valor: centavos / 100 };
+  const previa = resultadoDoPreco({ ids: atividades });
+  if (!previa.consultar) return previa;
+  const { data, error } = await admin.from("atividades").select("id, preco, arquivada_em").in("id", previa.ids);
+  if (error) console.error(JSON.stringify({ etapa: "preco", codigo: String(error.code || "").slice(0, 20) }));
+  return resultadoDoPreco({ ids: previa.ids, linhas: data, erro: Boolean(error), consultado: true });
 }
 
 async function cobrancaAberta(admin, usuarioId, atividades) {

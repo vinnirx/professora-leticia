@@ -88,6 +88,28 @@ export function valorAceitoAsaas(valor) {
   return Number.isFinite(centavos) && centavos >= MINIMO_ASAAS_CENTAVOS;
 }
 
+export function resultadoDoPreco({ ids, linhas, erro = false, consultado = false }) {
+  const lista = Array.isArray(ids) ? ids.map(String).filter(Boolean) : [];
+  if (!lista.length || lista.length > 12 || new Set(lista).size !== lista.length) {
+    return { ok: false, motivo: "produto", valor: 0, consultar: false, ids: lista };
+  }
+  if (!consultado) return { ok: false, motivo: "", valor: 0, consultar: true, ids: lista };
+  if (erro) return { ok: false, motivo: "consulta", valor: 0, consultar: false, ids: lista };
+  const encontradas = Array.isArray(linhas) ? linhas : [];
+  const recebidas = new Set(encontradas.map((item) => String(item?.id || "")));
+  if (recebidas.size !== lista.length || lista.some((id) => !recebidas.has(id))) {
+    return { ok: false, motivo: "produto", valor: 0, consultar: false, ids: lista };
+  }
+  if (encontradas.some((item) => item?.arquivada_em)) {
+    return { ok: false, motivo: "inativo", valor: 0, consultar: false, ids: lista };
+  }
+  const centavos = encontradas.reduce((soma, item) => soma + Math.round(Number(item?.preco) * 100), 0);
+  if (!Number.isSafeInteger(centavos) || centavos <= 0) {
+    return { ok: false, motivo: "consulta", valor: 0, consultar: false, ids: lista };
+  }
+  return { ok: true, motivo: "", valor: centavos / 100, consultar: false, ids: lista };
+}
+
 export function mensagemParaCliente(diagnostico) {
   const texto = String(diagnostico?.descricao || "");
   if (/n[aã]o pode ser menor que/i.test(texto)) {

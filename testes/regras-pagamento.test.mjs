@@ -19,6 +19,7 @@ import {
   cobrancaCompativel,
   mensagemParaCliente,
   valorAceitoAsaas,
+  resultadoDoPreco,
   organizarPedido,
 } from "../supabase/functions/_shared/regras.mjs";
 
@@ -287,6 +288,52 @@ assert.equal(decidirRetomada({
 assert.equal(valorAceitoAsaas(4.9), false);
 assert.equal(valorAceitoAsaas(5), true);
 assert.equal(valorAceitoAsaas(9.8), true);
+const celulas = resultadoDoPreco({
+  ids: ["celulas"],
+  linhas: [{ id: "celulas", preco: "4.90", arquivada_em: null }],
+  consultado: true,
+});
+assert.equal(Math.round(celulas.valor * 100), 490);
+assert.equal(valorAceitoAsaas(celulas.valor), false);
+const conjunto = resultadoDoPreco({
+  ids: ["celulas", "silabas"],
+  linhas: [
+    { id: "silabas", preco: "4.90", arquivada_em: null },
+    { id: "celulas", preco: 4.9, arquivada_em: null },
+  ],
+  consultado: true,
+});
+assert.equal(Math.round(conjunto.valor * 100), 980);
+assert.equal(valorAceitoAsaas(conjunto.valor), true);
+const adicao = resultadoDoPreco({
+  ids: ["adicao"],
+  linhas: [{ id: "adicao", preco: "9.90", arquivada_em: null }],
+  consultado: true,
+});
+assert.equal(Math.round(adicao.valor * 100), 990);
+assert.equal(valorAceitoAsaas(adicao.valor), true);
+assert.equal(resultadoDoPreco({ ids: ["celulas"], erro: true, consultado: true }).motivo, "consulta");
+assert.equal(resultadoDoPreco({ ids: ["fantasma"], linhas: [], consultado: true }).motivo, "produto");
+assert.equal(resultadoDoPreco({ ids: ["celulas", "celulas"], consultado: true }).motivo, "produto");
+assert.equal(resultadoDoPreco({
+  ids: ["celulas"],
+  linhas: [{ id: "celulas", preco: 4.9, arquivada_em: "2026-01-01" }],
+  consultado: true,
+}).motivo, "inativo");
+assert.equal(resultadoDoPreco({ ids: [] }).consultar, false);
+assert.equal(decidirEvento({
+  status: "pendente",
+  tipo: "PAYMENT_RECEIVED",
+  valorEsperado: conjunto.valor,
+  valorRecebido: 9.8,
+}).liberar, true);
+assert.equal(decidirEvento({
+  status: "pendente",
+  tipo: "PAYMENT_CONFIRMED",
+  valorEsperado: conjunto.valor,
+  valorRecebido: 9.8,
+}).liberar, false);
+assert.equal(identificadorAutenticado({ usuarioId: conta, subject: conta, sessionId: "" }), "");
 assert.equal(decidirRetomada({
   encontrada: true, statusPedido: "aguardando", statusCobranca: "criada", temPix: false, temExterna: false, ausenciaConfirmada: true, valor: 4.9, agora,
 }).acao, "abaixo");
