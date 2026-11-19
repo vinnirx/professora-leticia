@@ -10,7 +10,7 @@ import { celulaCsv } from "./csv.js";
 import { avisoListaContas, desafiarFator, montarSegundoFator } from "./mfa.js?v=8";
 import { leituraAdministrativa, textoDaLista, textoDasContas } from "./apresentacao.js?v=4";
 import { acionarSaida } from "./saida.js";
-import { paginaAtividade, rota } from "../rotas.js";
+import { enderecoDeMidia, paginaAtividade, rota } from "../rotas.js";
 import { podeVoltarALoja, semVenda } from "../vitrine.js";
 import { aguardaResposta, protocoloVisivel, rotuloAssunto, rotuloSolicitacao } from "../suporte.js?v=1";
 
@@ -408,7 +408,9 @@ export async function iniciarAdmin(loja) {
   (window.loja?.atividades || []).forEach((local) => {
     const existente = porId.get(local.id);
     if (existente) {
-      if (!existente.capa && local.imagem) existente.capa = local.imagem;
+      if (!String(existente.capa || "").trim() && local.capa) existente.capa = local.capa;
+      if (!String(existente.area || "").trim() && local.area) existente.area = local.area;
+      if (!String(existente.tema || "").trim() && local.temas?.[0]) existente.tema = local.temas[0];
       return;
     }
     porId.set(local.id, {
@@ -423,7 +425,7 @@ export async function iniciarAdmin(loja) {
       tema: (local.temas || [])[0] || "",
       informacoes: local.informacoes,
       arquivo: local.download,
-      capa: local.imagem || "",
+      capa: local.capa || "",
       destaque: local.destaque !== false,
       foraDoBanco: true,
     });
@@ -711,6 +713,29 @@ export async function iniciarAdmin(loja) {
     return "Publicada";
   }
 
+  function areaVisivel(atividade) {
+    return categoriaDe(atividade) || String(atividade.area || "").trim();
+  }
+
+  function miniaturaCapa(atividade) {
+    const figura = document.createElement("div");
+    figura.className = "miniatura-capa";
+    const endereco = enderecoDeMidia(atividade.capa);
+    if (!endereco) {
+      figura.textContent = "Sem capa";
+      return figura;
+    }
+    const imagem = document.createElement("img");
+    imagem.src = endereco;
+    imagem.alt = "";
+    imagem.addEventListener("error", () => {
+      imagem.remove();
+      figura.textContent = "Sem capa";
+    });
+    figura.append(imagem);
+    return figura;
+  }
+
   function pintarAtividades() {
     const lista = document.querySelector("#lista-atividades");
     const visiveis = atividadesFiltradas();
@@ -734,8 +759,10 @@ export async function iniciarAdmin(loja) {
       const info = document.createElement("div");
       const titulo = document.createElement("h3");
       titulo.textContent = atividade.titulo;
+      titulo.title = atividade.titulo;
       const meta = document.createElement("p");
-      meta.textContent = `${categoriaDe(atividade) || "Sem categoria"} · ${moeda.format(Number(atividade.preco) || 0)} · ${situacaoAtividadeTexto(atividade)}`;
+      const partes = [areaVisivel(atividade), moeda.format(Number(atividade.preco) || 0), situacaoAtividadeTexto(atividade)].filter(Boolean);
+      meta.textContent = partes.join(" · ");
       info.append(titulo, meta);
       const acoes = document.createElement("div");
       acoes.className = "acoes-atividade";
@@ -743,7 +770,7 @@ export async function iniciarAdmin(loja) {
       if (!atividade.foraDoBanco && atividade.arquivada_em) acoes.append(botaoAcao("Restaurar", () => reporAtividade(atividade)));
       if (!atividade.foraDoBanco && !atividade.arquivada_em) acoes.append(botaoAcao("Arquivar", () => retirarAtividade(atividade)));
       acoes.append(botaoAcao("Excluir", () => apagarCadastro(atividade), "botao-perigo"));
-      artigo.append(info, acoes);
+      artigo.append(miniaturaCapa(atividade), info, acoes);
       grade.append(artigo);
     });
     lista.replaceChildren(grade);

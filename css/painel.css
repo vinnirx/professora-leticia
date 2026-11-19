@@ -490,20 +490,47 @@ body[data-pagina="admin"] {
 }
 
 .cartao-atividade {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 0.75rem 1rem;
   padding: 0.9rem 1rem;
   border: 1px solid var(--adm-linha);
   border-radius: 0.85rem;
   background: #fff;
+  min-width: 0;
+}
+
+.miniatura-capa {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 0.65rem;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #f4f1ec;
+  color: var(--adm-mudo);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.miniatura-capa img {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
 }
 
 .cartao-atividade h3 {
   margin: 0;
   font-size: 1.05rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .cartao-atividade p {
@@ -1073,6 +1100,9 @@ body[data-pagina="admin"] {
   .grade-arquivos,
   #nova-atividade .grade-campos,
   #nova-atividade [data-etapa="1"] .grade-campos { grid-template-columns: 1fr; }
+
+  .cartao-atividade { grid-template-columns: 4.5rem minmax(0, 1fr); }
+  .cartao-atividade .acoes-atividade { grid-column: 1 / -1; }
 
   .acoes-atividade,
   .acoes-atividade .botao { width: 100%; }
