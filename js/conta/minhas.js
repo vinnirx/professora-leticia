@@ -2,7 +2,7 @@ import { origemDaImagemPix } from "../imagem-pix.js?v=1";
 import { aviso, moeda, quando } from "./avisos.js";
 import { protocoloVisivel, rotuloSolicitacao } from "../suporte.js?v=1";
 import { acionarSaida } from "./saida.js";
-import { leituraAdministrativa, resumoAdministrativo } from "./apresentacao.js?v=4";
+import { leituraAdministrativa, resumoAdministrativo } from "./apresentacao.js?v=5";
 import { administra } from "./papeis.js";
 import { agruparPorCodigo, apresentacao, intervaloDaTela, podeOcultar, prioridadeDaAcao } from "./retomada.js?v=2";
 import { rota } from "../rotas.js";

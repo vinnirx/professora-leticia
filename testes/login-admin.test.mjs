@@ -42,9 +42,8 @@ const login = entrar.slice(entrar.indexOf("loja.entrar"), entrar.indexOf("criar.
 assert.match(login, /catch/);
 assert.match(login, /Não consegui entrar agora/);
 assert.match(login, /resultado\?\.mensagem/);
-assert.match(login, /passo === "falha"/);
-assert.match(login, /passo === "desafio"/);
-assert.ok(login.indexOf("administra") < login.indexOf("desafiarFator"));
+assert.doesNotMatch(login, /desafiarFator/);
+assert.ok(login.indexOf("administra") < login.lastIndexOf("destinoDepois"));
 assert.match(entrar, /enviado ao seu e-mail/);
 assert.match(entrar, /não vem do aplicativo autenticador/);
 assert.match(mfa, /não chega por e-mail/);

@@ -2,7 +2,6 @@ import { aviso, faltaBanco } from "./avisos.js";
 import { pedidoDeEntrada } from "./apresentacao.js?v=2";
 import { MENSAGEM_CONFIRMACAO } from "../endereco-publico.js";
 import { codigoNumerico } from "./codigo.js";
-import { desafiarFator } from "./mfa.js?v=6";
 import { administra } from "./papeis.js";
 import { rota } from "../rotas.js";
 
@@ -230,12 +229,6 @@ export function iniciarEntrar(loja) {
       const dados = await loja.perfil();
       if (!administra(dados?.papel)) {
         await destinoDepois(loja);
-        return;
-      }
-      const passo = await comPrazo(desafiarFator(loja, entrar, () => destinoDepois(loja)));
-      if (passo === "falha") return;
-      if (passo === "desafio") {
-        aviso(status, "");
         return;
       }
       await destinoDepois(loja);

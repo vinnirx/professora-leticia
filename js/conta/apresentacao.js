@@ -77,11 +77,14 @@ export function resumoAdministrativo({ perfil, atividades, pedidos }) {
   return { ...base, indicadores, semPedidos: grupos.length === 0 };
 }
 
-export function leituraAdministrativa(nivel, papel) {
+export function leituraAdministrativa(nivel, papel, area = "") {
   if (papel !== "owner" && papel !== "super_admin" && papel !== "admin") return "ok";
-  if (!nivel) return "ok";
-  if (!nivel.ok) return "erro";
-  if (nivel.atual !== "aal2") return "permissao";
+  if (area === "financeiro") {
+    if (!nivel?.ok) return nivel ? "erro" : "permissao";
+    if (nivel.atual !== "aal2") return "permissao";
+    return "ok";
+  }
+  if (nivel && !nivel.ok) return "erro";
   return "ok";
 }
 
@@ -93,9 +96,15 @@ export function textoDaLista({ area, total, visiveis, leitura }) {
       : { titulo: "Não consegui consultar os pedidos.", detalhe: "Este aviso não é uma lista vazia. Tente de novo." };
   }
   if (leitura === "permissao") {
+    if (financeiro) {
+      return {
+        titulo: "O financeiro não está disponível nesta sessão.",
+        detalhe: "Atividades, pedidos e suporte seguem com a senha. O financeiro só abre com o segundo fator.",
+      };
+    }
     return {
       titulo: "A sessão ainda não tem permissão para ver o histórico da loja.",
-      detalhe: "Abra Configurações, cadastre o segundo fator e entre de novo com o código. A tela não representa a loja vazia.",
+      detalhe: "Entre de novo. A tela não representa a loja vazia.",
     };
   }
   if (!total) {
@@ -122,8 +131,8 @@ export function textoDasContas({ leitura, total, consulta }) {
   if (leitura === "permissao" || consulta === "parcial") {
     return {
       tipo: "parcial",
-      titulo: "As outras contas ficam ocultas até o segundo fator.",
-      detalhe: "Em Configurações, cadastre o autenticador no celular e entre de novo com o código.",
+      titulo: "As outras contas não puderam ser carregadas.",
+      detalhe: "Tente de novo. Esta tela não representa a loja vazia.",
       destino: "configuracoes",
     };
   }

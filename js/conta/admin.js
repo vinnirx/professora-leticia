@@ -1,14 +1,14 @@
 import { formatarTamanho, validarPdf } from "../pdf-troca.js";
 import { criarTrava } from "../trava.js";
-import { abrirEdicao, prepararCadastro } from "./cadastro.js?v=8";
+import { abrirEdicao, prepararCadastro } from "./cadastro.js?v=9";
 import { prepararEquipe } from "./equipe.js";
 import { aviso, moeda, quando } from "./avisos.js";
 import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
 import { agruparPedidos, resumirVendas } from "./grupos-pedido.js";
 import { fecharCaixa, linhaExportada, origemFinanceira } from "./caixa.js";
 import { celulaCsv } from "./csv.js";
-import { avisoListaContas, desafiarFator, montarSegundoFator } from "./mfa.js?v=8";
-import { leituraAdministrativa, textoDaLista, textoDasContas } from "./apresentacao.js?v=4";
+import { avisoListaContas, montarSegundoFator } from "./mfa.js?v=9";
+import { leituraAdministrativa, textoDaLista, textoDasContas } from "./apresentacao.js?v=5";
 import { acionarSaida } from "./saida.js";
 import { enderecoDeMidia, paginaAtividade, rota } from "../rotas.js";
 import { podeVoltarALoja, semVenda } from "../vitrine.js";
@@ -335,15 +335,6 @@ export async function iniciarAdmin(loja) {
     bloqueio.insertAdjacentElement("afterend", volta);
     return;
   }
-  let passo = "falha";
-  try {
-    passo = await desafiarFator(loja, bloqueio, () => location.reload());
-  } catch {
-    bloqueio.hidden = false;
-    bloqueio.textContent = "Não consegui confirmar a sessão. Entre de novo.";
-    return;
-  }
-  if (passo !== "seguir") return;
 
   document.querySelectorAll("[data-secao]").forEach((botao) => {
     botao.addEventListener("click", () => {
@@ -954,7 +945,7 @@ export async function iniciarAdmin(loja) {
         ],
       })),
     ));
-    if (leituraAdministrativa(memoria.nivel, dados?.papel) === "ok" && podeFinanceiro(dados)) {
+    if (leituraAdministrativa(memoria.nivel, dados?.papel, "financeiro") === "ok" && podeFinanceiro(dados)) {
       const leitura = leituraFinanceira(grupo, memoria);
       const taxa = leitura.taxa == null ? "não gravada" : moeda.format(leitura.taxa);
       const liquido = leitura.liquido == null ? "não gravado" : moeda.format(leitura.liquido);
@@ -987,7 +978,7 @@ export async function iniciarAdmin(loja) {
     }
     const { inicio, fim } = intervalosFinanceiro();
     const noPeriodo = memoria.pedidos.filter((pedido) => dentroDoIntervalo(pedido.criado_em, inicio, fim));
-    const leituraPainel = leituraAdministrativa(memoria.nivel, dados?.papel);
+    const leituraPainel = leituraAdministrativa(memoria.nivel, dados?.papel, "financeiro");
     const avisoLista = textoDaLista({
       area: "financeiro",
       total: memoria.pedidos.length,

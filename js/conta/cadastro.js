@@ -563,22 +563,6 @@ function textoDaRecusa(mensagem) {
   return mensagem;
 }
 
-async function impedimentoDeGravacao(loja) {
-  if (!loja?.configurada || !loja.nivelAcesso) return "";
-  try {
-    const nivel = await loja.nivelAcesso();
-    if (!nivel?.ok) return nivel?.mensagem || "Não consegui confirmar a sessão. Nada foi publicado.";
-    if (nivel.atual === "aal2") return "";
-    const confirmado = (nivel.fatores || []).some((fator) => fator.status === "verified");
-    if (!confirmado) {
-      return "A publicação foi recusada porque esta sessão entrou só com a senha. Esta conta ainda não tem um autenticador confirmado. Em Configurações, cadastre o segundo fator e entre de novo com o código. Nada foi gravado.";
-    }
-    return "A publicação foi recusada porque esta sessão entrou só com a senha. Confirme o segundo fator e entre de novo. Nada foi gravado.";
-  } catch {
-    return "Não consegui confirmar a sessão. Nada foi publicado.";
-  }
-}
-
 async function salvarEdicao(evento, formulario, loja) {
   evento.preventDefault();
   if (!travaSalvar.entrar()) return;
@@ -591,13 +575,6 @@ async function salvarEdicao(evento, formulario, loja) {
   });
   const estado = document.querySelector("#edicao-status");
   try {
-    if (loja?.configurada) {
-      const impedimento = await impedimentoDeGravacao(loja);
-      if (impedimento) {
-        aviso(estado, impedimento);
-        return;
-      }
-    }
     if (!fichaAberta) return;
     const plano = payloadEdicao(lerFormularioEdicao(formulario), fichaAberta);
     if (!plano.ok) {
@@ -972,13 +949,6 @@ export function prepararCadastro(loja, existentes, aoCriar) {
     botaoEnvio.textContent = editando ? "Salvando…" : "Publicando…";
     const estado = document.querySelector("#nova-status");
     try {
-    if (loja?.configurada) {
-      const impedimento = await impedimentoDeGravacao(loja);
-      if (impedimento) {
-        aviso(estado, impedimento);
-        return;
-      }
-    }
     if (editando && fichaAberta) {
       const plano = payloadEdicao(lerCamposEdicao(formulario), fichaAberta);
       if (!plano.ok) {
