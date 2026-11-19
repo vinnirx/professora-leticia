@@ -598,16 +598,16 @@ export async function iniciarAdmin(loja) {
       return false;
     }
     atividade.arquivada_em = new Date().toISOString();
-    aviso(status, `${atividade.titulo} foi arquivada, não excluída. Ela saiu da vitrine e os arquivos de quem comprou permanecem.`, true);
+    aviso(status, `${atividade.titulo} saiu da vitrine. Pedidos, pagamentos e os PDFs de quem comprou permanecem.`, true);
     pintarAtividades();
     return true;
   }
 
   async function retirarAtividade(atividade) {
     const confirmou = await pedirConfirmacao({
-      titulo: "Arquivar atividade",
-      texto: `${atividade.titulo} sai da vitrine. Ela fica arquivada, não excluída. Pedidos, pagamentos e os PDFs de quem já comprou permanecem.`,
-      confirmar: "Arquivar",
+      titulo: "Retirar da loja",
+      texto: `${atividade.titulo} sai da vitrine. Pedidos, pagamentos e os PDFs de quem já comprou permanecem.`,
+      confirmar: "Retirar da loja",
       perigo: false,
     });
     if (!confirmou) return;
@@ -638,15 +638,6 @@ export async function iniciarAdmin(loja) {
   function explicacaoExclusao(atividade) {
     if (atividade.foraDoBanco) return "Essa atividade ainda não foi publicada. Não há cadastro no banco para excluir.";
     if (dados?.papel !== "owner") return "Só a proprietária pode excluir uma atividade.";
-    if (!atividade.arquivada_em) {
-      if (!semVenda(memoria.pedidos, atividade.id)) {
-        return `${atividade.titulo} já tem pedidos. A exclusão definitiva não é permitida. Pedidos, pagamentos e os PDFs de quem comprou permanecem.`;
-      }
-      return `${atividade.titulo} continua publicada. A exclusão definitiva não está disponível nesta tela. Nada foi alterado.`;
-    }
-    if (!semVenda(memoria.pedidos, atividade.id)) {
-      return `${atividade.titulo} está arquivada e não pode ser excluída porque já tem venda ou download. Pedidos e PDFs de quem comprou permanecem.`;
-    }
     return "";
   }
 
@@ -664,6 +655,27 @@ export async function iniciarAdmin(loja) {
         });
         return;
       }
+      if (!semVenda(memoria.pedidos, atividade.id)) {
+        if (atividade.arquivada_em) {
+          await pedirConfirmacao({
+            titulo: "Esta atividade não pode ser excluída",
+            texto: `${atividade.titulo} não pode ser apagada porque existem compras associadas. Ela já está fora da vitrine e os PDFs dos compradores permanecem.`,
+            confirmar: "Entendi",
+            perigo: false,
+          });
+          return;
+        }
+        const retirar = await pedirConfirmacao({
+          titulo: "Esta atividade não pode ser excluída",
+          alerta: "Retirar da loja apenas remove o material da vitrine e preserva os PDFs dos compradores.",
+          texto: `${atividade.titulo} não pode ser apagada porque existem compras associadas. Pedidos e pagamentos permanecem.`,
+          confirmar: "Retirar da loja",
+          perigo: false,
+        });
+        if (!retirar) return;
+        await executarArquivamento(atividade);
+        return;
+      }
       const confirmou = await pedirConfirmacao({
         titulo: "Excluir atividade",
         alerta: "A exclusão é definitiva. O cadastro não volta para a loja.",
@@ -672,8 +684,27 @@ export async function iniciarAdmin(loja) {
         perigo: true,
       });
       if (!confirmou) return;
+      let preparadaAgora = false;
+      if (!atividade.arquivada_em) {
+        const preparo = await loja.arquivarAtividade(atividade.id);
+        if (!preparo.ok) {
+          aviso(status, preparo.mensagem || "A exclusão foi recusada. Nada foi alterado.");
+          return;
+        }
+        atividade.arquivada_em = new Date().toISOString();
+        preparadaAgora = true;
+      }
       const resultado = await loja.apagarAtividadeSemVenda(atividade.id);
       if (!resultado.ok) {
+        if (preparadaAgora) {
+          const volta = await loja.restaurarAtividade(atividade.id);
+          if (volta.ok) atividade.arquivada_em = null;
+          aviso(status, volta.ok
+            ? (resultado.mensagem || "A exclusão foi recusada. A atividade continua na loja.")
+            : "A exclusão foi recusada. A atividade saiu da vitrine e o cadastro permanece.");
+          pintarAtividades();
+          return;
+        }
         aviso(status, resultado.mensagem || "A exclusão foi recusada. Nada foi alterado.");
         return;
       }

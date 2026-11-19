@@ -541,6 +541,8 @@ body[data-pagina="admin"] {
 .acoes-atividade {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
+  justify-self: end;
   gap: 0.45rem;
 }
 
@@ -1102,10 +1104,13 @@ body[data-pagina="admin"] {
   #nova-atividade [data-etapa="1"] .grade-campos { grid-template-columns: 1fr; }
 
   .cartao-atividade { grid-template-columns: 4.5rem minmax(0, 1fr); }
-  .cartao-atividade .acoes-atividade { grid-column: 1 / -1; }
+  .cartao-atividade .acoes-atividade {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
 
-  .acoes-atividade,
-  .acoes-atividade .botao { width: 100%; }
+  .cartao-atividade .acoes-atividade,
+  .cartao-atividade .acoes-atividade .botao { width: auto; }
 
   .campo-largo { grid-column: auto; }
 }

@@ -7,7 +7,8 @@ const corpo = admin.slice(admin.indexOf("async function apagarCadastro"), admin.
 assert.match(corpo, /travaExclusao\.entrar\(\)/);
 assert.match(corpo, /apagarAtividadeSemVenda\(atividade\.id\)/);
 assert.match(corpo, /Confirmar exclusão/);
-assert.doesNotMatch(corpo, /executarArquivamento\(atividade\)/);
+assert.match(corpo, /Retirar da loja/);
+assert.match(corpo, /executarArquivamento\(atividade\)/);
 assert.doesNotMatch(corpo, /Arquivar/);
 assert.doesNotMatch(corpo, /elegibilidadeAtividade/);
 const recusa = corpo.indexOf("if (!resultado.ok)");
@@ -16,6 +17,6 @@ const remove = corpo.indexOf("memoria.atividades = memoria.atividades.filter");
 assert.ok(exclusao < recusa);
 assert.ok(recusa < remove);
 assert.match(admin, /botaoAcao\("Excluir"/);
-assert.match(admin, /foi arquivada, não excluída/);
+assert.match(admin, /saiu da vitrine/);
 
 console.log("ok exclusao atividade");
