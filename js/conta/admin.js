@@ -677,32 +677,24 @@ export async function iniciarAdmin(loja) {
         return;
       }
       const confirmou = await pedirConfirmacao({
-        titulo: "Excluir atividade",
+        titulo: `Excluir ${atividade.titulo}`,
         alerta: "A exclusão é definitiva. O cadastro não volta para a loja.",
-        texto: `${atividade.titulo} será apagada do catálogo. Os pedidos e os PDFs das outras atividades não são alterados.`,
-        confirmar: "Confirmar exclusão",
+        texto: `${atividade.titulo} será removida do catálogo. A capa e o PDF não são apagados agora.`,
+        confirmar: "Excluir definitivamente",
         perigo: true,
       });
       if (!confirmou) return;
-      let preparadaAgora = false;
-      if (!atividade.arquivada_em) {
-        const preparo = await loja.arquivarAtividade(atividade.id);
-        if (!preparo.ok) {
-          aviso(status, preparo.mensagem || "A exclusão foi recusada. Nada foi alterado.");
-          return;
-        }
-        atividade.arquivada_em = new Date().toISOString();
-        preparadaAgora = true;
-      }
       const resultado = await loja.apagarAtividadeSemVenda(atividade.id);
       if (!resultado.ok) {
-        if (preparadaAgora) {
-          const volta = await loja.restaurarAtividade(atividade.id);
-          if (volta.ok) atividade.arquivada_em = null;
-          aviso(status, volta.ok
-            ? (resultado.mensagem || "A exclusão foi recusada. A atividade continua na loja.")
-            : "A exclusão foi recusada. A atividade saiu da vitrine e o cadastro permanece.");
-          pintarAtividades();
+        if (/venda|cobrança|download/i.test(resultado.mensagem || "") && !atividade.arquivada_em) {
+          const retirar = await pedirConfirmacao({
+            titulo: "Esta atividade não pode ser excluída",
+            alerta: "Retirar da loja apenas remove o material da vitrine e preserva os PDFs dos compradores.",
+            texto: resultado.mensagem,
+            confirmar: "Retirar da loja",
+            perigo: false,
+          });
+          if (retirar) await executarArquivamento(atividade);
           return;
         }
         aviso(status, resultado.mensagem || "A exclusão foi recusada. Nada foi alterado.");

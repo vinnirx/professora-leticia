@@ -6,9 +6,11 @@ const corpo = admin.slice(admin.indexOf("async function apagarCadastro"), admin.
 
 assert.match(corpo, /travaExclusao\.entrar\(\)/);
 assert.match(corpo, /apagarAtividadeSemVenda\(atividade\.id\)/);
-assert.match(corpo, /Confirmar exclusão/);
+assert.match(corpo, /Excluir definitivamente/);
+assert.ok(corpo.indexOf("if (!confirmou) return") < corpo.indexOf("apagarAtividadeSemVenda"));
 assert.match(corpo, /Retirar da loja/);
 assert.match(corpo, /executarArquivamento\(atividade\)/);
+assert.doesNotMatch(corpo, /arquivarAtividade/);
 assert.doesNotMatch(corpo, /Arquivar/);
 assert.doesNotMatch(corpo, /elegibilidadeAtividade/);
 const recusa = corpo.indexOf("if (!resultado.ok)");
