@@ -646,12 +646,12 @@ export async function iniciarAdmin(loja) {
 
   function explicacaoExclusao(atividade) {
     if (atividade.foraDoBanco) return "Essa atividade ainda não foi publicada. Não há cadastro no banco para excluir.";
-    if (dados?.papel !== "owner") return "Só a proprietária pode excluir ou arquivar uma atividade.";
+    if (dados?.papel !== "owner") return "Só a proprietária pode excluir uma atividade.";
     if (!atividade.arquivada_em) {
       if (!semVenda(memoria.pedidos, atividade.id)) {
-        return `${atividade.titulo} já tem pedidos. A exclusão definitiva não é permitida. Arquivar tira a atividade da vitrine e preserva pedidos, pagamentos e os PDFs de quem comprou.`;
+        return `${atividade.titulo} já tem pedidos. A exclusão definitiva não é permitida. Pedidos, pagamentos e os PDFs de quem comprou permanecem.`;
       }
-      return `${atividade.titulo} ainda está publicada. A exclusão definitiva só acontece depois de arquivar, e somente se não houver venda nem download.`;
+      return `${atividade.titulo} continua publicada. A exclusão definitiva não está disponível nesta tela. Nada foi alterado.`;
     }
     if (!semVenda(memoria.pedidos, atividade.id)) {
       return `${atividade.titulo} está arquivada e não pode ser excluída porque já tem venda ou download. Pedidos e PDFs de quem comprou permanecem.`;
@@ -665,14 +665,12 @@ export async function iniciarAdmin(loja) {
     try {
       const impedimento = explicacaoExclusao(atividade);
       if (impedimento) {
-        const podeArquivar = dados?.papel === "owner" && !atividade.foraDoBanco && !atividade.arquivada_em;
-        const confirmou = await pedirConfirmacao({
+        await pedirConfirmacao({
           titulo: "Esta atividade não pode ser excluída",
           texto: impedimento,
-          confirmar: podeArquivar ? "Arquivar" : "Entendi",
+          confirmar: "Entendi",
           perigo: false,
         });
-        if (confirmou && podeArquivar) await executarArquivamento(atividade);
         return;
       }
       const confirmou = await pedirConfirmacao({
@@ -741,7 +739,7 @@ export async function iniciarAdmin(loja) {
     const visiveis = atividadesFiltradas();
     const resumoLista = document.querySelector("#atividades-resumo");
     if (resumoLista) {
-      resumoLista.textContent = "Busque pelo título. Editar, Arquivar e Excluir ficam em cada atividade.";
+      resumoLista.textContent = "Busque pelo título. Editar e Excluir ficam em cada atividade.";
     }
     if (!visiveis.length) {
       const vazioDe = situacaoAtividade === "rascunhos"
@@ -767,8 +765,6 @@ export async function iniciarAdmin(loja) {
       const acoes = document.createElement("div");
       acoes.className = "acoes-atividade";
       acoes.append(botaoAcao("Editar", () => abrirEdicao(atividade)));
-      if (!atividade.foraDoBanco && atividade.arquivada_em) acoes.append(botaoAcao("Restaurar", () => reporAtividade(atividade)));
-      if (!atividade.foraDoBanco && !atividade.arquivada_em) acoes.append(botaoAcao("Arquivar", () => retirarAtividade(atividade)));
       acoes.append(botaoAcao("Excluir", () => apagarCadastro(atividade), "botao-perigo"));
       artigo.append(miniaturaCapa(atividade), info, acoes);
       grade.append(artigo);
