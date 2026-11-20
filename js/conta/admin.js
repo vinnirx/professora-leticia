@@ -353,7 +353,9 @@ export async function iniciarAdmin(loja) {
       location.hash = "visao";
     });
     const cabeca = secao.querySelector(".secao-cabeca");
-    if (cabeca) cabeca.append(botao);
+    const grupo = cabeca?.querySelector(".acoes-cabeca");
+    if (grupo) grupo.append(botao);
+    else if (cabeca) cabeca.append(botao);
     else secao.prepend(botao);
   });
   ["#cadastro-atividade .secao-cabeca", "#ficha-edicao .secao-cabeca"].forEach((seletor) => {

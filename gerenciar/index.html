@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="../css/styles.css?v=89" />
     <link rel="stylesheet" href="../css/conta.css?v=16" />
-    <link rel="stylesheet" href="../css/painel.css?v=24" />
+    <link rel="stylesheet" href="../css/painel.css?v=25" />
   </head>
   <body data-pagina="admin">
     <header class="cabecalho">
@@ -86,9 +86,11 @@
                 <div class="secao-cabeca">
                   <div>
                     <h2 id="titulo-atividades-admin">Atividades</h2>
-                    <p class="texto-secao" id="atividades-resumo">Os materiais cadastrados aparecem nesta lista.</p>
+                    <p class="texto-secao" id="atividades-resumo">Busque pelo título. Editar e Excluir ficam em cada atividade.</p>
                   </div>
-                  <button class="botao" id="abrir-cadastro" type="button">Nova atividade</button>
+                  <div class="acoes-cabeca">
+                    <button class="botao" id="abrir-cadastro" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nova atividade</button>
+                  </div>
                 </div>
                 <p class="aviso-conta" id="atividades-status" role="status"></p>
                 <div class="acoes" id="abas-atividades" role="tablist" aria-label="Situação das atividades">
@@ -411,6 +413,6 @@
     <script src="../js/loja.js?v=49"></script>
     <script src="../js/vendor/supabase.js?v=1"></script>
     <script type="module" src="../js/sessao.js?v=45"></script>
-    <script type="module" src="../js/conta.js?v=67"></script>
+    <script type="module" src="../js/conta.js?v=68"></script>
   </body>
 </html>

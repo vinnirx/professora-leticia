@@ -133,6 +133,35 @@ body[data-pagina="admin"] {
   margin-bottom: 0.9rem;
 }
 
+.acoes-cabeca {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.acoes-cabeca .botao {
+  width: auto;
+  flex: 0 0 auto;
+  gap: 0.35rem;
+}
+
+.acoes-cabeca .botao svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  min-width: 0.95rem;
+  max-width: none;
+  flex: 0 0 0.95rem;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .painel h2 {
   margin: 0;
   color: var(--tinta);
@@ -1211,6 +1240,17 @@ body[data-pagina="admin"] .cabecalho .menu img {
 
   .secao-cabeca .botao,
   .etapas-acoes .botao { flex: 1 1 8rem; }
+
+  #lista-trabalho .acoes-cabeca {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
+  #lista-trabalho .acoes-cabeca .botao {
+    flex: 0 1 auto;
+    width: auto;
+  }
 
   #revisao-atividade { grid-template-columns: 1fr; }
 }
