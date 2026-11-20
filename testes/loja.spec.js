@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test("a vitrine abre com as atividades", async ({ page }) => {
   await page.goto("/index.html");
-  await expect(page.getByRole("heading", { name: "Materiais em destaque" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Novidades" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Ver Atividade" }).first()).toBeVisible();
   const caixa = await page.locator("body").boundingBox();
   const rolagem = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

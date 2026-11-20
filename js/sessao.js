@@ -167,6 +167,7 @@ async function iniciar() {
       return consulta;
     };
     const tentativas = [
+      `${CAMPOS_ATIVIDADE}, arquivo_anterior, arquivada_em, publicada_em`,
       `${CAMPOS_ATIVIDADE}, arquivo_anterior, arquivada_em`,
       `${CAMPOS_ATIVIDADE}, arquivo_anterior`,
       CAMPOS_ATIVIDADE,
@@ -179,7 +180,7 @@ async function iniciar() {
         autoridade = campos.includes("arquivada_em");
         break;
       }
-      if (!/arquivo_anterior|arquivada_em|schema cache|column/i.test(String(consulta.error.message || ""))) break;
+      if (!/arquivo_anterior|arquivada_em|publicada_em|schema cache|column/i.test(String(consulta.error.message || ""))) break;
     }
     if (consulta.error) throw consulta.error;
     api.vitrineAutoritativa = autoridade;
@@ -187,6 +188,7 @@ async function iniciar() {
       ...item,
       arquivo_anterior: item.arquivo_anterior || "",
       arquivada_em: item.arquivada_em || null,
+      publicada_em: item.publicada_em || null,
     }));
   }
 

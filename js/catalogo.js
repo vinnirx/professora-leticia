@@ -1,6 +1,6 @@
 import { abrirCarrinho, guardarNoCarrinho, pintarCarrinho } from "./carrinho.js?v=2";
 import { mesclarOferta, publicarOfertas } from "./ofertas.js";
-import { montarVitrine } from "./vitrine.js";
+import { escolherNovidades, montarVitrine } from "./vitrine.js?v=2";
 import { dinheiro, escapar, linhas } from "./texto.js";
 import { enderecoDeMidia, paginaAtividade } from "./rotas.js?v=2";
 
@@ -49,6 +49,8 @@ function paraCartao(item) {
     habilidades: Array.isArray(item.habilidades) ? item.habilidades : linhas(item.habilidades),
     capa: enderecoDeMidia(item.capa || ""),
     capaAlt: item.capaAlt || "",
+    publicadaEm: item.publicada_em || item.publicadaEm || "",
+    arquivadaEm: item.arquivada_em || item.arquivadaEm || "",
   };
 }
 
@@ -118,14 +120,19 @@ export function mostrarCatalogo() {
   const campo = document.querySelector("#busca-atividade");
   const termo = campo?.value.trim() || "";
   const normal = termo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  const visiveis = catalogo.filter((item) => {
+  const secaoNovidades = document.querySelector("#titulo-atividades")?.textContent.trim() === "Novidades";
+  const encontradas = catalogo.filter((item) => {
     const cabeBusca = !normal || textoBusca(item).includes(normal);
     if (normal) return cabeBusca;
     const cabeArea = !areaEscolhida || item.area === areaEscolhida;
     const cabeTema = !temaEscolhido || (item.temas || []).includes(temaEscolhido);
     if (areaEscolhida || temaEscolhido) return cabeArea && cabeTema;
+    if (secaoNovidades) return true;
     return item.destaque !== false;
-  }).slice(0, normal || areaEscolhida || temaEscolhido ? undefined : 4);
+  });
+  const visiveis = secaoNovidades && !normal && !areaEscolhida && !temaEscolhido
+    ? escolherNovidades(encontradas)
+    : encontradas.slice(0, normal || areaEscolhida || temaEscolhido ? undefined : 4);
   grade.replaceChildren();
   visiveis.forEach((atividade) => grade.append(cartao(atividade)));
   mostrarSugestoes(visiveis, termo);
