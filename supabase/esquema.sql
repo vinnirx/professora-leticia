@@ -53,12 +53,12 @@ on conflict (id) do update
 set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
 
 insert into public.atividades (id, titulo, preco, arquivo)
-values ('resolver-problemas', 'Infográfico — Como Resolver Situações-Problema?', 4.90, 'infografico-como-resolver-situacoes-problema.pdf')
+values ('resolver-problemas', 'Infográfico — Como Resolver Situações-Problema?', 5.00, 'infografico-como-resolver-situacoes-problema.pdf')
 on conflict (id) do update
 set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
 
 insert into public.atividades (id, titulo, preco, arquivo)
-values ('silabas', 'Infográfico — Separação de Sílabas', 4.90, 'infografico-separacao-de-silabas.pdf')
+values ('silabas', 'Infográfico — Separação de Sílabas', 5.00, 'infografico-separacao-de-silabas.pdf')
 on conflict (id) do update
 set titulo = excluded.titulo, preco = excluded.preco, arquivo = excluded.arquivo;
 
