@@ -823,7 +823,7 @@ main {
 .cabecalho .busca {
   flex: 1 0 100%;
   width: 100%;
-  margin: 0.15rem 0 0.45rem;
+  margin: 0.35rem 0 0;
 }
 
 .logo {
@@ -1202,7 +1202,12 @@ main {
   object-position: center;
 }
 
-.categorias { margin-top: 0.4rem; }
+.categorias {
+  position: relative;
+  z-index: 2;
+  width: min(1120px, calc(100% - clamp(1.5rem, 5vw, 3rem)));
+  margin: 0.4rem auto 0.15rem;
+}
 
 .secao-cabeca {
   display: flex;
@@ -1357,9 +1362,11 @@ main {
 .voltar-destaque[hidden] { display: none; }
 
 .categorias ul {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.75rem), 1fr));
-  gap: 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.45rem 0.3rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1368,8 +1375,24 @@ main {
   font-weight: 700;
 }
 
+.categorias li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1 1 6.4rem;
+  max-width: 8.75rem;
+  min-width: 5.5rem;
+}
+
 .categorias a,
-.categorias .abre-areas { color: inherit; text-decoration: none; }
+.categorias .abre-areas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  color: inherit;
+  text-decoration: none;
+}
 
 .categorias .abre-areas {
   width: 100%;
@@ -1720,8 +1743,7 @@ main {
 .ficha-compra .botao { width: auto; max-width: 100%; flex: 0 1 auto; }
 
 .grade > *,
-.passos > *,
-.categorias li { min-width: 0; }
+.passos > * { min-width: 0; }
 
 .pedido input,
 .cola-rotulo textarea,
@@ -1776,11 +1798,14 @@ main {
 }
 
 @media (max-width: 1080px) {
-  .logo,
-  .cabecalho .menu { flex-basis: 100%; }
-  .cabecalho { justify-content: center; }
-  .logo { display: flex; justify-content: center; }
-  .cabecalho .menu { margin-left: 0; justify-content: center; }
+  .cabecalho { justify-content: space-between; }
+  .logo { display: flex; justify-content: flex-start; flex: 0 1 auto; }
+  .cabecalho .menu {
+    flex: 0 1 auto;
+    flex-basis: auto;
+    margin-left: auto;
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 860px) {
@@ -1809,12 +1834,14 @@ main {
     border-top: 1px solid #e6eef5;
   }
 
+  .logo img { max-width: min(9.5rem, 46vw); }
+
   .cabecalho .menu a,
   .cabecalho .menu .carrinho-abre {
-    padding: 0.45rem 0.6rem;
+    padding: 0.45rem 0.55rem;
   }
 
-  .menu-conta { flex: 1 1 100%; justify-content: center; }
+  .menu-conta { flex: 0 0 auto; justify-content: flex-end; }
 
   .menu-conta-opcoes {
     position: static;
