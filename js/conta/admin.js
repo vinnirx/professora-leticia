@@ -769,6 +769,7 @@ export async function iniciarAdmin(loja) {
       artigo.className = "cartao-atividade";
       artigo.dataset.atividade = atividade.id;
       const info = document.createElement("div");
+      info.className = "dados-atividade";
       const titulo = document.createElement("h3");
       titulo.textContent = atividade.titulo;
       titulo.title = atividade.titulo;
@@ -829,59 +830,61 @@ export async function iniciarAdmin(loja) {
       lista.replaceChildren(vazio("Nenhuma atividade cadastrada."));
       return;
     }
-    lista.replaceChildren(montarTabela(
-      ["Atividade", "Arquivo", "Atualizado", "Situação", "Ações"],
-      memoria.atividades.map((atividade) => {
-        const info = textoPdf(atividade);
-        const tr = document.createElement("tr");
-        tr.dataset.atividade = atividade.id;
-        const acoes = document.createElement("div");
-        acoes.className = "acoes";
-        if (!atividade.foraDoBanco) {
-          acoes.append(botaoAcao("Visualizar", () => {
-            location.href = paginaAtividade(atividade.id);
+    const grade = document.createElement("div");
+    grade.className = "lista-pdfs";
+    memoria.atividades.forEach((atividade) => {
+      const info = textoPdf(atividade);
+      const artigo = document.createElement("article");
+      artigo.className = "cartao-pdf";
+      artigo.dataset.atividade = atividade.id;
+      const dados = document.createElement("div");
+      dados.className = "cartao-pdf-dados";
+      const titulo = document.createElement("h3");
+      titulo.textContent = atividade.titulo;
+      titulo.title = atividade.titulo;
+      const arquivo = document.createElement("p");
+      arquivo.className = "cartao-pdf-arquivo";
+      arquivo.textContent = info.arquivo;
+      arquivo.title = info.arquivo;
+      const meta = document.createElement("p");
+      meta.className = "cartao-pdf-meta";
+      const quandoPdf = document.createElement("span");
+      quandoPdf.textContent = info.quando;
+      const situacaoPdf = selo(info.situacao === "PDF no espaço privado" ? "Privado" : info.situacao, info.situacao === "PDF no espaço privado" ? "ok" : "neutro");
+      situacaoPdf.title = info.situacao;
+      meta.append(quandoPdf, situacaoPdf);
+      dados.append(titulo, arquivo, meta);
+      const acoes = document.createElement("div");
+      acoes.className = "acoes-pdf";
+      if (!atividade.foraDoBanco) {
+        acoes.append(botaoAcao("Visualizar", () => {
+          location.href = paginaAtividade(atividade.id);
+        }));
+        if (atividade.pdfInfo?.pdf || atividade.arquivo) {
+          acoes.append(botaoAcao("Baixar", async () => {
+            try {
+              await loja.baixar(atividade.id);
+            } catch (erro) {
+              const mensagem = erro?.message === "entrar"
+                ? "Entre de novo para baixar este material."
+                : erro?.message === "negado"
+                  ? "Este material ainda não está liberado."
+                  : erro?.message === "tentar"
+                    ? "O download não respondeu. Tente de novo."
+                    : "Esse PDF ainda não está no espaço privado.";
+              aviso(document.querySelector("#arquivos-status"), mensagem);
+            }
           }));
-          if (atividade.pdfInfo?.pdf || atividade.arquivo) {
-            acoes.append(botaoAcao("Baixar", async () => {
-              try {
-                await loja.baixar(atividade.id);
-              } catch (erro) {
-                const mensagem = erro?.message === "entrar"
-                  ? "Entre de novo para baixar este material."
-                  : erro?.message === "negado"
-                    ? "Este material ainda não está liberado."
-                    : erro?.message === "tentar"
-                      ? "O download não respondeu. Tente de novo."
-                      : "Esse PDF ainda não está no espaço privado.";
-                aviso(document.querySelector("#arquivos-status"), mensagem);
-              }
-            }));
-          }
-          acoes.append(botaoAcao(atividade.pdfInfo?.pdf || atividade.arquivo ? "Substituir PDF" : "Enviar PDF", () => abrirPdf(atividade), atividade.pdfInfo?.pdf || atividade.arquivo ? "botao-perigo" : ""));
-          if (atividade.pdfAnterior && atividade.arquivo && atividade.pdfAnterior !== atividade.arquivo) {
-            acoes.append(botaoAcao("Restaurar anterior", () => restaurarPdf(atividade)));
-          }
         }
-        acoes.classList.add("acoes-pdf");
-        const situacaoPdf = selo(info.situacao === "PDF no espaço privado" ? "Privado" : info.situacao, info.situacao === "PDF no espaço privado" ? "ok" : "neutro");
-        situacaoPdf.title = info.situacao;
-        const arquivo = document.createElement("span");
-        arquivo.className = "titulo-duas";
-        arquivo.textContent = info.arquivo;
-        arquivo.title = info.arquivo;
-        return {
-          tr,
-          celulas: [
-            celula("Atividade", tituloDuas(atividade.titulo)),
-            celula("Arquivo", arquivo),
-            celula("Atualizado", info.quando),
-            celula("Situação", situacaoPdf),
-            celula("Ações", acoes, "celula-acoes"),
-          ],
-        };
-      }),
-      ["22%", "20%", "14%", "14%", "30%"],
-    ));
+        acoes.append(botaoAcao(atividade.pdfInfo?.pdf || atividade.arquivo ? "Substituir PDF" : "Enviar PDF", () => abrirPdf(atividade), atividade.pdfInfo?.pdf || atividade.arquivo ? "botao-perigo" : ""));
+        if (atividade.pdfAnterior && atividade.arquivo && atividade.pdfAnterior !== atividade.arquivo) {
+          acoes.append(botaoAcao("Restaurar anterior", () => restaurarPdf(atividade)));
+        }
+      }
+      artigo.append(dados, acoes);
+      grade.append(artigo);
+    });
+    lista.replaceChildren(grade);
   }
 
   function pintarPedidos() {
