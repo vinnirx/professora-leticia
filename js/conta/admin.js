@@ -916,26 +916,6 @@ export async function iniciarAdmin(loja) {
         const acoes = document.createElement("div");
         acoes.className = "acoes";
         acoes.append(botaoAcao("Ver", () => mostrarPedido(grupo)));
-        if (grupo.status !== "pago") {
-          acoes.append(botaoAcao("Confirmar Pix", async (evento) => {
-            const botao = evento.currentTarget;
-            botao.disabled = true;
-            const resultado = await loja.confirmar(grupo.itens[0].id);
-            botao.disabled = false;
-            if (!resultado.ok) {
-              aviso(document.querySelector("#pedidos-status-aviso"), resultado.mensagem);
-              return;
-            }
-            memoria.pedidos.forEach((pedido) => {
-              if (pedido.txid === grupo.txid && (pedido.usuario_id || "") === (grupo.usuario_id || "")) {
-                pedido.status = "pago";
-                pedido.confirmacao = "admin";
-              }
-            });
-            aviso(document.querySelector("#pedidos-status-aviso"), "Pix confirmado. O download já está na conta de quem comprou.", true);
-            pintarTudo();
-          }));
-        }
         const leitura = leituraFinanceira(grupo, memoria);
         return {
           tr: document.createElement("tr"),
@@ -1268,10 +1248,10 @@ export async function iniciarAdmin(loja) {
         ["WhatsApp", lojaPublica.whatsapp ? lojaPublica.whatsapp : "Não informado"],
         ["Central de ajuda", "Preparada localmente. Ainda não instalada no banco."],
       ]],
-      ["Pagamentos", "O Pix continua manual. Nenhuma chave de API pode ser editada aqui.", [
-        ["Cobrança automática", "Desligada"],
-        ["Asaas", "Não ligado. Taxa, saldo e repasse continuam indisponíveis."],
-        ["Confirmação", "A venda manual só conta depois de Confirmar Pix."],
+      ["Pagamentos", "Nenhuma chave de API pode ser editada aqui.", [
+        ["Cobrança automática", "Restrita. O Pix não está aberto ao público."],
+        ["Asaas", "Confirma os pagamentos automáticos. Taxa e líquido aparecem quando a cobrança os grava."],
+        ["Confirmação", "Pedido pendente permanece aguardando. O painel não confirma Pix."],
       ]],
       ["Downloads e arquivos", "O PDF permanece no espaço privado.", [
         ["Download", "Somente pela função protegida, com sessão e permissão."],
