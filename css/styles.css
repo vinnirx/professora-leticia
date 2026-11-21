@@ -852,6 +852,12 @@ main {
   justify-content: flex-end;
 }
 
+@media (min-width: 721px) {
+  .cabecalho .menu:has(.carrinho-abre) {
+    transform: translateY(8px);
+  }
+}
+
 .cabecalho .menu a {
   color: var(--tinta);
   letter-spacing: 0;
