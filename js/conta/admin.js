@@ -8,7 +8,7 @@ import { agruparPedidos, resumirVendas } from "./grupos-pedido.js";
 import { chamadosPendentes, indicadoresDaVisao, pedidosRecentes } from "./visao.js?v=1";
 import { fecharCaixa, linhaExportada, origemFinanceira } from "./caixa.js";
 import { celulaCsv } from "./csv.js";
-import { avisoListaContas, montarSegundoFator } from "./mfa.js?v=9";
+import { avisoListaContas, montarSegundoFator } from "./mfa.js?v=10";
 import { leituraAdministrativa, textoDaLista, textoDasContas } from "./apresentacao.js?v=5";
 import { acionarSaida } from "./saida.js";
 import { enderecoDeMidia, paginaAtividade, rota } from "../rotas.js";
@@ -1255,82 +1255,10 @@ export async function iniciarAdmin(loja) {
     }
   }
 
-  function pintarConfig() {
-    const lojaPublica = window.loja || {};
-    const admins = memoria.contas
-      .filter((conta) => administra(conta.papel))
-      .map((conta) => `${conta.email} (${rotuloPapel(conta.papel)})`)
-      .join(", ") || "Nenhuma conta administradora encontrada";
-    const gruposConfig = [
-      ["Informações da loja", "Somente leitura. O texto institucional continua na página inicial.", [
-        ["Nome público", "Inclusão no Cotidiano"],
-        ["Domínio", "inclusaonocotidiano.com.br"],
-        ["Responsável", "Professora Letícia Pimentel de Macedo"],
-      ]],
-      ["Contato e atendimento", "Nenhum canal novo foi inventado. O atendimento gravado no painel depende da migração de ajuda.", [
-        ["E-mail já publicado", lojaPublica.pixChave || "Não informado"],
-        ["WhatsApp", lojaPublica.whatsapp ? lojaPublica.whatsapp : "Não informado"],
-        ["Central de ajuda", "Preparada localmente. Ainda não instalada no banco."],
-      ]],
-      ["Pagamentos", "Nenhuma chave de API pode ser editada aqui.", [
-        ["Cobrança automática", "Restrita. O Pix não está aberto ao público."],
-        ["Asaas", "Confirma os pagamentos automáticos. Taxa e líquido aparecem quando a cobrança os grava."],
-        ["Confirmação", "Pedido pendente permanece aguardando. O painel não confirma Pix."],
-      ]],
-      ["Downloads e arquivos", "O PDF permanece no espaço privado.", [
-        ["Download", "Somente pela função protegida, com sessão e permissão."],
-        ["Troca de PDF", "A versão nova só passa a valer depois da confirmação. A anterior fica guardada."],
-      ]],
-      ["Segurança e permissões", "A hierarquia real fica na seção Equipe. Este painel não altera cargos sozinho.", [
-        ["Quem administra", admins],
-        ["Proprietária", "Protegida no servidor. Não pode ser rebaixada pelo painel."],
-        ["Cliente", "Não vê contas, pedidos ou arquivos de outras pessoas."],
-      ]],
-      ["Políticas da loja", "Os textos estão no site e ainda precisam de revisão jurídica antes de serem tratados como versão definitiva.", [
-        ["Termos, reembolso, privacidade e ajuda", "Links no rodapé da loja e na finalização da compra."],
-      ]],
-      ["Informações legais", "Faltam dados que só a proprietária pode fornecer. Nada disso é editável no navegador.", [
-        ["Pendente", "CPF ou CNPJ, endereço comercial e telefone de atendimento."],
-      ]],
-    ];
-    const lista = document.querySelector("#lista-config");
-    lista.replaceChildren();
-    gruposConfig.forEach(([titulo, descricao, itens]) => {
-      const secao = document.createElement("section");
-      secao.className = "grupo-config";
-      const h = document.createElement("h3");
-      h.textContent = titulo;
-      const p = document.createElement("p");
-      p.className = "texto-secao";
-      p.textContent = descricao;
-      const listaItens = document.createElement("div");
-      listaItens.className = "config-lista";
-      itens.forEach(([rotulo, valor]) => {
-        const linha = document.createElement("div");
-        linha.className = "config-linha";
-        const topo = document.createElement("div");
-        topo.className = "config-topo";
-        const nome = document.createElement("strong");
-        nome.textContent = rotulo;
-        const marca = document.createElement("span");
-        marca.className = "leitura";
-        marca.textContent = "Somente leitura";
-        topo.append(nome, marca);
-        const valorTexto = document.createElement("p");
-        valorTexto.textContent = valor;
-        linha.append(topo, valorTexto);
-        listaItens.append(linha);
-      });
-      secao.append(h, p, listaItens);
-      lista.append(secao);
-    });
-  }
-
   const pintarEquipe = prepararEquipe(loja, memoria, dados, () => {
     pintarVisao();
     pintarFinanceiro();
     pintarClientes();
-    pintarConfig();
   });
   const botaoFinanceiro = document.querySelector("[data-secao='financeiro']");
   if (botaoFinanceiro) botaoFinanceiro.hidden = true;
@@ -1394,7 +1322,6 @@ export async function iniciarAdmin(loja) {
     pintarFinanceiro();
     pintarClientes();
     pintarEquipe();
-    pintarConfig();
     pintarConciliacao();
     carregarSuporte();
     completarContas();

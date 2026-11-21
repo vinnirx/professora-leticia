@@ -62,7 +62,7 @@ export function montarSegundoFator(loja, raiz) {
   titulo.textContent = "Segundo fator";
   const explicacao = document.createElement("p");
   explicacao.className = "texto-secao";
-  explicacao.textContent = "O aplicativo autenticador protege esta conta. Cadastrá-lo não altera cargo nem permissão. No próximo login, a loja pede o código de 6 números. O Supabase não gera código de recuperação: com a sessão ainda aberta, use Remover autenticador. Sem sessão, o fator é removido no painel do projeto, em Authentication, na conta correspondente.";
+  explicacao.textContent = "O aplicativo autenticador protege esta conta. Cadastrá-lo não muda cargo nem permissão. No próximo acesso, a loja pede o código de 6 números. Com esta sessão aberta, use Remover autenticador para trocar o aplicativo.";
   const nivel = document.createElement("p");
   nivel.className = "texto-secao";
   const corpo = document.createElement("div");

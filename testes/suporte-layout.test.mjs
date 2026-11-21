@@ -61,8 +61,8 @@ assert.match(admin, /preencherHistorico/);
 assert.match(admin, /aoVer: \(item\) => mostrarResposta\(item, "conversa"\)/);
 assert.match(admin, /aoResponder: \(item\) => mostrarResposta\(item, "resposta"\)/);
 assert.doesNotMatch(admin.slice(admin.indexOf("function pintarSuporte"), admin.indexOf("async function mudarSuporte")), /montarTabela|historicoSolicitacao|Autorizar estorno/);
-assert.match(conta, /admin\.js\?v=41/);
+assert.match(conta, /admin\.js\?v=42/);
 assert.match(painel, /painel\.css\?v=28/);
-assert.match(painel, /conta\.js\?v=72/);
+assert.match(painel, /conta\.js\?v=73/);
 
 console.log("ok layout do suporte");
