@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="../css/styles.css?v=91" />
     <link rel="stylesheet" href="../css/conta.css?v=16" />
-    <link rel="stylesheet" href="../css/painel.css?v=27" />
+    <link rel="stylesheet" href="../css/painel.css?v=28" />
   </head>
   <body data-pagina="admin">
     <header class="cabecalho">
@@ -64,14 +64,20 @@
               <div class="secao-cabeca">
                 <div>
                   <h2 id="titulo-visao">Visão geral</h2>
-                  <p class="texto-secao">Pedidos confirmados, receita bruta e o que ainda aguarda pagamento. A tarifa e o líquido ficam no detalhe de cada pedido.</p>
+                  <p class="texto-secao">Pedidos pagos, receita bruta confirmada, o que aguarda pagamento e os chamados que ainda precisam de atenção. Pendente e cancelado não entram na receita.</p>
                 </div>
               </div>
               <div class="indicadores indicadores-principais" id="indicadores-visao"></div>
               <div class="atalhos-painel" id="atalhos-visao"></div>
               <div id="bloco-recentes">
-                <h3>Últimos pedidos</h3>
-                <div id="vendas-recentes"></div>
+                <div class="secao-cabeca">
+                  <div>
+                    <h3>Últimos pedidos</h3>
+                    <p class="texto-secao">Pagos e aguardando pagamento, do mais recente ao mais antigo. Cancelados continuam no histórico de Pedidos.</p>
+                  </div>
+                  <button class="botao botao-secundario" id="ver-todos-pedidos" type="button">Ver todos os pedidos</button>
+                </div>
+                <div class="tabela-rolagem" id="vendas-recentes"></div>
               </div>
             </section>
 
@@ -411,6 +417,6 @@
     <script src="../js/loja.js?v=49"></script>
     <script src="../js/vendor/supabase.js?v=1"></script>
     <script type="module" src="../js/sessao.js?v=45"></script>
-    <script type="module" src="../js/conta.js?v=71"></script>
+    <script type="module" src="../js/conta.js?v=72"></script>
   </body>
 </html>

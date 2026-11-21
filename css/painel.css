@@ -453,7 +453,8 @@ body[data-pagina="admin"] {
 .indicadores-principais,
 .indicadores-apoio { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
-#indicadores-visao,
+#indicadores-visao { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
 #indicadores-visao-apoio { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 .indicador {
@@ -487,6 +488,42 @@ body[data-pagina="admin"] {
 }
 
 .indicadores-principais .indicador strong { font-size: 1.45rem; }
+
+#indicadores-visao .indicador {
+  height: 100%;
+  min-height: 7.5rem;
+}
+
+.indicador-marca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 0.5rem;
+  background: #f3f7f8;
+  color: var(--azul);
+}
+
+.atalhos-painel .botao { gap: 0.4rem; }
+
+.atalhos-painel .botao svg,
+svg.indicador-marca,
+.indicador-marca svg {
+  width: 1rem;
+  height: 1rem;
+  min-width: 1rem;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#bloco-recentes h3 { margin: 0; }
+
+#bloco-recentes .texto-secao { margin: 0.2rem 0 0; }
 
 .indicador .valor-ausente {
   color: var(--adm-mudo);
@@ -1453,7 +1490,8 @@ body[data-pagina="admin"] .cabecalho .menu img {
   .barra-ferramentas label { flex-basis: calc(50% - 0.7rem); }
   .filtros-painel .campo-largo { grid-column: 1 / -1; }
   .indicadores-principais,
-  .indicadores-apoio { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .indicadores-apoio,
+  #indicadores-visao { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
   .passos,
   .grade-campos,

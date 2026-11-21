@@ -5,6 +5,7 @@ import { prepararEquipe } from "./equipe.js";
 import { aviso, moeda, quando } from "./avisos.js";
 import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
 import { agruparPedidos, resumirVendas } from "./grupos-pedido.js";
+import { chamadosPendentes, indicadoresDaVisao, pedidosRecentes } from "./visao.js?v=1";
 import { fecharCaixa, linhaExportada, origemFinanceira } from "./caixa.js";
 import { celulaCsv } from "./csv.js";
 import { avisoListaContas, montarSegundoFator } from "./mfa.js?v=9";
@@ -107,7 +108,7 @@ function montarTabela(colunas, linhas, larguras, extraClasse) {
     } else {
       th.textContent = coluna;
     }
-    if (["Preço", "Valor", "Valor bruto", "Pedidos pagos", "Materiais pagos", "Unidades", "Receita bruta"].includes(coluna)) th.className = "numero";
+    if (["Preço", "Valor", "Valor histórico", "Valor bruto", "Pedidos pagos", "Materiais pagos", "Unidades", "Receita bruta"].includes(coluna)) th.className = "numero";
     if (coluna === "Destaque") th.className = "centro";
     cabecalho.append(th);
   });
@@ -224,14 +225,31 @@ function botaoAcao(texto, aoClicar, extra) {
   return botao;
 }
 
-function indicador(rotulo, valor, nota) {
+function marca(caminhos) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  caminhos.forEach((d) => {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+  });
+  return svg;
+}
+
+function indicador(rotulo, valor, nota, caminhos) {
   const artigo = document.createElement("article");
   artigo.className = "indicador";
+  if (caminhos) {
+    const icone = marca(caminhos);
+    icone.classList.add("indicador-marca");
+    artigo.append(icone);
+  }
   const nome = document.createElement("span");
   nome.textContent = rotulo;
   const forte = document.createElement("strong");
   forte.textContent = valor;
-  if (valor === "Não disponível") forte.classList.add("valor-ausente");
+  if (valor === "Não disponível" || valor === "Restrito") forte.classList.add("valor-ausente");
   artigo.append(nome, forte);
   if (nota) {
     const info = document.createElement("span");
@@ -435,6 +453,7 @@ export async function iniciarAdmin(loja) {
     atividades: [...porId.values()].sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR")),
     periodo: "dia",
   };
+  let chamadosDaVisao = null;
 
   const idsBanco = memoria.atividades.filter((item) => !item.foraDoBanco).map((item) => ({
     id: item.id,
@@ -493,6 +512,25 @@ export async function iniciarAdmin(loja) {
     return caixa;
   }
 
+  function secaoVisivel(nome) {
+    const botao = document.querySelector(`[data-secao="${nome}"]`);
+    return Boolean(botao && !botao.hidden);
+  }
+
+  function irParaSecao(secao) {
+    if (location.hash === `#${secao}`) mostrarSecao(secao);
+    else location.hash = secao;
+  }
+
+  function botaoAtalho(texto, caminhos, aoClicar) {
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "botao botao-secundario";
+    botao.append(marca(caminhos), document.createTextNode(texto));
+    botao.addEventListener("click", aoClicar);
+    return botao;
+  }
+
   function pintarVisao() {
     const leitura = leituraAdministrativa(memoria.nivel, dados?.papel);
     const caixa = document.querySelector("#indicadores-visao");
@@ -500,15 +538,16 @@ export async function iniciarAdmin(loja) {
     const blocoRecentes = document.querySelector("#bloco-recentes");
     const atalhos = document.querySelector("#atalhos-visao");
     atalhos.replaceChildren();
-    [
-      ["Ver atividades", "atividades", "principal"],
-      ["Ver pedidos", "pedidos", ""],
-    ].forEach(([texto, secao, estilo]) => {
-      atalhos.append(botaoAcao(texto, () => {
-        if (secao === "atividades") document.dispatchEvent(new CustomEvent("mostrar-lista-atividades"));
-        location.hash = secao;
-      }, estilo));
-    });
+    const cadastro = document.querySelector("#abrir-cadastro");
+    if (cadastro && !cadastro.hidden && secaoVisivel("atividades")) {
+      atalhos.append(botaoAtalho("Nova atividade", ["M12 5v14M5 12h14"], () => cadastro.click()));
+    }
+    if (secaoVisivel("pedidos")) {
+      atalhos.append(botaoAtalho("Ver pedidos", ["M6.5 8h11l-.8 11.5H7.3L6.5 8Z", "M9 8V6.2a3 3 0 0 1 6 0V8"], () => irParaSecao("pedidos")));
+    }
+    if (secaoVisivel("suporte")) {
+      atalhos.append(botaoAtalho("Suporte", ["M5 6.5h14v8.2H8.2L5 17.8V6.5Z"], () => irParaSecao("suporte")));
+    }
     if (leitura !== "ok") {
       caixa.replaceChildren(avisoDeSessao(leitura));
       if (blocoRecentes) blocoRecentes.hidden = true;
@@ -516,27 +555,27 @@ export async function iniciarAdmin(loja) {
       return;
     }
     if (blocoRecentes) blocoRecentes.hidden = false;
-    const pagos = grupos().filter((grupo) => grupo.status === "pago");
-    const aguardando = grupos().filter((grupo) => grupo.status === "aguardando");
-    const bruto = pagos.reduce((soma, grupo) => soma + grupo.valor, 0);
+    const indicadores = indicadoresDaVisao(memoria.pedidos);
+    const chamados = chamadosDaVisao === null ? "Não disponível" : String(chamadosDaVisao);
     caixa.replaceChildren(
-      indicador("Pedidos confirmados", String(pagos.length)),
-      indicador("Receita bruta", podeFinanceiro(dados) ? moeda.format(bruto) : "Restrito"),
-      indicador("Aguardando pagamento", String(aguardando.length)),
+      indicador("Pedidos pagos", String(indicadores.pagos), "", ["M5 12.5 9.2 16.5 19 7.5"]),
+      indicador("Receita bruta", podeFinanceiro(dados) ? moeda.format(indicadores.bruto) : "Restrito", "", ["M4 18.5V5.5M4 18.5h16", "m7 14 3.2-4 3 2.2 4.3-6"]),
+      indicador("Aguardando pagamento", String(indicadores.aguardando), "", ["M12 7v5.2l3.2 2", "M12 20.2a8.2 8.2 0 1 0 0-16.4 8.2 8.2 0 0 0 0 16.4"]),
+      indicador("Chamados pendentes", chamados, "", ["M5 6.5h14v8.2H8.2L5 17.8V6.5Z"]),
     );
-    const lista = grupos().slice(0, 5);
+    const lista = pedidosRecentes(memoria.pedidos);
     if (!lista.length) recentes.replaceChildren(vazio("Nenhum pedido cadastrado.", "Quando alguém comprar, o pedido aparece aqui."));
     else {
       recentes.replaceChildren(montarTabela(
-        ["Data", "Pedido", "Cliente", "Valor", "Status"],
+        ["Data", "Código", "Cliente", "Valor histórico", "Situação"],
         lista.map((grupo) => ({
           tr: document.createElement("tr"),
           celulas: [
             celula("Data", quando.format(new Date(grupo.criado_em))),
-            celula("Pedido", grupo.txid),
+            celula("Código", grupo.txid),
             celula("Cliente", nomeCliente(grupo)),
-            celula("Valor", podeFinanceiro(dados) ? moeda.format(grupo.valor) : "Restrito", "numero"),
-            celula("Status", selo(...rotuloStatus(grupo.status))),
+            celula("Valor histórico", moeda.format(grupo.valor), "numero"),
+            celula("Situação", selo(...rotuloStatus(grupo.status))),
           ],
         })),
       ));
@@ -1499,27 +1538,34 @@ export async function iniciarAdmin(loja) {
     const destino = document.querySelector("#lista-suporte");
     if (!destino) return;
     if (!loja.listarSolicitacoes) {
+      chamadosDaVisao = null;
       destino.replaceChildren(vazio("A central de ajuda ainda não está ligada.", "As mensagens aparecem aqui quando a conta administrativa está autorizada."));
+      pintarVisao();
       return;
     }
     const resultado = await loja.listarSolicitacoes();
     if (!resultado.ok) {
       suporteItens = [];
+      chamadosDaVisao = null;
       destino.replaceChildren(vazio(
         resultado.ausente ? "A central de ajuda ainda não está instalada no banco." : "Não foi possível ler as solicitações.",
         resultado.ausente ? "Nenhuma mensagem foi gravada." : resultado.mensagem,
       ));
+      pintarVisao();
       return;
     }
     suporteItens = resultado.solicitacoes;
+    chamadosDaVisao = chamadosPendentes(suporteItens);
     const aberto = solicitacaoAberta();
     if (suporteAberto && !aberto) mostrarResposta(null);
     else if (aberto) mostrarResposta(aberto, "atualizar");
     pintarSuporte();
+    pintarVisao();
   }
   document.querySelector("#busca-suporte")?.addEventListener("input", pintarSuporte);
   document.querySelector("#filtro-suporte")?.addEventListener("change", pintarSuporte);
   document.querySelector("#suporte-resposta-fechar")?.addEventListener("click", () => mostrarResposta(null));
+  document.querySelector("#ver-todos-pedidos")?.addEventListener("click", () => irParaSecao("pedidos"));
   document.querySelector("#suporte-resposta")?.addEventListener("submit", async (evento) => {
     evento.preventDefault();
     const item = solicitacaoAberta();
