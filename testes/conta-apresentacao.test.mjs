@@ -102,7 +102,7 @@ assert.match(painelHtml, /id="tabela-financeiro"/);
 const cancelado = tela.slice(tela.indexOf('pedido.status === "estornado" || pedido.status === "cancelado"'), tela.indexOf('pedido.status !== "pago"'));
 assert.match(cancelado, /acompanharPedido/);
 assert.match(cancelado, /podeOcultar/);
-assert.match(tela, /Ocultar do meu histórico/);
+assert.match(tela, /Ocultar pedido/);
 const download = tela.slice(tela.indexOf("function botaoDownload"), tela.indexOf("function mostrarDownloads"));
 assert.match(download, /Baixar PDF/);
 assert.match(download, /loja\.baixar\(material\.id\)/);

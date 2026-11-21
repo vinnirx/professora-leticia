@@ -54,7 +54,7 @@ assert.match(checkout, /Pague \$\{dinheiro\(total\)\}\. O PDF só entra em Minha
 for (const pagina of ["entrar/index.html", "criar-conta/index.html", "recuperar-senha/index.html", "minha-conta/index.html", "gerenciar/index.html"]) {
   const html = readFileSync(new URL(`../${pagina}`, import.meta.url), "utf8");
   assert.equal(html.includes('href="../#atividades"'), false, pagina);
-  assert.match(html, /href="\.\.\/atividades\/"/, pagina);
+  assert.match(html, /class="logo" href="\.\.\/"/, pagina);
 }
 assert.match(readFileSync(new URL("../gerenciar/index.html", import.meta.url), "utf8"), /id="painel-saudacao"/);
 assert.match(readFileSync(new URL("../js/conta/admin.js", import.meta.url), "utf8"), /painel-saudacao/);

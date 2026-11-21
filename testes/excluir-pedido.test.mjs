@@ -22,11 +22,11 @@ assert.equal(visiveis.some((pedido) => pedido.txid === "dc0ae9793d"), false);
 assert.equal(visiveis.find((pedido) => pedido.txid === "9d2daf094d").valor, 9.8);
 
 const conta = ler("js/conta/minhas.js");
-assert.match(conta, /Excluir pedido/);
-assert.match(conta, /Confirmar exclusão/);
-assert.match(conta, /O pedido será removido da visualização da conta\./);
+assert.match(conta, /Ocultar pedido/);
+assert.match(conta, /Confirmar ocultação/);
+assert.match(conta, /continua registrado e não é apagado/);
 assert.match(conta, /botaoSecundario\("Cancelar"/);
-assert.doesNotMatch(conta, /Mostrar de novo|Ver pedidos ocultos|Ocultar do meu histórico/);
+assert.doesNotMatch(conta, /Excluir pedido|Confirmar exclusão|Mostrar de novo|Ver pedidos ocultos/);
 const cancelar = conta.slice(conta.indexOf("function confirmarExclusao"), conta.indexOf("function confirmarCancelamento"));
 assert.doesNotMatch(cancelar, /definirVisibilidade\([\s\S]*false/);
 
@@ -36,6 +36,11 @@ assert.match(painel, /\.from\("pedidos"\)/);
 assert.doesNotMatch(painel, /oculto_em/);
 assert.match(sessao, /rpc\("definir_visibilidade_pedido"/);
 assert.doesNotMatch(sessao.slice(sessao.indexOf("async definirVisibilidade"), sessao.indexOf("async definirPapel")), /pedirCobranca/);
+
+const sql = ler("supabase/migracao-visibilidade-pedidos.sql");
+const funcao = sql.slice(sql.indexOf("create or replace function public.definir_visibilidade_pedido"), sql.indexOf("revoke all on function public.cancelar_tentativa_sem_cobranca"));
+assert.match(funcao, /set oculto_em/);
+assert.doesNotMatch(funcao, /delete from/i);
 
 const ajuda = ler("ajuda/index.html");
 const miolo = ajuda.slice(ajuda.indexOf("<main"), ajuda.indexOf("<footer"));

@@ -106,9 +106,9 @@ assert.doesNotMatch(admin.slice(admin.indexOf("function mostrarPedido"), admin.i
 assert.match(painel, /Consulte os pedidos, acompanhe os pagamentos e verifique a liberação dos materiais após a confirmação automática\./);
 assert.doesNotMatch(painel, /Confirmar o Pix libera/);
 assert.doesNotMatch(painel, /Confirmar Pix/);
-assert.match(painel, /painel\.css\?v=26/);
-assert.match(painel, /conta\.js\?v=70/);
-assert.match(conta, /admin\.js\?v=39/);
+assert.match(painel, /painel\.css\?v=29/);
+assert.match(painel, /conta\.js\?v=74/);
+assert.match(conta, /admin\.js\?v=43/);
 assert.match(admin, /detalhe-pedido\.js\?v=1/);
 
 console.log("ok detalhe do pedido");

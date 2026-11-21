@@ -82,7 +82,7 @@ assert.equal(avisoListaContas({ ok: true, atual: "aal1", fatores: [{ factor_type
 assert.match(avisoListaContas({ ok: false }), /incompleta/);
 assert.match(sessao, /factor_type: fator\.factor_type, status: fator\.status/);
 assert.doesNotMatch(sessao.slice(sessao.indexOf("async nivelAcesso"), sessao.indexOf("async iniciarFator")), /secret|qr_code/);
-assert.match(admin, /Excluir atividade/);
+assert.match(admin, /Excluir definitivamente/);
 assert.match(admin, /lista-atividades-simples/);
 assert.doesNotMatch(admin, /aal2/);
 

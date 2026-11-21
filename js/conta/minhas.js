@@ -283,7 +283,7 @@ function botoesSecundarios(artigo, pedido, loja, resultado) {
   caixa.dataset.secundario = "sim";
   caixa.append(ajuda);
   if (resultado.cancelavel) caixa.append(botaoSecundario("Cancelar pedido", () => confirmarCancelamento(artigo, pedido, loja)));
-  if (resultado.ocultavel && !pedido.oculto) caixa.append(botaoSecundario("Excluir pedido", () => confirmarExclusao(artigo, pedido, loja, resultado)));
+  if (resultado.ocultavel && !pedido.oculto) caixa.append(botaoSecundario("Ocultar pedido", () => confirmarExclusao(artigo, pedido, loja, resultado)));
   if (caixa.childElementCount) artigo.append(caixa);
 }
 
@@ -292,8 +292,8 @@ function confirmarExclusao(artigo, pedido, loja, resultado) {
   if (!caixa || caixa.dataset.excluindo === "1") return;
   caixa.replaceChildren();
   const texto = document.createElement("p");
-  texto.textContent = "O pedido será removido da visualização da conta.";
-  const confirmar = botaoSecundario("Confirmar exclusão", async () => {
+  texto.textContent = "O pedido sai da sua lista. Ele continua registrado e não é apagado.";
+  const confirmar = botaoSecundario("Confirmar ocultação", async () => {
     if (caixa.dataset.excluindo === "1") return;
     caixa.dataset.excluindo = "1";
     confirmar.disabled = true;

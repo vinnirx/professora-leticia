@@ -46,6 +46,6 @@ const tela = readFileSync(new URL("../js/conta/minhas.js", import.meta.url), "ut
 assert.equal(tela.includes('botaoDaConta(pedido, "continuar")'), false);
 assert.equal(tela.includes("Pagamento pendente"), false);
 assert.match(tela, /Confirmar cancelamento/);
-assert.match(tela, /Ocultar do meu histórico/);
+assert.match(tela, /Ocultar pedido/);
 
 console.log("ok retomada");
