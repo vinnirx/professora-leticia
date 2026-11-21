@@ -13,7 +13,8 @@ import { acionarSaida } from "./saida.js";
 import { enderecoDeMidia, paginaAtividade, rota } from "../rotas.js";
 import { podeVoltarALoja, semVenda } from "../vitrine.js";
 import { abrirDetalhePedido } from "./detalhe-pedido.js?v=1";
-import { aguardaResposta, protocoloVisivel, rotuloAssunto, rotuloSolicitacao } from "../suporte.js?v=1";
+import { criarCartaoSuporte, preencherHistorico } from "./cartao-suporte.js?v=1";
+import { aguardaResposta, protocoloVisivel, rotuloAssunto } from "../suporte.js?v=1";
 
 const travaPdf = criarTrava();
 const travaExclusao = criarTrava();
@@ -1419,23 +1420,6 @@ export async function iniciarAdmin(loja) {
     }
     pintarClientes();
   }
-  function historicoSolicitacao(item) {
-    const lista = document.createElement("div");
-    const itens = item.mensagens || [];
-    if (!itens.length) {
-      lista.textContent = "Sem mensagens.";
-      return lista;
-    }
-    for (const mensagem of itens) {
-      const linha = document.createElement("p");
-      const quem = mensagem.autor_id === item.usuario_id ? "Cliente" : "Equipe";
-      const data = mensagem.criado_em ? quando.format(new Date(mensagem.criado_em)) : "";
-      linha.textContent = `${quem}${data ? ` · ${data}` : ""}: ${mensagem.texto}`;
-      lista.append(linha);
-    }
-    return lista;
-  }
-
   let suporteItens = [];
   let suporteAberto = "";
 
@@ -1444,23 +1428,29 @@ export async function iniciarAdmin(loja) {
   }
 
   function valorDoChamado(item) {
-    if (!item.txid) return "—";
+    if (!item.txid) return "";
     const cobranca = memoria.cobrancas.find((registro) => registro.txid === item.txid);
     if (cobranca?.valor_bruto != null) return moeda.format(Number(cobranca.valor_bruto));
     const soma = memoria.pedidos
       .filter((pedido) => pedido.txid === item.txid)
       .reduce((total, pedido) => total + (Number(pedido.valor) || 0), 0);
-    return soma ? moeda.format(soma) : "—";
+    return soma ? moeda.format(soma) : "";
   }
 
-  function mostrarResposta(item) {
+  function mostrarResposta(item, modo) {
     const formulario = document.querySelector("#suporte-resposta");
     if (!formulario) return;
     suporteAberto = item?.id || "";
     formulario.hidden = !item;
     if (!item) return;
-    document.querySelector("#suporte-resposta-titulo").textContent = `${protocoloVisivel(item)} · ${item.nome || item.email || "Cliente"}`;
-    document.querySelector("#suporte-resposta-texto").value = "";
+    const titulo = [protocoloVisivel(item), item.nome || item.email].filter(Boolean).join(" · ");
+    document.querySelector("#suporte-resposta-titulo").textContent = titulo || "Chamado";
+    const historico = document.querySelector("#suporte-historico");
+    if (historico) preencherHistorico(historico, item);
+    const campo = document.querySelector("#suporte-resposta-texto");
+    if (modo !== "atualizar") campo.value = "";
+    if (modo === "resposta") campo.focus();
+    else if (modo !== "atualizar") formulario.scrollIntoView({ block: "nearest" });
   }
 
   function pintarSuporte() {
@@ -1485,46 +1475,18 @@ export async function iniciarAdmin(loja) {
       ));
       return;
     }
-    destino.replaceChildren(montarTabela(
-      ["Data", "Cliente", "Assunto", "Protocolo", "Pedido", "Valor", "Histórico", "Status", "Ações"],
-      visiveis.map((item) => {
-        const acoes = document.createElement("div");
-        acoes.className = "acoes";
-        acoes.append(botaoAcao("Responder", () => mostrarResposta(item)));
-        if (item.status !== "atendimento") {
-          acoes.append(botaoAcao("Em atendimento", () => mudarSuporte(item, "atendimento")));
-        }
-        if (item.status !== "resolvido") {
-          acoes.append(botaoAcao("Resolvido", () => mudarSuporte(item, "resolvido")));
-        }
-        const cliente = document.createElement("div");
-        const nome = document.createElement("strong");
-        nome.textContent = item.nome || "Conta";
-        cliente.append(nome);
-        if (item.email) {
-          const email = document.createElement("p");
-          email.textContent = item.email;
-          cliente.append(email);
-        }
-        const situacaoTexto = aguardaResposta(item)
-          ? `${rotuloSolicitacao(item.status)} · Aguardando resposta`
-          : rotuloSolicitacao(item.status);
-        return {
-          tr: document.createElement("tr"),
-          celulas: [
-            celula("Data", quando.format(new Date(item.criado_em))),
-            celula("Cliente", cliente),
-            celula("Assunto", rotuloAssunto(item.assunto)),
-            celula("Protocolo", protocoloVisivel(item) || "—"),
-            celula("Pedido", item.txid || "—"),
-            celula("Valor", valorDoChamado(item), "numero"),
-            celula("Histórico", historicoSolicitacao(item)),
-            celula("Status", situacaoTexto),
-            celula("Ações", acoes),
-          ],
-        };
-      }),
-    ));
+    const grade = document.createElement("div");
+    grade.className = "lista-suporte";
+    visiveis.forEach((item) => {
+      grade.append(criarCartaoSuporte(item, {
+        valor: valorDoChamado(item),
+        criarBotao: botaoAcao,
+        aoVer: (item) => mostrarResposta(item, "conversa"),
+        aoResponder: (item) => mostrarResposta(item, "resposta"),
+        aoSituacao: (item, status) => mudarSuporte(item, status),
+      }));
+    });
+    destino.replaceChildren(grade);
   }
 
   async function mudarSuporte(item, status) {
@@ -1550,11 +1512,14 @@ export async function iniciarAdmin(loja) {
       return;
     }
     suporteItens = resultado.solicitacoes;
-    if (suporteAberto && !solicitacaoAberta()) mostrarResposta(null);
+    const aberto = solicitacaoAberta();
+    if (suporteAberto && !aberto) mostrarResposta(null);
+    else if (aberto) mostrarResposta(aberto, "atualizar");
     pintarSuporte();
   }
   document.querySelector("#busca-suporte")?.addEventListener("input", pintarSuporte);
   document.querySelector("#filtro-suporte")?.addEventListener("change", pintarSuporte);
+  document.querySelector("#suporte-resposta-fechar")?.addEventListener("click", () => mostrarResposta(null));
   document.querySelector("#suporte-resposta")?.addEventListener("submit", async (evento) => {
     evento.preventDefault();
     const item = solicitacaoAberta();

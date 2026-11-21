@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="../css/styles.css?v=91" />
     <link rel="stylesheet" href="../css/conta.css?v=16" />
-    <link rel="stylesheet" href="../css/painel.css?v=26" />
+    <link rel="stylesheet" href="../css/painel.css?v=27" />
   </head>
   <body data-pagina="admin">
     <header class="cabecalho">
@@ -310,8 +310,8 @@
                   <p class="texto-secao">As mensagens da Central de Ajuda aparecem aqui. Uma resposta fica no chamado e não altera cobrança nem pagamento.</p>
                 </div>
               </div>
-              <div class="filtros-painel">
-                <label class="campo-largo">Buscar <input id="busca-suporte" type="search" placeholder="Cliente, protocolo ou pedido" /></label>
+              <div class="filtros-painel filtros-suporte">
+                <label>Buscar <input id="busca-suporte" type="search" placeholder="Cliente, protocolo ou pedido" /></label>
                 <label>Situação
                   <select id="filtro-suporte">
                     <option value="">Todas</option>
@@ -322,13 +322,17 @@
                   </select>
                 </label>
               </div>
-              <form id="suporte-resposta" class="filtros-painel" hidden>
-                <p id="suporte-resposta-titulo"></p>
-                <label class="campo-largo">Resposta <textarea id="suporte-resposta-texto" rows="4"></textarea></label>
+              <form id="suporte-resposta" class="conversa-suporte" hidden>
+                <div class="conversa-suporte-topo">
+                  <h3 id="suporte-resposta-titulo"></h3>
+                  <button class="botao botao-secundario" id="suporte-resposta-fechar" type="button">Fechar</button>
+                </div>
+                <div id="suporte-historico" class="conversa-historico"></div>
+                <label>Resposta <textarea id="suporte-resposta-texto" rows="4"></textarea></label>
                 <button class="botao" type="submit">Enviar resposta</button>
               </form>
               <p class="aviso-conta" id="suporte-aviso" role="status"></p>
-              <div class="tabela-rolagem" id="lista-suporte"></div>
+              <div id="lista-suporte"></div>
             </section>
 
             <section class="admin-bloco" data-painel="equipe" hidden aria-labelledby="titulo-equipe">
@@ -407,6 +411,6 @@
     <script src="../js/loja.js?v=49"></script>
     <script src="../js/vendor/supabase.js?v=1"></script>
     <script type="module" src="../js/sessao.js?v=45"></script>
-    <script type="module" src="../js/conta.js?v=70"></script>
+    <script type="module" src="../js/conta.js?v=71"></script>
   </body>
 </html>
