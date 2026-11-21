@@ -12,6 +12,7 @@ import { leituraAdministrativa, textoDaLista, textoDasContas } from "./apresenta
 import { acionarSaida } from "./saida.js";
 import { enderecoDeMidia, paginaAtividade, rota } from "../rotas.js";
 import { podeVoltarALoja, semVenda } from "../vitrine.js";
+import { abrirDetalhePedido } from "./detalhe-pedido.js?v=1";
 import { aguardaResposta, protocoloVisivel, rotuloAssunto, rotuloSolicitacao } from "../suporte.js?v=1";
 
 const travaPdf = criarTrava();
@@ -937,30 +938,13 @@ export async function iniciarAdmin(loja) {
   }
 
   function mostrarPedido(grupo) {
-    const destino = document.querySelector("#pedido-aberto");
-    destino.replaceChildren();
-    const titulo = document.createElement("h3");
-    titulo.textContent = `Pedido ${grupo.txid}`;
-    destino.append(titulo, vazio(`${nomeCliente(grupo)} · ${grupo.perfis?.email || "sem e-mail"} · ${quando.format(new Date(grupo.criado_em))}`));
-    destino.append(montarTabela(
-      ["Material", "Valor", "Status"],
-      grupo.itens.map((item) => ({
-        tr: document.createElement("tr"),
-        celulas: [
-          celula("Material", item.titulo),
-          celula("Valor", moeda.format(Number(item.valor) || 0), "numero"),
-          celula("Status", selo(...rotuloStatus(item.status))),
-        ],
-      })),
-    ));
-    if (leituraAdministrativa(memoria.nivel, dados?.papel, "financeiro") === "ok" && podeFinanceiro(dados)) {
-      const leitura = leituraFinanceira(grupo, memoria);
-      const taxa = leitura.taxa == null ? "não gravada" : moeda.format(leitura.taxa);
-      const liquido = leitura.liquido == null ? "não gravado" : moeda.format(leitura.liquido);
-      const valores = document.createElement("p");
-      valores.className = "texto-secao";
-      valores.textContent = `Valor bruto ${moeda.format(grupo.valor)}. Tarifa Asaas ${taxa}. Valor líquido ${liquido}.`;
-      destino.append(valores);
+    try {
+      abrirDetalhePedido(grupo, {
+        cobrancas: memoria.cobrancasDisponiveis ? memoria.cobrancas : null,
+        financeiro: leituraAdministrativa(memoria.nivel, dados?.papel, "financeiro") === "ok" && podeFinanceiro(dados),
+      });
+    } catch {
+      aviso(document.querySelector("#pedidos-status-aviso"), "Não foi possível abrir este pedido. Tente de novo.");
     }
   }
 
