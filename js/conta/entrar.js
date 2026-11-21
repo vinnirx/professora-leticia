@@ -97,7 +97,7 @@ function prepararCodigo(loja, status) {
   caixa.hidden = true;
   const explicacao = document.createElement("p");
   explicacao.className = "texto-secao";
-  explicacao.textContent = "Digite o código de 6 números enviado ao seu e-mail. Ele não vem do aplicativo autenticador.";
+  explicacao.textContent = "Digite o código de 6 números enviado ao seu e-mail.";
   const rotulo = document.createElement("label");
   rotulo.textContent = "Código recebido por e-mail";
   const campo = document.createElement("input");

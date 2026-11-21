@@ -32,7 +32,7 @@ export function textoDoMembro(conta) {
 
 export function textoDoFinanceiro(conta) {
   if (!conta || conta.papel === "owner" || conta.papel === "super_admin") return "";
-  if (conta.acesso_financeiro === true) return "Acesso financeiro registrado. Abrir o financeiro continua pedindo o segundo fator.";
+  if (conta.acesso_financeiro === true) return "Acesso financeiro registrado. A consulta financeira permanece protegida nesta versão.";
   if (conta.acesso_financeiro === false) return "Sem acesso financeiro registrado.";
   return "Acesso financeiro não disponível nesta consulta.";
 }
@@ -49,6 +49,10 @@ export function acoesDoMembro(viewer, conta) {
   return acoes;
 }
 
+export function acoesVisiveis() {
+  return [];
+}
+
 export function estadoDoHistorico(resultado) {
   if (!resultado) return { tipo: "oculto", texto: "" };
   if (resultado.ok) {
@@ -58,7 +62,7 @@ export function estadoDoHistorico(resultado) {
   }
   const mensagem = String(resultado.mensagem || "");
   if (/segundo fator/i.test(mensagem) || mensagem === "Não foi possível agora. Tente de novo.") {
-    return { tipo: "protegido", texto: "O histórico de permissões só abre com o segundo fator. A lista da equipe continua visível." };
+    return { tipo: "protegido", texto: "O histórico de permissões permanece protegido nesta versão. A lista da equipe continua visível." };
   }
   if (/Sem permissão/i.test(mensagem)) {
     return { tipo: "restrito", texto: "O histórico de permissões fica restrito à proprietária." };
@@ -198,7 +202,7 @@ export function prepararEquipe(loja, memoria, dados, aoMudar) {
         quandoMudou.textContent = `Alterado por ${nomeDe(concessao.executado_por)} em ${quando.format(new Date(concessao.criado_em))}.`;
         artigo.append(quandoMudou);
       }
-      const previstas = acoesDoMembro(dados, conta);
+      const previstas = acoesVisiveis();
       if (previstas.length) {
         const acoes = document.createElement("div");
         acoes.className = "acoes";
@@ -277,12 +281,6 @@ export function prepararEquipe(loja, memoria, dados, aoMudar) {
       avisoHistorico.className = "texto-secao";
       avisoHistorico.textContent = estado.texto;
       historico.append(avisoHistorico);
-      if (estado.tipo === "protegido") {
-        const abrir = botao("Abrir segundo fator", () => {
-          location.hash = "configuracoes";
-        });
-        historico.append(abrir);
-      }
       return;
     }
     const tabela = document.createElement("div");

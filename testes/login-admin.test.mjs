@@ -45,7 +45,7 @@ assert.match(login, /resultado\?\.mensagem/);
 assert.doesNotMatch(login, /desafiarFator/);
 assert.ok(login.indexOf("administra") < login.lastIndexOf("destinoDepois"));
 assert.match(entrar, /enviado ao seu e-mail/);
-assert.match(entrar, /não vem do aplicativo autenticador/);
+assert.doesNotMatch(entrar, /aplicativo autenticador/);
 assert.match(mfa, /não chega por e-mail/);
 assert.match(mfa, /desafioAutenticador/);
 assert.match(ler("css/conta.css"), /\.acesso \[hidden\]/);

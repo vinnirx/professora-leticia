@@ -214,7 +214,7 @@ async function iniciar() {
         return { ok: false, mensagem: "Não consegui confirmar a sessão. Tente de novo." };
       }
       if (!administra(dados.papel)) {
-        return { ok: false, mensagem: "O segundo fator desta tela é só de quem administra a loja." };
+        return { ok: false, mensagem: "Esta área é só de quem administra a loja." };
       }
       return acesso;
     } catch {

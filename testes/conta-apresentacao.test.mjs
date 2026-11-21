@@ -88,7 +88,7 @@ assert.equal(textoDaLista({ area: "pedidos", total: 2, visiveis: 1, leitura: "ok
 assert.match(textoDaLista({ area: "financeiro", total: 3, visiveis: 0, leitura: "ok" }).detalhe, /Amplie as datas/);
 assert.match(textoDaLista({ area: "pedidos", total: 2, visiveis: 0, leitura: "permissao" }).detalhe, /Entre de novo/);
 assert.equal(textoDasContas({ leitura: "permissao", total: 1, consulta: "parcial" }).tipo, "parcial");
-assert.equal(textoDasContas({ leitura: "permissao", total: 1, consulta: "parcial" }).destino, "configuracoes");
+assert.equal(textoDasContas({ leitura: "permissao", total: 1, consulta: "parcial" }).destino, undefined);
 assert.equal(textoDasContas({ leitura: "erro", total: 0, consulta: "erro" }).tipo, "erro");
 assert.equal(textoDasContas({ leitura: "ok", total: 0, consulta: "ok" }).tipo, "vazio");
 assert.equal(textoDasContas({ leitura: "ok", total: 5, consulta: "ok" }), null);

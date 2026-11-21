@@ -99,7 +99,7 @@ export function textoDaLista({ area, total, visiveis, leitura }) {
     if (financeiro) {
       return {
         titulo: "O financeiro não está disponível nesta sessão.",
-        detalhe: "Atividades, pedidos e suporte seguem com a senha. O financeiro só abre com o segundo fator.",
+        detalhe: "Atividades, pedidos e suporte continuam disponíveis. A consulta financeira permanece protegida nesta versão.",
       };
     }
     return {
@@ -133,7 +133,6 @@ export function textoDasContas({ leitura, total, consulta }) {
       tipo: "parcial",
       titulo: "As outras contas não puderam ser carregadas.",
       detalhe: "Tente de novo. Esta tela não representa a loja vazia.",
-      destino: "configuracoes",
     };
   }
   if (!total) {

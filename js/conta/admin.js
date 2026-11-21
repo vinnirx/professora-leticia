@@ -1,15 +1,15 @@
 import { formatarTamanho, validarPdf } from "../pdf-troca.js";
 import { criarTrava } from "../trava.js";
 import { abrirEdicao, prepararCadastro } from "./cadastro.js?v=9";
-import { prepararEquipe } from "./equipe.js?v=1";
+import { prepararEquipe } from "./equipe.js?v=2";
 import { aviso, moeda, quando } from "./avisos.js";
 import { administra, podeFinanceiro, rotuloPapel } from "./papeis.js";
 import { agruparPedidos, resumirVendas } from "./grupos-pedido.js";
 import { chamadosPendentes, indicadoresDaVisao, pedidosRecentes } from "./visao.js?v=1";
 import { fecharCaixa, linhaExportada, origemFinanceira } from "./caixa.js";
 import { celulaCsv } from "./csv.js";
-import { avisoListaContas, montarSegundoFator } from "./mfa.js?v=10";
-import { leituraAdministrativa, textoDaLista, textoDasContas } from "./apresentacao.js?v=5";
+import { avisoListaContas } from "./mfa.js?v=10";
+import { leituraAdministrativa, textoDaLista, textoDasContas } from "./apresentacao.js?v=6";
 import { acionarSaida } from "./saida.js";
 import { enderecoDeMidia, paginaAtividade, rota } from "../rotas.js";
 import { podeVoltarALoja, semVenda } from "../vitrine.js";
@@ -20,7 +20,7 @@ import { aguardaResposta, protocoloVisivel, rotuloAssunto } from "../suporte.js?
 const travaPdf = criarTrava();
 const travaExclusao = criarTrava();
 
-const SECOES = ["visao", "atividades", "arquivos", "pedidos", "clientes", "suporte", "equipe", "configuracoes"];
+const SECOES = ["visao", "atividades", "arquivos", "pedidos", "clientes", "suporte", "equipe"];
 
 function rotuloStatus(status) {
   if (status === "pago") return ["Pago", "ok"];
@@ -406,8 +406,6 @@ export async function iniciarAdmin(loja) {
   sair.addEventListener("click", () => {
     acionarSaida(sair, () => loja.sair());
   });
-  montarSegundoFator(loja, document.querySelector("#segundo-fator"));
-
   let painel;
   let atividades = [];
   try {
@@ -496,20 +494,13 @@ export async function iniciarAdmin(loja) {
     return agruparPedidos(memoria.pedidos);
   }
 
-  function irParaSegundoFator() {
-    location.hash = "configuracoes";
-    requestAnimationFrame(() => document.querySelector("#segundo-fator")?.scrollIntoView({ block: "start" }));
-  }
-
   function avisoDeSessao(leitura) {
-    const caixa = vazio(
-      leitura === "erro" ? "Não consegui consultar estes dados." : "Estes dados ficam ocultos até o segundo fator.",
+    return vazio(
+      leitura === "erro" ? "Não consegui consultar estes dados." : "Não consegui confirmar a sessão.",
       leitura === "erro"
         ? "Este aviso não significa que a loja está sem vendas. Tente de novo."
-        : "Abra Configurações, cadastre o autenticador no celular e entre de novo com o código.",
+        : "Entre de novo. A tela não representa a loja vazia.",
     );
-    if (leitura === "permissao") caixa.append(botaoAcao("Abrir segundo fator", irParaSegundoFator, "principal"));
-    return caixa;
   }
 
   function secaoVisivel(nome) {
@@ -1144,7 +1135,6 @@ export async function iniciarAdmin(loja) {
     });
     if (avisoContas) {
       const caixa = vazio(avisoContas.titulo, avisoContas.detalhe);
-      if (avisoContas.destino) caixa.append(botaoAcao("Abrir segundo fator", irParaSegundoFator, "principal"));
       destino.replaceChildren(caixa);
       document.querySelector("#cliente-aberto")?.replaceChildren();
       return;
@@ -1322,7 +1312,6 @@ export async function iniciarAdmin(loja) {
     pintarFinanceiro();
     pintarClientes();
     pintarEquipe();
-    pintarConciliacao();
     carregarSuporte();
     completarContas();
   }

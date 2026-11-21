@@ -45,8 +45,7 @@ assert.doesNotMatch(ler("supabase/migracao-permissoes.sql"), /sessao_ainda_valid
 
 assert.ok(admin.indexOf("usuarioConfirmado") < admin.indexOf("loja.perfil()"));
 assert.ok(admin.indexOf("if (!administra(dados?.papel))") < admin.indexOf("loja.painel()"));
-assert.doesNotMatch(admin, /desafiarFator/);
-assert.match(admin, /montarSegundoFator/);
+assert.doesNotMatch(admin, /desafiarFator|montarSegundoFator/);
 const entrar = ler("js/conta/entrar.js");
 const login = entrar.slice(entrar.indexOf("loja.entrar"), entrar.indexOf("criar.addEventListener"));
 assert.doesNotMatch(login, /desafiarFator/);

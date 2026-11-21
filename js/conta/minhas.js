@@ -2,7 +2,7 @@ import { origemDaImagemPix } from "../imagem-pix.js?v=1";
 import { aviso, moeda, quando } from "./avisos.js";
 import { protocoloVisivel, rotuloSolicitacao } from "../suporte.js?v=1";
 import { acionarSaida } from "./saida.js";
-import { leituraAdministrativa, resumoAdministrativo } from "./apresentacao.js?v=5";
+import { leituraAdministrativa, resumoAdministrativo } from "./apresentacao.js?v=6";
 import { administra } from "./papeis.js";
 import { agruparPorCodigo, apresentacao, intervaloDaTela, podeOcultar, prioridadeDaAcao } from "./retomada.js?v=2";
 import { rota } from "../rotas.js";
@@ -439,9 +439,7 @@ function mostrarAdministracao(dados, resumo) {
   const avisoIndicadores = document.querySelector("#indicadores-aviso");
   if (!resumo.indicadores) {
     avisoIndicadores.hidden = false;
-    avisoIndicadores.textContent = resumo.bloqueio === "permissao"
-      ? "Os números da loja aparecem depois do segundo fator. No painel, abra Configurações."
-      : "Não consegui ler os números da loja agora. O gerenciamento continua disponível.";
+    avisoIndicadores.textContent = "Não consegui ler os números da loja agora. O gerenciamento continua disponível.";
   } else {
     caixa.replaceChildren(...resumo.indicadores.map(indicador));
     if (resumo.semPedidos) {
