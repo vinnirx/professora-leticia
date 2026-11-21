@@ -36,7 +36,7 @@ const inscricao = sessao.slice(sessao.indexOf("async iniciarFator"), sessao.inde
 assert.match(inscricao, /contaAdministra/);
 assert.doesNotMatch(inscricao, /definir_papel/);
 assert.doesNotMatch(mfa, /definir_papel|acesso_financeiro/);
-assert.match(mfa, /não gera código de recuperação/);
+assert.match(mfa, /Remover autenticador para trocar o aplicativo/);
 assert.match(mfa, /Authentication/);
 assert.doesNotMatch(sql, /aal2/);
 assert.doesNotMatch(sessao, /aal2/);

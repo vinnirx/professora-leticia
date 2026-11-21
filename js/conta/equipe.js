@@ -1,5 +1,5 @@
+import { administra, rotuloPapel } from "./papeis.js";
 import { aviso, quando } from "./avisos.js";
-import { rotuloPapel } from "./papeis.js";
 
 function coroa() {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -13,6 +13,59 @@ function coroa() {
   return svg;
 }
 
+export function membrosDaEquipe(contas) {
+  const ordem = { owner: 0, super_admin: 1, admin: 2 };
+  return (contas || [])
+    .filter((conta) => administra(conta?.papel))
+    .sort((a, b) => (ordem[a.papel] ?? 9) - (ordem[b.papel] ?? 9) || String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR"));
+}
+
+export function textoDoMembro(conta) {
+  if (conta?.papel === "owner") {
+    return "Responsável principal pela loja. Perfil protegido. Não pode ser excluída, removida ou rebaixada.";
+  }
+  if (conta?.papel === "super_admin") {
+    return "Responsável pela administração da loja. Não altera a proprietária.";
+  }
+  return "Responsável por atividades administrativas.";
+}
+
+export function textoDoFinanceiro(conta) {
+  if (!conta || conta.papel === "owner" || conta.papel === "super_admin") return "";
+  if (conta.acesso_financeiro === true) return "Acesso financeiro registrado. Abrir o financeiro continua pedindo o segundo fator.";
+  if (conta.acesso_financeiro === false) return "Sem acesso financeiro registrado.";
+  return "Acesso financeiro não disponível nesta consulta.";
+}
+
+export function acoesDoMembro(viewer, conta) {
+  if (!viewer || !conta || !administra(conta.papel) || conta.papel === "owner") return [];
+  if (viewer.papel !== "owner" && viewer.papel !== "super_admin") return [];
+  const dona = viewer.papel === "owner";
+  const superAdmin = viewer.papel === "super_admin";
+  const acoes = [];
+  if ((dona || superAdmin) && conta.papel === "admin") acoes.push("voltar-cliente", "financeiro");
+  if (dona && conta.papel === "admin") acoes.push("tornar-super");
+  if (dona && conta.papel === "super_admin") acoes.push("revogar-super", "voltar-cliente");
+  return acoes;
+}
+
+export function estadoDoHistorico(resultado) {
+  if (!resultado) return { tipo: "oculto", texto: "" };
+  if (resultado.ok) {
+    return resultado.linhas?.length
+      ? { tipo: "lista", texto: "" }
+      : { tipo: "vazio", texto: "Nenhuma alteração de permissão registrada." };
+  }
+  const mensagem = String(resultado.mensagem || "");
+  if (/segundo fator/i.test(mensagem) || mensagem === "Não foi possível agora. Tente de novo.") {
+    return { tipo: "protegido", texto: "O histórico de permissões só abre com o segundo fator. A lista da equipe continua visível." };
+  }
+  if (/Sem permissão/i.test(mensagem)) {
+    return { tipo: "restrito", texto: "O histórico de permissões fica restrito à proprietária." };
+  }
+  if (/não está mais ativa/i.test(mensagem)) return { tipo: "erro", texto: mensagem };
+  return { tipo: "erro", texto: "Não consegui ler o histórico de permissões. A lista da equipe continua visível." };
+}
 function selo(conta) {
   const marca = document.createElement("span");
   marca.className = `selo-papel selo-${conta.papel || "cliente"}`;
@@ -102,32 +155,42 @@ export function prepararEquipe(loja, memoria, dados, aoMudar) {
   async function pintar() {
     const lista = document.querySelector("#lista-equipe");
     const dona = dados.papel === "owner";
-    const superAdmin = dados.papel === "super_admin";
-    let linhas = null;
-    let textoHistorico = "";
+    let registros = null;
+    if (dona && loja.historicoPermissoes) registros = await loja.historicoPermissoes();
+    const linhas = registros?.ok && Array.isArray(registros.linhas) ? registros.linhas : [];
     const concessoes = new Map();
-    if (dona && loja.historicoPermissoes) {
-      const registros = await loja.historicoPermissoes();
-      if (!registros.ok) textoHistorico = registros.mensagem;
-      else {
-        linhas = registros.linhas;
-        registros.linhas.forEach((linha) => {
-          if (linha.resultado === "sucesso" && !concessoes.has(linha.afetado)) concessoes.set(linha.afetado, linha);
-        });
-      }
-    }
+    linhas.forEach((linha) => {
+      if (linha.resultado === "sucesso" && !concessoes.has(linha.afetado)) concessoes.set(linha.afetado, linha);
+    });
+    const membros = membrosDaEquipe(memoria.contas);
     lista.replaceChildren();
-    memoria.contas.forEach((conta) => {
+    if (!membros.length) {
+      const vazioEquipe = document.createElement("p");
+      vazioEquipe.className = "texto-secao";
+      vazioEquipe.textContent = "Nenhum membro interno encontrado.";
+      lista.append(vazioEquipe);
+    }
+    membros.forEach((conta) => {
       const artigo = document.createElement("article");
       artigo.className = "item-equipe";
       const topo = document.createElement("div");
       topo.className = "equipe-topo";
       const nome = document.createElement("strong");
-      nome.textContent = conta.nome;
+      nome.textContent = conta.nome || "Sem nome";
       topo.append(selo(conta), nome);
       const email = document.createElement("p");
-      email.textContent = conta.email;
-      artigo.append(topo, email);
+      email.textContent = conta.email || "";
+      const descricao = document.createElement("p");
+      descricao.className = "texto-secao";
+      descricao.textContent = textoDoMembro(conta);
+      artigo.append(topo, email, descricao);
+      const financeiroTexto = textoDoFinanceiro(conta);
+      if (financeiroTexto) {
+        const financeiro = document.createElement("p");
+        financeiro.className = "texto-secao";
+        financeiro.textContent = financeiroTexto;
+        artigo.append(financeiro);
+      }
       const concessao = concessoes.get(conta.id);
       if (dona && concessao && conta.papel !== "owner") {
         const quandoMudou = document.createElement("p");
@@ -135,50 +198,38 @@ export function prepararEquipe(loja, memoria, dados, aoMudar) {
         quandoMudou.textContent = `Alterado por ${nomeDe(concessao.executado_por)} em ${quando.format(new Date(concessao.criado_em))}.`;
         artigo.append(quandoMudou);
       }
-      if (conta.papel === "owner") {
-        const nota = document.createElement("p");
-        nota.className = "equipe-protegida";
-        nota.textContent = "Perfil protegido. Não pode ser removido ou rebaixado.";
-        artigo.append(nota);
-        lista.append(artigo);
-        return;
-      }
-      if (dona || superAdmin) {
+      const previstas = acoesDoMembro(dados, conta);
+      if (previstas.length) {
         const acoes = document.createElement("div");
         acoes.className = "acoes";
-        const podeSuper = dona && conta.papel !== "super_admin";
-        const podeRevogarSuper = dona && conta.papel === "super_admin";
-        const podeAdmin = (dona || superAdmin) && conta.papel === "cliente";
-        const podeCliente = (dona || superAdmin) && (conta.papel === "admin" || (dona && conta.papel === "super_admin"));
-        if (podeAdmin) {
-          acoes.append(botao("Tornar administrador", () => aplicar(conta.id, "admin")));
-        }
-        if (podeCliente && conta.papel !== "super_admin") {
+        if (previstas.includes("voltar-cliente") && conta.papel === "admin") {
           acoes.append(botao("Voltar a cliente", () => {
             if (!window.confirm(`Remover o acesso administrativo de ${conta.nome}?`)) return;
             aplicar(conta.id, "cliente");
           }, "botao-perigo"));
         }
-        if (podeSuper) {
+        if (previstas.includes("tornar-super")) {
           acoes.append(botao("Tornar Super Admin", () => abrirReauth(
             conta,
             "super_admin",
-            "Como Super Admin, essa pessoa cuida da loja, dos pedidos, dos PDFs e do financeiro, e pode tornar alguém administrador comum. Não pode criar outro Super Admin nem alterar a proprietária.",
+            "Como Super Admin, essa pessoa cuida da loja e pode tornar alguém administrador comum. Não pode criar outro Super Admin nem alterar a proprietária.",
           )));
         }
-        if (podeRevogarSuper) {
+        if (previstas.includes("revogar-super")) {
           acoes.append(botao("Revogar Super Admin", () => abrirReauth(
             conta,
             "admin",
             "O Super Admin sai. A pessoa fica como administrador comum, sem o financeiro, até você liberar de novo.",
           ), "botao-perigo"));
+        }
+        if (previstas.includes("voltar-cliente") && conta.papel === "super_admin") {
           acoes.append(botao("Voltar a cliente", () => abrirReauth(
             conta,
             "cliente",
             "O acesso ao painel sai junto com o Super Admin.",
           ), "botao-perigo"));
         }
-        if ((dona || superAdmin) && conta.papel === "admin") {
+        if (previstas.includes("financeiro")) {
           const financeiro = document.createElement("label");
           financeiro.className = "marca-destaque";
           const caixa = document.createElement("input");
@@ -201,13 +252,12 @@ export function prepararEquipe(loja, memoria, dados, aoMudar) {
           financeiro.append(caixa, document.createTextNode("Pode ver o financeiro"));
           acoes.append(financeiro);
         }
-        if (!acoes.childElementCount && conta.papel === "super_admin") {
-          const nota = document.createElement("p");
-          nota.className = "equipe-protegida";
-          nota.textContent = "Só a proprietária altera este cargo.";
-          artigo.append(nota);
-        }
         artigo.append(acoes);
+      } else if (conta.papel === "super_admin" && dados.papel === "super_admin") {
+        const nota = document.createElement("p");
+        nota.className = "equipe-protegida";
+        nota.textContent = "Só a proprietária altera este cargo.";
+        artigo.append(nota);
       }
       lista.append(artigo);
     });
@@ -220,16 +270,19 @@ export function prepararEquipe(loja, memoria, dados, aoMudar) {
       return;
     }
     titulo.hidden = false;
-    if (textoHistorico) {
-      historico.textContent = textoHistorico;
-      return;
-    }
-    if (!linhas) {
+    const estado = estadoDoHistorico(registros);
+    if (estado.tipo !== "lista") {
       historico.replaceChildren();
-      return;
-    }
-    if (!linhas.length) {
-      historico.textContent = "Nenhuma alteração de cargo ainda.";
+      const avisoHistorico = document.createElement("p");
+      avisoHistorico.className = "texto-secao";
+      avisoHistorico.textContent = estado.texto;
+      historico.append(avisoHistorico);
+      if (estado.tipo === "protegido") {
+        const abrir = botao("Abrir segundo fator", () => {
+          location.hash = "configuracoes";
+        });
+        historico.append(abrir);
+      }
       return;
     }
     const tabela = document.createElement("div");

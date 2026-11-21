@@ -1296,6 +1296,43 @@ body[data-pagina="admin"] .cabecalho .menu img {
 
 #revisao-atividade dd { margin: 0; }
 
+#lista-equipe {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: stretch;
+  min-width: 0;
+}
+
+#lista-equipe .item-equipe {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  height: 100%;
+  margin-top: 0;
+  min-width: 0;
+}
+
+#lista-equipe .item-equipe p,
+#lista-equipe .item-equipe strong { margin: 0; overflow-wrap: anywhere; }
+
+#lista-equipe .equipe-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.6rem;
+}
+
+#lista-equipe .acoes { margin-top: auto; }
+
+#lista-auditoria { min-width: 0; }
+
+#lista-auditoria .botao { margin-top: 0.35rem; }
+
+@media (max-width: 720px) {
+  #lista-equipe { grid-template-columns: 1fr; }
+}
+
 .item-equipe,
 .grupo-config,
 #reauth-super,

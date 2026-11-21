@@ -17,13 +17,13 @@ assert.match(pagina, /data-secao="configuracoes"/);
 assert.match(pagina, /id="segundo-fator"/);
 assert.match(pagina, /id="conciliacao"/);
 assert.match(pagina, /id="encerrar-conciliacao"/);
-assert.match(pagina, /conta\.js\?v=73/);
+assert.match(pagina, /conta\.js\?v=74/);
 assert.doesNotMatch(pagina, /id="lista-config"|Somente leitura|Ainda não instalada|SQL Editor/);
 
 assert.match(mfa, /Cadastrar autenticador/);
 assert.match(mfa, /Remover autenticador/);
 assert.match(mfa, /Testar código/);
 assert.doesNotMatch(mfa.slice(mfa.indexOf("function montarSegundoFator"), mfa.indexOf("function mensagemDeCliente")), /Supabase|Authentication/);
-assert.match(conta, /admin\.js\?v=42/);
+assert.match(conta, /admin\.js\?v=43/);
 
 console.log("ok configuracoes");
