@@ -1,5 +1,5 @@
 import { abrirCarrinho, guardarNoCarrinho, prepararCarrinho, rotuloAdicionar } from "./carrinho.js?v=2";
-import { abrirPix, prepararCheckout } from "./checkout.js?v=9";
+import { abrirPix, prepararCheckout } from "./checkout.js?v=10";
 import { mesclarOferta, publicarOferta } from "./ofertas.js";
 import { enderecoDeMidia } from "./rotas.js?v=2";
 import { dinheiro, linhas } from "./texto.js";

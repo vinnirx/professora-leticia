@@ -18,6 +18,8 @@ export function linhas(texto) {
   return String(texto || "").split(/\n+/).map((item) => item.trim()).filter(Boolean);
 }
 
+export const MENSAGEM_COMPRA_INDISPONIVEL = "Estamos preparando os pagamentos da loja. As compras estarão disponíveis em breve. Não realize pagamentos por QR Codes antigos. Se precisar de ajuda, entre em contato pelo suporte.";
+
 export function linkAjuda({ txid = "", email = "", motivo = "" } = {}) {
   const chave = String(window.loja?.pixChave || "");
   const destino = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(chave) ? chave : "leticiapimenteldemacedo@gmail.com";

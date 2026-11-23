@@ -2,9 +2,8 @@ import { origemDaImagemPix } from "./imagem-pix.js?v=1";
 import { documentoValido, mascararDocumento } from "./documento.js";
 import { cobrancaReutilizavel, gravarTentativa, lerTentativa, limparTentativa } from "./tentativa-compra.js";
 import { rota } from "./rotas.js";
-import { dinheiro, escapar, linkAjuda } from "./texto.js";
+import { dinheiro, escapar, linkAjuda, MENSAGEM_COMPRA_INDISPONIVEL } from "./texto.js";
 import { itemOficial, limparCarrinho } from "./carrinho.js?v=2";
-import { totalConfirmado } from "./valor-pedido.js";
 
 let pixAtual = "";
 let pixManual = true;
@@ -115,7 +114,6 @@ export async function abrirPix(atividade) {
     nomeInput.readOnly = true;
     emailInput.readOnly = true;
   }
-  pedido.hidden = !window.loja.pixChave;
   const campoDocumento = document.querySelector("#campo-documento");
   let automaticoNestaConta = window.loja.cobrancaAutomatica === true;
   if (!automaticoNestaConta && ligada && sessao) {
@@ -124,165 +122,108 @@ export async function abrirPix(atividade) {
   if (campoDocumento) campoDocumento.hidden = !automaticoNestaConta;
   resultado.hidden = true;
   pixAtual = "";
+  pixManual = false;
   whatsapp.hidden = true;
   whatsapp.removeAttribute("href");
   document.querySelector("#pix-estado").hidden = true;
-  aviso.textContent = window.loja.pixChave
-    ? "O pagamento ainda não foi feito. Ao gerar o QR, o pedido fica pendente até a confirmação."
-    : "A chave Pix ainda não foi cadastrada. Quando a Letícia passar a chave, o QR aparece aqui.";
 
-  if (total == null) {
+  const fecharCompra = () => {
     pedido.hidden = true;
-    marcarEstado("problema", "Problema no pagamento", linkAjuda({ motivo: "Não foi possível preparar o Pix desta atividade." }));
-    aviso.textContent = "Não foi possível gerar o Pix desta atividade. Fale com a Letícia e atualize a página.";
+    resultado.hidden = true;
+    pixAtual = "";
+    pixManual = false;
+    const cola = document.querySelector("#pix-cola");
+    if (cola) cola.value = "";
+    document.querySelector("#pix-imagem")?.replaceChildren();
+    whatsapp.hidden = true;
+    whatsapp.removeAttribute("href");
+    marcarEstado("problema", "Compras em preparação", rota("ajuda/"));
+    aviso.textContent = MENSAGEM_COMPRA_INDISPONIVEL;
+  };
+
+  const emailConfirmado = !ligada || !sessao || Boolean(sessao.user.email_confirmed_at);
+  if (!emailConfirmado) {
+    pedido.hidden = true;
+    marcarEstado("problema", "Confirme seu e-mail", rota("ajuda/"));
+    aviso.textContent = "Confirme seu e-mail antes de comprar. Verifique a caixa de entrada e também o spam.";
+  } else if (!automaticoNestaConta || total == null) {
+    if (automaticoNestaConta && total == null) {
+      pedido.hidden = true;
+      marcarEstado("problema", "Problema no pagamento", linkAjuda({ motivo: "Não foi possível preparar o Pix desta atividade." }));
+      aviso.textContent = "Não foi possível gerar o Pix desta atividade. Fale com a Letícia e atualize a página.";
+    } else {
+      fecharCompra();
+    }
+  } else {
+    pedido.hidden = false;
+    aviso.textContent = "O pagamento ainda não foi feito. Ao gerar o QR, o pedido fica pendente até a confirmação.";
   }
 
   pedido.onsubmit = async (evento) => {
     evento.preventDefault();
+    if (!emailConfirmado) {
+      marcarEstado("problema", "Confirme seu e-mail", rota("ajuda/"));
+      aviso.textContent = "Confirme seu e-mail antes de comprar. Verifique a caixa de entrada e também o spam.";
+      return;
+    }
+    if (!automaticoNestaConta) {
+      fecharCompra();
+      return;
+    }
     if (total == null || pedido.dataset.enviando === "1") return;
     pedido.dataset.enviando = "1";
     try {
     const dados = new FormData(pedido);
     const nome = String(dados.get("nome") || "").trim();
     const email = String(dados.get("email") || "").trim();
-    if (ligada && !sessao?.user?.email_confirmed_at) {
-      marcarEstado("problema", "Confirme seu e-mail", "");
-      aviso.textContent = "Confirme seu e-mail antes de comprar. Verifique a caixa de entrada e também o spam.";
+    if (!ligada || !sessao) {
+      marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: "Preciso entrar na conta para gerar a cobrança." }));
+      aviso.textContent = "Entre na conta para gerar a cobrança.";
       return;
     }
-    if (automaticoNestaConta) {
-      if (!ligada || !sessao) {
-        marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: "Preciso entrar na conta para gerar a cobrança." }));
-        aviso.textContent = "Entre na conta para gerar a cobrança.";
-        return;
-      }
-      const documento = String(dados.get("documento") || "");
-      if (!documentoValido(documento)) {
-        marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: "O CPF ou CNPJ não foi aceito." }));
-        aviso.textContent = "Informe um CPF ou CNPJ válido para gerar o Pix.";
-        return;
-      }
-      if (!pedido.dataset.chaveCobranca) {
-        pedido.dataset.chaveCobranca = lerTentativa(sessionStorage, cobranca.map((item) => item.id))?.codigo || crypto.randomUUID();
-      }
-      gravarTentativa(sessionStorage, cobranca.map((item) => item.id), pedido.dataset.chaveCobranca);
-      const automatica = await lojaConta.criarCobranca(
-        cobranca.map((item) => item.id),
-        pedido.dataset.chaveCobranca,
-        documento,
-      );
-      if (!automatica.ok || !automatica.copiaCola) {
-        const texto = automatica.mensagem || "A cobrança automática não está disponível.";
-        const semCobranca = /nenhum pix foi gerado/i.test(texto);
-        marcarEstado("problema", semCobranca ? "Pix não gerado" : "Problema no pagamento", linkAjuda({ email, motivo: texto }));
-        aviso.textContent = texto;
-        return;
-      }
-      if (!cobrancaReutilizavel({ status: automatica.status, expiraEm: automatica.expiraEm })) {
-        limparTentativa(sessionStorage);
-        delete pedido.dataset.chaveCobranca;
-        marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: "A cobrança anterior não pode ser reutilizada." }));
-        if (automatica.status === "pago") aviso.textContent = "Pagamento confirmado! Seus materiais estão disponíveis em Minha Conta.";
-        else if (automatica.status === "expirada") aviso.textContent = "O prazo do Pix expirou. Gere uma nova cobrança.";
-        else aviso.textContent = "Essa cobrança não está mais válida. Gere o Pix outra vez.";
-        return;
-      }
-      pixManual = false;
-      pixAtual = automatica.copiaCola;
-      const caixaAutomatica = document.querySelector("#pix-imagem");
-      caixaAutomatica.replaceChildren();
-      const origem = origemDaImagemPix(automatica.imagem);
-      if (origem) {
-        const imagem = document.createElement("img");
-        imagem.alt = "QR Code Pix da cobrança";
-        imagem.src = origem;
-        caixaAutomatica.append(imagem);
-      }
-      document.querySelector("#pix-codigo").textContent = automatica.txid;
-      document.querySelector("#pix-pessoa").textContent = `${nome} · ${email}`;
-      document.querySelector("#pix-cola").value = pixAtual;
-      document.querySelector("#pix-resumo").hidden = true;
-      document.querySelector("#pix-inclui").hidden = true;
-      pedido.hidden = true;
-      resultado.hidden = false;
-      limparCarrinho();
+    const documento = String(dados.get("documento") || "");
+    if (!documentoValido(documento)) {
+      marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: "O CPF ou CNPJ não foi aceito." }));
+      aviso.textContent = "Informe um CPF ou CNPJ válido para gerar o Pix.";
+      return;
+    }
+    if (!pedido.dataset.chaveCobranca) {
+      pedido.dataset.chaveCobranca = lerTentativa(sessionStorage, cobranca.map((item) => item.id))?.codigo || crypto.randomUUID();
+    }
+    gravarTentativa(sessionStorage, cobranca.map((item) => item.id), pedido.dataset.chaveCobranca);
+    const automatica = await lojaConta.criarCobranca(
+      cobranca.map((item) => item.id),
+      pedido.dataset.chaveCobranca,
+      documento,
+    );
+    if (!automatica.ok || !automatica.copiaCola) {
+      const texto = automatica.mensagem || "A cobrança automática não está disponível.";
+      const semCobranca = /nenhum pix foi gerado/i.test(texto);
+      marcarEstado("problema", semCobranca ? "Pix não gerado" : "Problema no pagamento", linkAjuda({ email, motivo: texto }));
+      aviso.textContent = texto;
+      return;
+    }
+    if (!cobrancaReutilizavel({ status: automatica.status, expiraEm: automatica.expiraEm })) {
       limparTentativa(sessionStorage);
-      marcarEstado("espera", "Estamos aguardando a confirmação do pagamento.", linkAjuda({ txid: automatica.txid, email, motivo: "Gerei o Pix e preciso de ajuda." }));
-      aviso.textContent = "Seu Pix está pronto. Escaneie o QR Code ou utilize o Pix Copia e Cola.";
-      observarPedido(dialogo, automatica.txid, lojaConta, true);
+      delete pedido.dataset.chaveCobranca;
+      marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: "A cobrança anterior não pode ser reutilizada." }));
+      if (automatica.status === "pago") aviso.textContent = "Pagamento confirmado! Seus materiais estão disponíveis em Minha Conta.";
+      else if (automatica.status === "expirada") aviso.textContent = "O prazo do Pix expirou. Gere uma nova cobrança.";
+      else aviso.textContent = "Essa cobrança não está mais válida. Gere o Pix outra vez.";
       return;
     }
-    if (!window.loja.pixChave) return;
-    pixManual = true;
-    const ids = cobranca.map((item) => item.id);
-    const txid = lerTentativa(sessionStorage, ids)?.codigo || window.identificadorPix();
-    gravarTentativa(sessionStorage, ids, txid);
-    if (ligada) {
-      let gravado = ids.length > 1
-        ? await lojaConta.registrarPedidos(ids, txid)
-        : await lojaConta.registrarPedido(ids[0], txid);
-      if (!gravado.ok && gravado.repetido) {
-        const existentes = (await lojaConta.meusPedidos()).filter((item) => item.txid === txid);
-        if (existentes.length && existentes.every((item) => item.status === "pago")) {
-          limparTentativa(sessionStorage);
-          limparCarrinho();
-          marcarEstado("ok", "Pagamento confirmado", "");
-          aviso.textContent = "Este pagamento já está confirmado. O material está em Minha conta.";
-          return;
-        }
-        gravado = {
-          ok: existentes.some((item) => item.status === "aguardando"),
-          pedidos: existentes.filter((item) => item.status === "aguardando"),
-          mensagem: "Não foi possível reutilizar o pedido pendente.",
-        };
-      }
-      if (!gravado.ok) {
-        marcarEstado("problema", "Problema no pagamento", linkAjuda({
-          txid,
-          email,
-          motivo: "O pedido não ficou registrado.",
-        }));
-        aviso.textContent = gravado.mensagem;
-        return;
-      }
-      const oficial = totalConfirmado(ids, gravado.pedidos);
-      if (!oficial) {
-        marcarEstado("problema", "Problema no pagamento", linkAjuda({
-          txid,
-          email,
-          motivo: "O preço oficial da compra não voltou do servidor.",
-        }));
-        aviso.textContent = "Não foi possível confirmar o preço desta compra. Atualize a página antes de gerar o Pix.";
-        return;
-      }
-      total = oficial.total;
-      if (oficial.titulos.length === 1) document.querySelector("#pix-titulo").textContent = oficial.titulos[0];
-      else if (oficial.titulos.length > 1) document.querySelector("#pix-titulo").textContent = `${oficial.titulos.length} atividades`;
-      document.querySelector("#pix-preco").textContent = dinheiro(total);
+    pixManual = false;
+    pixAtual = automatica.copiaCola;
+    const caixaAutomatica = document.querySelector("#pix-imagem");
+    caixaAutomatica.replaceChildren();
+    const origem = origemDaImagemPix(automatica.imagem);
+    if (origem) {
+      const imagem = document.createElement("img");
+      imagem.alt = "QR Code Pix da cobrança";
+      imagem.src = origem;
+      caixaAutomatica.append(imagem);
     }
-    const caixa = document.querySelector("#pix-imagem");
-    try {
-      pixAtual = window.montarPix({
-        chave: window.loja.pixChave,
-        nome: window.loja.pixNome,
-        cidade: window.loja.pixCidade,
-        valor: total,
-        txid,
-      });
-      if (!window.desenharQr(caixa, pixAtual, total)) throw new Error("qr");
-    } catch {
-      pixAtual = "";
-      caixa.replaceChildren();
-      document.querySelector("#pix-cola").value = "";
-      marcarEstado("problema", "Problema no pagamento", linkAjuda({
-        txid,
-        email,
-        motivo: "O pedido foi registrado, mas o QR do Pix não saiu.",
-      }));
-      aviso.textContent = "O pedido ficou pendente, mas o QR não saiu. Fale com a Letícia e informe o código.";
-      return;
-    }
-    document.querySelector("#pix-codigo").textContent = txid;
+    document.querySelector("#pix-codigo").textContent = automatica.txid;
     document.querySelector("#pix-pessoa").textContent = `${nome} · ${email}`;
     document.querySelector("#pix-cola").value = pixAtual;
     document.querySelector("#pix-resumo").hidden = true;
@@ -291,19 +232,9 @@ export async function abrirPix(atividade) {
     resultado.hidden = false;
     limparCarrinho();
     limparTentativa(sessionStorage);
-    marcarEstado("espera", "Pagamento pendente", linkAjuda({ txid, email, motivo: "Gerei o Pix e preciso de ajuda." }));
-    aviso.textContent = ligada
-      ? `Pague ${dinheiro(total)}. O PDF só entra em Minha conta quando este pagamento for confirmado.`
-      : `Pague ${dinheiro(total)}. A conta ainda não está ligada ao banco, então o download entra quando ela estiver.`;
-    if (ligada) observarPedido(dialogo, txid, lojaConta, false);
-    if (/^[0-9]{10,15}$/.test(window.loja.whatsapp || "")) {
-      const nomes = cobranca.map((item) => item.titulo).join(", ");
-      const texto = encodeURIComponent(
-        `Olá, Letícia. Segue o comprovante do Pix de ${nomes} (${dinheiro(total)}). Código do pedido: ${txid}. Meu e-mail: ${email}.`,
-      );
-      whatsapp.hidden = false;
-      whatsapp.href = `https://wa.me/${window.loja.whatsapp}?text=${texto}`;
-    }
+    marcarEstado("espera", "Estamos aguardando a confirmação do pagamento.", linkAjuda({ txid: automatica.txid, email, motivo: "Gerei o Pix e preciso de ajuda." }));
+    aviso.textContent = "Seu Pix está pronto. Escaneie o QR Code ou utilize o Pix Copia e Cola.";
+    observarPedido(dialogo, automatica.txid, lojaConta, true);
     } finally {
       if (!pedido.hidden) delete pedido.dataset.enviando;
     }

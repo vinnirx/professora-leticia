@@ -49,7 +49,8 @@ assert.match(checkout, /Estamos aguardando a confirmação do pagamento\./);
 assert.match(checkout, /Pagamento confirmado! Seus materiais estão disponíveis em Minha Conta\./);
 assert.match(checkout, /O prazo do Pix expirou\. Gere uma nova cobrança\./);
 assert.match(checkout, /Se você já pagou, aguarde a atualização ou procure o suporte\./);
-assert.match(checkout, /Pague \$\{dinheiro\(total\)\}\. O PDF só entra em Minha conta quando este pagamento for confirmado\./);
+assert.match(checkout, /MENSAGEM_COMPRA_INDISPONIVEL/);
+assert.doesNotMatch(checkout, /montarPix|registrarPedido|registrarPedidos|pixChave/);
 
 for (const pagina of ["entrar/index.html", "criar-conta/index.html", "recuperar-senha/index.html", "minha-conta/index.html", "gerenciar/index.html"]) {
   const html = readFileSync(new URL(`../${pagina}`, import.meta.url), "utf8");

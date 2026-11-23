@@ -6,7 +6,7 @@ import { leituraAdministrativa, resumoAdministrativo } from "./apresentacao.js?v
 import { administra } from "./papeis.js";
 import { agruparPorCodigo, apresentacao, intervaloDaTela, podeOcultar, prioridadeDaAcao } from "./retomada.js?v=2";
 import { rota } from "../rotas.js";
-import { linkAjuda } from "../texto.js";
+import { linkAjuda, MENSAGEM_COMPRA_INDISPONIVEL } from "../texto.js";
 
 function contato(pedido, motivo) {
   const link = document.createElement("a");
@@ -366,11 +366,25 @@ function acompanharPedido(artigo, pedido, loja, acaoInicial) {
     if (encerrado) return;
     if (!resultado?.ok) {
       const marca = artigo.querySelector(".situacao");
+      const estado = artigo.querySelector(".aviso-conta");
+      const semPagamento = /cobrança automática ainda não está configurada|compras ainda não estão abertas/i.test(resultado?.mensagem || "");
+      if (semPagamento) {
+        if (marca) {
+          marca.className = "situacao situacao-problema";
+          marca.textContent = "Compras em preparação";
+        }
+        if (estado) aviso(estado, MENSAGEM_COMPRA_INDISPONIVEL);
+        const link = artigo.querySelector("a.botao");
+        if (link) {
+          link.textContent = "Falar com o suporte";
+          link.href = rota("ajuda/");
+        }
+        return;
+      }
       if (marca && acao !== "confirmar") {
         marca.className = "situacao situacao-problema";
         marca.textContent = "Não consegui consultar";
       }
-      const estado = artigo.querySelector(".aviso-conta");
       if (estado) aviso(estado, resultado?.mensagem || "Não consegui consultar este pedido. Nenhum pagamento novo foi gerado.");
       if (acao === "confirmar") mostrarDownloads(artigo, pedido, loja, estado);
       return;
