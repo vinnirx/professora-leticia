@@ -91,6 +91,13 @@ begin
      or new.criado_em is distinct from old.criado_em then
     raise exception 'Não é possível alterar o dono do chamado.';
   end if;
+  if coalesce(new.txid, '') <> '' and not exists (
+    select 1 from public.pedidos
+    where pedidos.txid = new.txid
+      and pedidos.usuario_id = new.usuario_id
+  ) then
+    raise exception 'Esse pedido não pertence a quem abriu o chamado.';
+  end if;
   new.atualizado_em := now();
   return new;
 end;
