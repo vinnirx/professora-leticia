@@ -21,13 +21,25 @@ function migracaoAusente(erro) {
   return "";
 }
 
+function registrarFalhaAuth(erro) {
+  const texto = String(erro?.message || erro || "");
+  const codigo = String(erro?.code || erro?.status || "");
+  let tipo = "auth";
+  if (/not authorized|address not authorized/i.test(texto)) tipo = "destinatario";
+  else if (/rate limit|too many|only request this/i.test(texto)) tipo = "limite";
+  else if (/error sending|unable to send|smtp/i.test(texto)) tipo = "envio";
+  console.error(JSON.stringify({ origem: "auth", tipo, codigo }));
+}
+
 function traduzir(erro) {
   const texto = String(erro?.message || erro || "");
   if (/invalid login/i.test(texto)) return "E-mail ou senha não conferem.";
   if (/already registered|already been registered/i.test(texto)) return "Já existe uma conta com este e-mail.";
   if (/email not confirmed/i.test(texto)) return "Confirme o e-mail antes de entrar. Veja a caixa de entrada.";
+  if (/not authorized|address not authorized/i.test(texto)) return "Ainda não consigo enviar a mensagem para este e-mail. Tente de novo mais tarde ou fale com o suporte.";
+  if (/error sending|unable to send/i.test(texto)) return "Não consegui enviar o e-mail agora. Espere um pouco e tente de novo.";
   if (/different from the old/i.test(texto)) return "Escolha uma senha diferente da anterior.";
-  if (/rate limit|only request this|too many/i.test(texto)) return "Espere um pouco e peça o link de novo.";
+  if (/rate limit|only request this|too many/i.test(texto)) return "Muitos envios em pouco tempo. Espere um pouco e peça de novo.";
   if (/expired|invalid.*token|otp/i.test(texto)) return "Esse link expirou. Peça outro.";
   if (/failed to fetch|networkerror|load failed|tempo esgotado/i.test(texto)) {
     return "Não consegui falar com o servidor. Verifique a conexão e tente de novo.";
@@ -238,7 +250,10 @@ async function iniciar() {
           emailRedirectTo: enderecoDeConfirmacao(location.href),
         },
       });
-      if (error) return { ok: false, mensagem: traduzir(error) };
+      if (error) {
+        registrarFalhaAuth(error);
+        return { ok: false, mensagem: traduzir(error) };
+      }
       if (!data.session) return { ok: true, confirmarEmail: true };
       return { ok: true, confirmarEmail: false };
     },
@@ -249,6 +264,7 @@ async function iniciar() {
         options: { emailRedirectTo: enderecoDeConfirmacao(location.href) },
       });
       if (error && !/user not found|already/i.test(error.message || "")) {
+        registrarFalhaAuth(error);
         return { ok: false, mensagem: traduzir(error) };
       }
       return { ok: true };
@@ -277,6 +293,7 @@ async function iniciar() {
       try {
         const { error } = await cliente.auth.resetPasswordForEmail(email, { redirectTo: enderecoDeRecuperacao(location.href) });
         if (error && !/user not found/i.test(error.message || "")) {
+          registrarFalhaAuth(error);
           return { ok: false, mensagem: traduzir(error) };
         }
         return { ok: true };

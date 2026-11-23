@@ -25,7 +25,11 @@ img, svg, video { max-width: 100%; }
 
 p, h1, h2, h3, li, dd, dt, figcaption, button, a, label { overflow-wrap: break-word; }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 
 body {
   margin: 0;
@@ -1840,12 +1844,27 @@ main {
     border-top: 1px solid #e6eef5;
   }
 
+  h1 { font-size: clamp(1.45rem, 6vw, 1.8rem); }
+  h2 { font-size: clamp(1.25rem, 4.6vw, 1.55rem); }
+  .ficha h1,
+  .hero h1 { font-size: clamp(1.4rem, 5.6vw, 1.75rem); }
+
   .logo img { max-width: min(9.5rem, 46vw); }
+
+  .cabecalho .menu img,
+  .cabecalho .menu .carrinho-abre img {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
 
   .cabecalho .menu a,
   .cabecalho .menu .carrinho-abre {
     padding: 0.45rem 0.55rem;
   }
+
+  .rodape { padding: 1.15rem 0 1.5rem; }
+  .rodape-links { gap: 0.4rem 0.7rem; font-size: 0.92rem; }
+  .rodape p { font-size: 0.92rem; line-height: 1.45; }
 
   .menu-conta { flex: 0 0 auto; justify-content: flex-end; }
 

@@ -275,12 +275,35 @@
 
 .previa-ficha h3 { margin: 1rem 0 0.4rem; color: var(--azul-vivo); }
 
-@media (max-width: 520px) {
+@media (max-width: 720px) {
+  .acesso-cartao h1,
+  .conta h1 {
+    font-size: clamp(1.35rem, 5.4vw, 1.6rem);
+    overflow-wrap: anywhere;
+  }
+
+  .conta-topo { align-items: flex-start; }
+
+  .conta-topo h1,
+  .conta-topo > div {
+    min-width: 0;
+    flex: 1 1 12rem;
+  }
+
   .conta-topo .botao,
-  .item-conta .botao,
+  .item-conta > .botao,
   .acesso-cartao .botao,
   .conta-destaque,
-  #mostrar-compras { width: 100%; }
+  #mostrar-compras {
+    width: fit-content;
+    max-width: 100%;
+    justify-self: start;
+  }
+
+  .conta-topo .botao { flex: 0 0 auto; min-height: 2.75rem; }
+
+  .item-conta h3,
+  .item-conta p { overflow-wrap: anywhere; }
 }
 
 .lucro-total {

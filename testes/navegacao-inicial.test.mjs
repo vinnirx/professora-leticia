@@ -11,7 +11,7 @@ for (const html of [inicio, atividades, atividade, entrar]) {
   assert.doesNotMatch(html, />Início</);
   assert.doesNotMatch(html, /icones\/simbolo\.png/);
   assert.match(html, /data-conta/);
-  assert.match(html, /styles\.css\?v=(91|93)/);
+  assert.match(html, /styles\.css\?v=(91|93|94)/);
 }
 
 assert.match(inicio, /id="abre-carrinho"/);
