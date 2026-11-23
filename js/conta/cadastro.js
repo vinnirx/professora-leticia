@@ -405,6 +405,13 @@ function preencherTemas(area, temaAtual, select) {
     opcao.selected = nome === temaAtual;
     tema.append(opcao);
   });
+  if (temaAtual && !lista.includes(temaAtual)) {
+    const atual = document.createElement("option");
+    atual.value = temaAtual;
+    atual.textContent = temaAtual;
+    atual.selected = true;
+    tema.append(atual);
+  }
 }
 
 function informacoesDe(campos) {

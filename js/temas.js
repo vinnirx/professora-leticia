@@ -9,6 +9,8 @@ export const areas = [
 
 export const temasPorArea = {
   Alfabetização: [
+    "Vogais",
+    "Encontros Vocálicos",
     "Sílabas e Famílias Silábicas",
     "Leitura de Palavras e Frases",
     "Escrita de Palavras e Frases",

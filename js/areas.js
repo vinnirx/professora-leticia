@@ -78,11 +78,11 @@ export function prepararAreas() {
         item.addEventListener("click", () => {
           const atual = filtroAtual();
           const temaNovo = atual.tema === tema && atual.area === area ? "" : tema;
-          definirFiltro(temaNovo ? area : "", temaNovo);
+          definirFiltro(area, temaNovo);
           pintarTemas();
           mostrarCatalogo();
           fechar();
-          if (filtroAtual().tema) document.querySelector("#atividades")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          document.querySelector("#atividades")?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
         grupoTemas.append(item);
       });
@@ -116,6 +116,19 @@ export function prepararAreas() {
   });
 
   painel.querySelectorAll("[data-area]").forEach((item) => {
-    item.addEventListener("click", () => abrirTemas(item.dataset.area));
+    item.addEventListener("click", () => {
+      const area = item.dataset.area;
+      const atual = filtroAtual();
+      if (atual.area === area && !atual.tema) {
+        definirFiltro("", "");
+        mostrarCatalogo();
+        painel.querySelectorAll("[data-area]").forEach((botaoArea) => botaoArea.setAttribute("aria-pressed", "false"));
+        fechar();
+        return;
+      }
+      definirFiltro(area, atual.area === area ? atual.tema : "");
+      mostrarCatalogo();
+      abrirTemas(area);
+    });
   });
 }

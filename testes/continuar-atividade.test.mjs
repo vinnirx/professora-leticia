@@ -16,7 +16,7 @@ assert.match(html, /<p class="aviso-conta" id="nova-status" role="status"><\/p>\
 assert.match(html, /id="etapa-seguir" type="button"/);
 assert.match(html, /conta\.js\?v=76/);
 assert.match(html, /painel\.css\?v=29/);
-assert.match(admin, /cadastro\.js\?v=9/);
+assert.match(admin, /cadastro\.js\?v=10/);
 assert.match(conta, /admin\.js\?v=44/);
 assert.doesNotMatch(html, /Mostrar em Materiais em destaque/);
 assert.match(cadastro, /Será publicada ao confirmar/);
