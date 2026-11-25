@@ -1,5 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { segredosIguais } from "../_shared/regras.mjs";
+import { eventoAceito, segredosIguais } from "../_shared/regras.mjs";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Método não aceito", { status: 405 });
@@ -12,15 +12,18 @@ Deno.serve(async (req) => {
   if (!url || !serviço) return new Response("Não configurado", { status: 503 });
 
   const evento = await req.json().catch(() => null);
-  const pagamento = evento?.payment || {};
+  if (!eventoAceito(evento)) return new Response("Evento incompleto", { status: 400 });
+
+  const pagamento = evento.payment;
+  const identificador = String(evento.id).trim();
   const admin = createClient(url, serviço, { auth: { persistSession: false } });
   const taxa = pagamento.value != null && pagamento.netValue != null
     ? Number((Number(pagamento.value) - Number(pagamento.netValue)).toFixed(2))
     : null;
   const { data, error } = await admin.rpc("receber_evento_asaas", {
-    evento_externo: String(evento?.id || ""),
-    tipo: String(evento?.event || ""),
-    cobranca_externa: String(pagamento.id || ""),
+    evento_externo: identificador,
+    tipo: String(evento.event).trim(),
+    cobranca_externa: String(pagamento.id).trim(),
     valor_recebido: pagamento.value ?? null,
     taxa_recebida: taxa,
     liquido_recebido: pagamento.netValue ?? null,
@@ -34,7 +37,7 @@ Deno.serve(async (req) => {
     });
   }
   const processado = await admin.rpc("processar_evento_asaas", {
-    evento_externo: String(evento?.id || ""),
+    evento_externo: identificador,
   });
   if (processado.error || processado.data?.repetir) return new Response("Falha ao processar", { status: 500 });
   return new Response(JSON.stringify({ ok: true, resultado: processado.data?.resultado || "repetido" }), {

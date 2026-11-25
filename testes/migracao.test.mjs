@@ -40,8 +40,9 @@ assert.match(webhook, /segredosIguais/);
 assert.match(webhook, /receber_evento_asaas/);
 assert.match(webhook, /processar_evento_asaas/);
 assert.match(webhook, /Evento incompleto/);
-assert.match(webhook, /waitUntil/);
-assert.doesNotMatch(webhook, /Falha ao processar/);
+assert.ok(webhook.indexOf("eventoAceito(evento)") < webhook.indexOf("receber_evento_asaas"));
+assert.match(webhook, /Falha ao processar/);
+assert.doesNotMatch(webhook, /waitUntil/);
 assert.doesNotMatch(webhook, /Authorization/);
 
 const cobranca = readFileSync(new URL("../supabase/functions/criar-cobranca/index.ts", import.meta.url), "utf8");
