@@ -1475,6 +1475,8 @@ main {
 
 .subareas-coluna[hidden] { display: none; }
 
+.subareas-acordeao { display: none; }
+
 .subareas {
   width: 100%;
   min-height: 0;
@@ -1825,24 +1827,54 @@ main {
 }
 
 @media (max-width: 720px) {
+  .categoria-atividades.categorias-abertas {
+    flex: 1 1 100%;
+    max-width: none;
+    width: 100%;
+    align-items: stretch;
+  }
+
   .areas {
     position: static;
     width: 100%;
-    max-width: none;
+    max-width: 100%;
     flex-direction: column;
     margin-top: 0.45rem;
+    overflow: hidden;
   }
 
   .areas::before { display: none; }
 
-  .lista-areas,
-  .subareas-coluna { width: 100%; }
+  .lista-areas {
+    width: 100%;
+    max-width: 100%;
+  }
 
-  .subareas-coluna {
-    max-height: min(18rem, 50dvh);
-    border-left: 0;
+  .subareas-coluna { display: none; }
+
+  .subareas-acordeao {
+    display: grid;
+    width: 100%;
+    max-width: 100%;
+    background: #f4f9fc;
     border-top: 1px solid #e6eef5;
   }
+
+  .areas .lista-areas > button,
+  .areas .subareas-acordeao button {
+    min-height: 2.75rem;
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
+  .subareas-acordeao button { padding-left: 1.7rem; }
+
+  .lista-areas button[aria-expanded="true"]::after {
+    display: inline-block;
+    transform: rotate(90deg);
+  }
+
+  .subareas-acordeao .subareas-vazio img { width: min(12rem, 100%); }
 
   h1 { font-size: clamp(1.45rem, 6vw, 1.8rem); }
   h2 { font-size: clamp(1.25rem, 4.6vw, 1.55rem); }
