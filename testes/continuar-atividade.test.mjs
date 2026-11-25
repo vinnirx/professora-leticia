@@ -14,7 +14,7 @@ assert.doesNotMatch(cadastro, /aviso\(estado, erro\)/);
 assert.match(cadastro, /aria-invalid/);
 assert.match(html, /<p class="aviso-conta" id="nova-status" role="status"><\/p>\s*<div class="etapas-acoes">/);
 assert.match(html, /id="etapa-seguir" type="button"/);
-assert.match(html, /conta\.js\?v=76/);
+assert.match(html, /conta\.js\?v=77/);
 assert.match(html, /painel\.css\?v=29/);
 assert.match(admin, /cadastro\.js\?v=10/);
 assert.match(conta, /admin\.js\?v=44/);

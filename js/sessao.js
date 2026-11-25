@@ -33,6 +33,7 @@ function registrarFalhaAuth(erro) {
 
 function traduzir(erro) {
   const texto = String(erro?.message || erro || "");
+  const codigo = String(erro?.code || "");
   if (/invalid login/i.test(texto)) return "E-mail ou senha não conferem.";
   if (/already registered|already been registered/i.test(texto)) return "Já existe uma conta com este e-mail.";
   if (/email not confirmed/i.test(texto)) return "Confirme o e-mail antes de entrar. Veja a caixa de entrada.";
@@ -47,7 +48,11 @@ function traduzir(erro) {
   if (/session or user missing|auth session missing/i.test(texto)) {
     return "Esta sessão não está mais ativa. Entre de novo.";
   }
-  if (/password/i.test(texto)) return "A senha precisa de 8 caracteres ou mais.";
+  if (/weak_password/i.test(codigo) || /weak|easy to guess|pwned|breached/i.test(texto)) {
+    return "Esta senha é fácil de descobrir. Escolha outra, com 8 caracteres ou mais.";
+  }
+  if (/at least \d+|too short|should be at least/i.test(texto)) return "A senha precisa de 8 caracteres ou mais.";
+  if (/password/i.test(texto)) return "Não foi possível usar esta senha. Escolha outra, com 8 caracteres ou mais.";
   if (/Entre na conta|Sem permissão|indisponível|inválido/i.test(texto) || /[áàâãéêíóôõúç]/i.test(texto)) return texto;
   return "Não foi possível agora. Tente de novo.";
 }

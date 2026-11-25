@@ -1,5 +1,5 @@
 import { iniciarAdmin } from "./conta/admin.js?v=44";
-import { iniciarEntrar } from "./conta/entrar.js?v=13";
+import { iniciarEntrar } from "./conta/entrar.js?v=15";
 import { iniciarMinhas } from "./conta/minhas.js?v=20";
 
 const pagina = document.body.dataset.pagina;

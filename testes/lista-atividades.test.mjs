@@ -14,7 +14,7 @@ assert.doesNotMatch(html, /data-situacao="arquivadas"/);
 assert.match(html, /id="busca-atividade"/);
 assert.match(html, /id="abrir-cadastro"/);
 assert.doesNotMatch(html, /filtro-destaque-lista/);
-assert.match(html, /conta\.js\?v=76/);
+assert.match(html, /conta\.js\?v=77/);
 assert.match(html, /painel\.css\?v=29/);
 assert.match(conta, /admin\.js\?v=44/);
 assert.match(html, /class="acoes-cabeca"[\s\S]*id="abrir-cadastro"/);

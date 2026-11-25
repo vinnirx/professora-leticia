@@ -134,8 +134,17 @@ function prepararCodigo(loja, status) {
 
 function mostrarPainel(nome) {
   document.querySelectorAll(".acesso-cartao").forEach((painel) => {
-    painel.hidden = painel.id !== nome;
+    const ativo = painel.id === nome;
+    painel.hidden = !ativo;
+    painel.querySelectorAll("input").forEach((campo) => {
+      campo.disabled = !ativo;
+    });
   });
+}
+
+function valorDoCampo(formulario, nome) {
+  const campo = formulario?.querySelector(`[name="${nome}"]`);
+  return String(campo?.value || "");
 }
 
 export function iniciarEntrar(loja) {
@@ -180,6 +189,8 @@ export function iniciarEntrar(loja) {
     mostrarPainel("painel-criar");
   } else if (pedido === "recuperar") {
     mostrarPainel("painel-senha");
+  } else {
+    mostrarPainel("painel-entrar");
   }
   const guardado = sessionStorage.getItem("email-conta") || "";
   if (guardado) {
@@ -240,14 +251,24 @@ export function iniciarEntrar(loja) {
     }
   });
 
+  criar.querySelector("[name=senha]")?.addEventListener("input", () => {
+    const status = criar.querySelector(".aviso-conta");
+    if (status && /8 caracteres/.test(status.textContent || "")) status.textContent = "";
+  });
+
   criar.addEventListener("submit", async (evento) => {
     evento.preventDefault();
     const status = criar.querySelector(".aviso-conta");
-    const dados = new FormData(criar);
-    const nome = String(dados.get("nome") || "").trim();
-    const senha = String(dados.get("senha") || "");
+    const nome = valorDoCampo(criar, "nome").trim();
+    const email = valorDoCampo(criar, "email").trim();
+    const senha = valorDoCampo(criar, "senha");
     if (nome.length < 2) {
       aviso(status, "Escreva seu nome.");
+      return;
+    }
+    const campoEmail = criar.querySelector("[name=email]");
+    if (campoEmail && !campoEmail.checkValidity()) {
+      aviso(status, "Escreva um e-mail válido.");
       return;
     }
     if (senha.length < 8) {
@@ -260,19 +281,19 @@ export function iniciarEntrar(loja) {
     }
     const resultado = await loja.criarConta({
       nome,
-      email: String(dados.get("email") || "").trim(),
+      email,
       senha,
     });
     if (!resultado.ok) {
       aviso(status, resultado.mensagem);
       if (/já existe uma conta/i.test(resultado.mensagem || "")) {
-        sessionStorage.setItem("email-conta", String(dados.get("email") || "").trim());
+        sessionStorage.setItem("email-conta", email);
         reenvio.hidden = false;
       }
       return;
     }
     if (resultado.confirmarEmail) {
-      sessionStorage.setItem("email-conta", String(dados.get("email") || "").trim());
+      sessionStorage.setItem("email-conta", email);
       aviso(status, MENSAGEM_CONFIRMACAO, true);
       reenvio.hidden = false;
       codigo.hidden = false;

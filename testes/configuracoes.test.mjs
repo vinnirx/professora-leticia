@@ -19,7 +19,7 @@ assert.match(pagina, /id="segundo-fator"/);
 assert.match(pagina, /id="conciliacao"/);
 assert.match(pagina, /id="encerrar-conciliacao"/);
 assert.doesNotMatch(pagina, /aplicativo autenticador|Cadastre o aplicativo/);
-assert.match(pagina, /conta\.js\?v=76/);
+assert.match(pagina, /conta\.js\?v=77/);
 assert.doesNotMatch(pagina, /id="lista-config"|Somente leitura|Ainda não instalada|SQL Editor/);
 
 assert.match(mfa, /Cadastrar autenticador/);
