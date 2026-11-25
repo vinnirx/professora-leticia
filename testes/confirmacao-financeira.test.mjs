@@ -476,10 +476,10 @@ assert.equal(revogacao.revogado, true);
 
 const admin = readFileSync(new URL("../js/conta/admin.js", import.meta.url), "utf8");
 const painel = readFileSync(new URL("../gerenciar/index.html", import.meta.url), "utf8");
-assert.doesNotMatch(admin, /Confirmar Pix/);
-assert.match(admin, /Pedido pendente permanece aguardando/);
+assert.doesNotMatch(admin, /Confirmar Pix|confirmar_pix/);
+assert.match(admin, /Pedidos ainda não confirmados\. Não entram na receita\./);
 assert.match(admin, /return \["Aguardando", "espera"\]/);
 assert.match(admin, /celula\("Status", selo\(\.\.\.rotuloStatus\(grupo\.status\)\)\)/);
-assert.match(painel, /conta\.js\?v=69/);
+assert.match(painel, /conta\.js\?v=77/);
 
 console.log("ok confirmacao financeira");
