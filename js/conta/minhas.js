@@ -146,7 +146,7 @@ function mostrarPix(artigo, resultado) {
     ? `Vencimento ${new Date(resultado.expiraEm).toLocaleString("pt-BR")}`
     : "Use este mesmo Pix até o vencimento informado pelo banco.";
   const recebedor = document.createElement("p");
-  recebedor.textContent = "Confira o recebedor no aplicativo do banco antes de pagar.";
+  recebedor.textContent = "O recebedor é Letícia Pimentel de Macedo. No aplicativo do banco, o nome aparece como LETICIA PIMENTEL MACEDO. Se aparecer outro nome, não pague.";
   caixa.append(valor, prazo, recebedor);
   const origem = origemDaImagemPix(resultado.imagem);
   if (origem) {

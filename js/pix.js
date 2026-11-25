@@ -468,7 +468,7 @@ function desenharQr(destino, payload, valor) {
   svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   svg.setAttribute("viewBox", `0 0 ${total} ${total}`);
   svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", "QR Code do Pix de LETICIA PIMENTEL MACEDO");
+  svg.setAttribute("aria-label", "QR Code do Pix de Letícia Pimentel de Macedo");
   for (let y = 0; y < n; y += 1) {
     for (let x = 0; x < n; x += 1) {
       if (!modulos[y][x]) continue;
