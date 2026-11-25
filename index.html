@@ -17,7 +17,7 @@
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=95" />
+    <link rel="stylesheet" href="css/styles.css?v=96" />
     <link rel="stylesheet" href="css/historia.css?v=3" />
   </head>
   <body>
@@ -27,6 +27,11 @@
       <a class="logo" href="#inicio">
         <img src="img/logo-inclusao.png?v=2" alt="Inclusão no Cotidiano" />
       </a>
+      <label class="busca">
+        <span class="busca-rotulo">Buscar atividade</span>
+        <input id="busca-atividade" type="search" placeholder="O que você procura hoje?" autocomplete="off" aria-controls="sugestoes" aria-autocomplete="list" />
+        <ul id="sugestoes" class="sugestoes" hidden></ul>
+      </label>
       <nav class="menu" aria-label="Conta e carrinho">
         <div class="menu-conta">
           <a data-conta href="entrar/">Entrar</a>
@@ -41,11 +46,6 @@
         </div>
         <button class="carrinho-abre" id="abre-carrinho" type="button"><span class="carrinho-icone"><img src="img/icones/carrinho.svg?v=2" alt="" /><span id="carrinho-qtd" hidden></span></span>Carrinho</button>
       </nav>
-      <label class="busca">
-        <span class="busca-rotulo">Buscar atividade</span>
-        <input id="busca-atividade" type="search" placeholder="O que você procura hoje?" autocomplete="off" aria-controls="sugestoes" aria-autocomplete="list" />
-        <ul id="sugestoes" class="sugestoes" hidden></ul>
-      </label>
     </header>
 
     <section class="categorias" aria-label="Categorias">

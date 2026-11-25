@@ -11,11 +11,17 @@ for (const html of [inicio, atividades, atividade, entrar]) {
   assert.doesNotMatch(html, />Início</);
   assert.doesNotMatch(html, /icones\/simbolo\.png/);
   assert.match(html, /data-conta/);
-  assert.match(html, /styles\.css\?v=(91|93|94|95)/);
+  assert.match(html, /styles\.css\?v=(91|93|94|95|96)/);
 }
 
 assert.match(inicio, /id="abre-carrinho"/);
 assert.match(inicio, /id="busca-atividade"/);
+assert.equal((inicio.match(/id="busca-atividade"/g) || []).length, 1);
+const cabeca = inicio.slice(inicio.indexOf("<header"), inicio.indexOf("</header>"));
+assert.ok(cabeca.indexOf('class="logo"') < cabeca.indexOf('id="busca-atividade"'));
+assert.ok(cabeca.indexOf('id="busca-atividade"') < cabeca.indexOf('class="menu"'));
+assert.match(css, /#inicio\.cabecalho \{[^}]*flex-wrap:\s*nowrap/s);
+assert.match(css.slice(css.indexOf("@media (max-width: 720px)")), /#inicio\.cabecalho \{[^}]*flex-wrap:\s*wrap/s);
 assert.doesNotMatch(inicio, /id="titulo-categorias"/);
 assert.doesNotMatch(inicio, />Categorias</);
 
