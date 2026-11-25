@@ -413,6 +413,26 @@ function ligarSaida(loja) {
   });
 }
 
+function abrirMateriaisPedidos() {
+  if (location.hash !== "#materiais") return;
+  const compras = document.querySelector("#area-compras");
+  const titulo = document.querySelector("#materiais");
+  const botao = document.querySelector("#mostrar-compras");
+  if (compras) compras.hidden = false;
+  if (titulo) titulo.hidden = false;
+  if (botao) {
+    botao.setAttribute("aria-expanded", "true");
+    botao.textContent = "Ocultar minhas compras";
+  }
+  (titulo || compras)?.scrollIntoView({ block: "start" });
+}
+
+function linkDaEntrada() {
+  if (location.hash !== "#materiais") return rota("entrar/");
+  try { sessionStorage.setItem("depois", "minha-conta/#materiais"); } catch { /* o parâmetro da URL preserva o retorno */ }
+  return `${rota("entrar/")}?depois=${encodeURIComponent("minha-conta/#materiais")}`;
+}
+
 function escrever(elemento, texto, href, rotulo) {
   elemento.replaceChildren(document.createTextNode(texto));
   if (!href) return;
@@ -557,7 +577,8 @@ export async function iniciarMinhas(loja) {
   const sessao = await loja.sessao();
   if (!sessao) {
     vazio.hidden = false;
-    escrever(vazio, "Entre para ver os materiais que você comprou.", rota("entrar/"), "Entrar");
+    escrever(vazio, "Entre para ver os materiais que você comprou.", linkDaEntrada(), "Entrar");
+    abrirMateriaisPedidos();
     return;
   }
   const ajuda = document.querySelector("#abrir-ajuda");
@@ -662,4 +683,5 @@ export async function iniciarMinhas(loja) {
   };
   lista.addEventListener("visibilidade-pedido", pintar);
   pintar();
+  abrirMateriaisPedidos();
 }

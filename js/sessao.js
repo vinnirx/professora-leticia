@@ -6,7 +6,7 @@ import { acionarSaida } from "./conta/saida.js";
 import { mensagemOtp, codigoNumerico, pedidoDeConfirmacao } from "./conta/codigo.js?v=2";
 import { pedidoRepetido } from "./tentativa-compra.js";
 import { enderecoDeConfirmacao, enderecoDeRecuperacao } from "./endereco-publico.js";
-import { destinoInterno, rota } from "./rotas.js";
+import { destinoInterno, rota } from "./rotas.js?v=3";
 import { executarRestauracao, executarSubstituicao, PDF_AINDA_NAO_INSTALADO, pdfAnteriorDisponivel } from "./pdf-troca.js";
 
 function destinoSeguro(valor) {
@@ -724,6 +724,28 @@ async function iniciar() {
       if (data.some((item) => item.status === "estornado")) return "estornado";
       if (data.every((item) => item.status === "cancelado")) return "cancelado";
       return "aguardando";
+    },
+    async materiaisPagos(txid) {
+      const codigo = String(txid || "");
+      const atual = await sessao();
+      if (!atual?.user?.id) return { ok: false, entrar: true, materiais: [] };
+      if (!/^[A-Za-z0-9]{6,40}$/.test(codigo)) return { ok: false, materiais: [] };
+      const { data, error } = await cliente
+        .from("pedidos")
+        .select("atividade_id, titulo, status")
+        .eq("txid", codigo)
+        .eq("status", "pago")
+        .eq("usuario_id", atual.user.id);
+      if (error) return { ok: false, materiais: [] };
+      const vistos = new Set();
+      const materiais = [];
+      for (const linha of data || []) {
+        const id = String(linha.atividade_id || "");
+        if (!/^[a-z0-9-]{1,48}$/.test(id) || vistos.has(id)) continue;
+        vistos.add(id);
+        materiais.push({ id, titulo: String(linha.titulo || "Material") });
+      }
+      return { ok: true, materiais };
     },
     async listarConciliacao() {
       const acesso = await usuarioConfirmado();

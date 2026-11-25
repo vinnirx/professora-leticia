@@ -24,6 +24,8 @@ assert.equal(enderecoDeMidia("img/capa-celulas.jpg?v=1", "/"), "img/capa-celulas
 assert.equal(enderecoDeMidia("img/capa-celulas.jpg?v=1", "/atividade.html"), "img/capa-celulas.jpg?v=1");
 assert.equal(enderecoDeMidia("https://exemplo.supabase.co/storage/v1/object/public/capas/a.jpg", "/atividades/"), "https://exemplo.supabase.co/storage/v1/object/public/capas/a.jpg");
 assert.equal(destinoInterno("index.html?carrinho=1", "/minha-conta/"), "../?carrinho=1");
+assert.equal(destinoInterno("minha-conta/#materiais", "/entrar/"), "../minha-conta/#materiais");
+assert.equal(destinoInterno("https://exemplo.test", "/entrar/"), "../minha-conta/");
 assert.equal(destinoLegado("/entrar.html", "entrar/", "#access_token=1&type=recovery", ""), "recuperar-senha/#access_token=1&type=recovery");
 assert.equal(destinoLegado("/entrar.html", "entrar/", "#error_code=otp_expired", ""), "recuperar-senha/#error_code=otp_expired");
 assert.equal(destinoLegado("/entrar/", "entrar/", "#error_code=otp_expired&type=signup", ""), "entrar/#error_code=otp_expired&type=signup");
@@ -46,7 +48,7 @@ assert.match(checkout, /pixAutomaticoDisponivel/);
 assert.match(checkout, /cobrancaAutomatica === true/);
 assert.match(checkout, /Seu Pix está pronto\. Escaneie o QR Code ou utilize o Pix Copia e Cola\./);
 assert.match(checkout, /Estamos aguardando a confirmação do pagamento\./);
-assert.match(checkout, /Pagamento confirmado! Seus materiais estão disponíveis em Minha Conta\./);
+assert.match(checkout, /Sua compra foi aprovada\. Seu material já está disponível para download\./);
 assert.match(checkout, /O prazo do Pix expirou\. Gere uma nova cobrança\./);
 assert.match(checkout, /Se você já pagou, aguarde a atualização ou procure o suporte\./);
 assert.match(checkout, /MENSAGEM_COMPRA_INDISPONIVEL/);

@@ -814,6 +814,53 @@ main {
 
 .pedido-estado .botao { width: fit-content; max-width: 100%; }
 
+.pix-liberado {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: #f3f8ea;
+  min-width: 0;
+}
+
+.pix-liberado-titulo {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(1.45rem, 4vw, 1.8rem);
+  color: #3d6b22;
+}
+
+.pix-liberado p { margin: 0; }
+
+.pix-liberado .pix-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 0;
+}
+
+.pix-liberado .botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.75rem;
+  max-width: 100%;
+}
+
+.pix-liberado .botao svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 720px) {
+  .pix-liberado .pix-acoes { flex-direction: column; align-items: stretch; }
+  .pix-liberado .botao { width: 100%; }
+}
+
 .cabecalho {
   width: min(1120px, calc(100% - clamp(1.5rem, 5vw, 3rem)));
   margin: 0 auto;

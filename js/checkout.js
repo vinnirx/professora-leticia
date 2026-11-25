@@ -1,7 +1,7 @@
 import { origemDaImagemPix } from "./imagem-pix.js?v=1";
 import { documentoValido, mascararDocumento } from "./documento.js";
 import { cobrancaReutilizavel, gravarTentativa, lerTentativa, limparTentativa } from "./tentativa-compra.js";
-import { rota } from "./rotas.js";
+import { rota } from "./rotas.js?v=3";
 import { dinheiro, escapar, linkAjuda, MENSAGEM_COMPRA_INDISPONIVEL } from "./texto.js";
 import { itemOficial, limparCarrinho } from "./carrinho.js?v=2";
 
@@ -11,7 +11,7 @@ let pixManual = true;
 function mensagensDoPedido(automatico) {
   if (automatico) {
     return {
-      pago: ["ok", "Pagamento confirmado", "Pagamento confirmado! Seus materiais estão disponíveis em Minha Conta."],
+      pago: ["ok", "Pagamento confirmado!", "Sua compra foi aprovada. Seu material já está disponível para download."],
       analise: ["problema", "Pagamento em análise", "O aviso não conferiu com o pedido. O PDF continua bloqueado."],
       expirada: ["problema", "Cobrança expirada", "O prazo do Pix expirou. Gere uma nova cobrança."],
       estornada: ["problema", "Pagamento estornado", "Este pagamento foi estornado. O PDF continua bloqueado."],
@@ -47,6 +47,7 @@ function observarPedido(dialogo, txid, lojaConta, automatico) {
     clearInterval(timer);
     marcarEstado(final[0], final[1]);
     if (caixa) caixa.textContent = final[2];
+    if (automatico && situacao === "pago") mostrarCompraPaga(lojaConta, txid);
   }, 8000);
   dialogo.addEventListener("close", () => clearInterval(timer), { once: true });
 }
@@ -67,6 +68,142 @@ function marcarEstado(tipo, texto, ajuda) {
   }
   link.hidden = false;
   link.href = ajuda;
+}
+
+export const DESTINO_MATERIAIS = "minha-conta/#materiais";
+export const TEXTO_COMPRA_APROVADA = "Sua compra foi aprovada. Seu material já está disponível para download.";
+
+export function acoesDaCompraPaga(materiais) {
+  const ids = [];
+  const vistos = new Set();
+  for (const item of materiais || []) {
+    const id = String(item?.id || item?.atividade_id || "");
+    if (!/^[a-z0-9-]{1,48}$/.test(id) || vistos.has(id)) continue;
+    vistos.add(id);
+    ids.push(id);
+  }
+  if (ids.length === 1) return { principal: "baixar", baixar: ids[0], destino: DESTINO_MATERIAIS };
+  return { principal: "materiais", baixar: "", destino: DESTINO_MATERIAIS };
+}
+
+export function mensagemDoDownload(codigo) {
+  if (codigo === "entrar") return "Entre de novo para baixar este material.";
+  if (codigo === "negado") return "Este material ainda não está liberado.";
+  if (codigo === "tentar") return "Não foi possível preparar o download. Tente de novo.";
+  return "Não foi possível baixar agora. Tente de novo ou abra Meus materiais.";
+}
+
+function enderecoDosMateriais(entrar) {
+  if (!entrar) return `${rota("minha-conta/")}#materiais`;
+  return `${rota("entrar/")}?depois=${encodeURIComponent(DESTINO_MATERIAIS)}`;
+}
+
+function iconeDownload() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const caminho = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  caminho.setAttribute("fill", "currentColor");
+  caminho.setAttribute("d", "M12 3a1 1 0 0 1 1 1v8.6l2.3-2.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L11 12.6V4a1 1 0 0 1 1-1zm-7 14a1 1 0 0 1 1 1v1h12v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z");
+  svg.append(caminho);
+  return svg;
+}
+
+function linkMateriais(principal, entrar) {
+  const link = document.createElement("a");
+  link.className = principal ? "botao" : "botao botao-secundario";
+  link.href = enderecoDosMateriais(entrar);
+  link.textContent = "Ver meus materiais";
+  return link;
+}
+
+function botaoBaixar(id, loja, aviso) {
+  const botao = document.createElement("button");
+  botao.className = "botao";
+  botao.type = "button";
+  botao.append(iconeDownload());
+  const rotulo = document.createElement("span");
+  rotulo.textContent = "Baixar minha atividade";
+  botao.append(rotulo);
+  botao.addEventListener("click", async () => {
+    if (botao.dataset.baixando === "1" || typeof loja?.baixar !== "function") return;
+    botao.dataset.baixando = "1";
+    botao.disabled = true;
+    rotulo.textContent = "Preparando o download...";
+    try {
+      await loja.baixar(id);
+      aviso.textContent = "O download começou.";
+    } catch (erro) {
+      const codigo = erro?.message || "";
+      aviso.textContent = mensagemDoDownload(codigo);
+      if (codigo === "entrar") {
+        try { sessionStorage.setItem("depois", DESTINO_MATERIAIS); } catch { /* o endereço ainda leva ao login */ }
+        location.assign(enderecoDosMateriais(true));
+        return;
+      }
+    }
+    delete botao.dataset.baixando;
+    botao.disabled = false;
+    rotulo.textContent = "Baixar minha atividade";
+  });
+  return botao;
+}
+
+export function aplicarCompraPaga(dialogo, { acoes, loja, entrar = false }) {
+  const pedido = dialogo.querySelector("#pix-pedido");
+  if (pedido) pedido.hidden = true;
+  const resultado = dialogo.querySelector("#pix-resultado");
+  if (resultado) resultado.hidden = true;
+  const selo = dialogo.querySelector("#pix-situacao");
+  if (selo) selo.hidden = true;
+  let painel = dialogo.querySelector("#pix-liberado");
+  if (!painel) {
+    painel = document.createElement("div");
+    painel.id = "pix-liberado";
+    painel.className = "pix-liberado";
+    const titulo = document.createElement("p");
+    titulo.className = "pix-liberado-titulo";
+    titulo.dataset.titulo = "sim";
+    const frase = document.createElement("p");
+    frase.dataset.frase = "sim";
+    const caixa = document.createElement("div");
+    caixa.className = "pix-acoes";
+    caixa.dataset.acoes = "sim";
+    const estado = document.createElement("p");
+    estado.className = "miudo";
+    estado.dataset.aviso = "sim";
+    estado.setAttribute("role", "status");
+    painel.append(titulo, frase, caixa, estado);
+    const ancora = dialogo.querySelector("#pix-aviso");
+    if (ancora) ancora.before(painel);
+    else (dialogo.querySelector(".pix-painel") || dialogo).append(painel);
+  }
+  painel.hidden = false;
+  painel.querySelector("[data-titulo]").textContent = "Pagamento confirmado!";
+  painel.querySelector("[data-frase]").textContent = TEXTO_COMPRA_APROVADA;
+  const aviso = painel.querySelector("[data-aviso]");
+  aviso.textContent = entrar ? mensagemDoDownload("entrar") : "";
+  const caixa = painel.querySelector("[data-acoes]");
+  caixa.replaceChildren();
+  if (acoes.baixar && !entrar) caixa.append(botaoBaixar(acoes.baixar, loja, aviso));
+  caixa.append(linkMateriais(acoes.principal !== "baixar" || entrar, entrar));
+  const avisoGeral = dialogo.querySelector("#pix-aviso");
+  if (avisoGeral) avisoGeral.textContent = "";
+  return painel;
+}
+
+async function mostrarCompraPaga(loja, txid) {
+  const dialogo = document.querySelector("#pix");
+  if (!dialogo) return;
+  const consulta = typeof loja?.materiaisPagos === "function"
+    ? await loja.materiaisPagos(txid)
+    : { ok: false, materiais: [] };
+  const acoes = acoesDaCompraPaga(consulta.ok ? consulta.materiais : []);
+  const painel = aplicarCompraPaga(dialogo, { acoes, loja, entrar: consulta.entrar === true });
+  if (!consulta.entrar && (!consulta.ok || !consulta.materiais?.length)) {
+    painel.querySelector("[data-aviso]").textContent = "Não consegui identificar o material deste pedido. Abra Meus materiais.";
+  }
 }
 
 export async function abrirPix(atividade) {
@@ -207,7 +344,10 @@ export async function abrirPix(atividade) {
       limparTentativa(sessionStorage);
       delete pedido.dataset.chaveCobranca;
       marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: "A cobrança anterior não pode ser reutilizada." }));
-      if (automatica.status === "pago") aviso.textContent = "Pagamento confirmado! Seus materiais estão disponíveis em Minha Conta.";
+      if (automatica.status === "pago") {
+        aviso.textContent = TEXTO_COMPRA_APROVADA;
+        mostrarCompraPaga(lojaConta, automatica.txid);
+      }
       else if (automatica.status === "expirada") aviso.textContent = "O prazo do Pix expirou. Gere uma nova cobrança.";
       else aviso.textContent = "Essa cobrança não está mais válida. Gere o Pix outra vez.";
       return;

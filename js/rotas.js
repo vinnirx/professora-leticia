@@ -30,6 +30,7 @@ export function enderecoDeMidia(caminho, pathname = typeof location === "undefin
 export function destinoInterno(valor, pathname = typeof location === "undefined" ? "/" : location.pathname) {
   const pedido = String(valor || "");
   if (pedido === "index.html?carrinho=1" || pedido === "?carrinho=1") return `${rota("inicio", pathname)}?carrinho=1`;
+  if (pedido === "minha-conta/#materiais") return `${rota("minha-conta/", pathname)}#materiais`;
   if (/^atividade\.html\?id=[a-z0-9-]{1,48}$/.test(pedido)) return `${prefixo(pathname)}${pedido}`;
   const apelidos = {
     "minhas.html": "minha-conta/",

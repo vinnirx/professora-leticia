@@ -1,6 +1,6 @@
 import { iniciarAdmin } from "./conta/admin.js?v=44";
 import { iniciarEntrar } from "./conta/entrar.js?v=15";
-import { iniciarMinhas } from "./conta/minhas.js?v=20";
+import { iniciarMinhas } from "./conta/minhas.js?v=21";
 
 const pagina = document.body.dataset.pagina;
 const loja = await window.contaPronta;
