@@ -11,7 +11,9 @@ const mensagem = "Estamos preparando os pagamentos da loja. As compras estarão 
 
 assert.match(texto, new RegExp(mensagem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 assert.match(checkout, /MENSAGEM_COMPRA_INDISPONIVEL/);
-assert.match(checkout, /pixAutomaticoDisponivel\(\) === true/);
+assert.match(checkout, /pixAutomaticoDisponivel\(\)/);
+assert.match(checkout, /decidirPixAutomatico/);
+assert.doesNotMatch(checkout, /cobrancaAutomatica === true/);
 assert.match(checkout, /criarCobranca\(/);
 assert.match(checkout, /Seu Pix está pronto\. Escaneie o QR Code ou utilize o Pix Copia e Cola\./);
 assert.doesNotMatch(checkout, /montarPix|registrarPedido|registrarPedidos|window\.loja\.pixChave/);

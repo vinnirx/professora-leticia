@@ -70,6 +70,15 @@ function marcarEstado(tipo, texto, ajuda) {
   link.href = ajuda;
 }
 
+export function decidirPixAutomatico(resultado) {
+  const estado = typeof resultado === "string" ? resultado : resultado?.estado;
+  if (resultado === true || estado === "sim") return "pix";
+  if (estado === "entrar") return "entrar";
+  if (estado === "confirmar") return "confirmar";
+  if (estado === "falha") return "falha";
+  return "bloqueado";
+}
+
 export const DESTINO_MATERIAIS = "minha-conta/#materiais";
 export const TEXTO_COMPRA_APROVADA = "Sua compra foi aprovada. Seu material já está disponível para download.";
 
@@ -209,16 +218,17 @@ async function mostrarCompraPaga(loja, txid) {
 export async function abrirPix(atividade) {
   const lojaConta = window.contaPronta ? await window.contaPronta : null;
   const ligada = Boolean(lojaConta?.configurada);
-  let sessao = null;
-  if (ligada) {
-    sessao = await lojaConta.sessao();
-    if (!sessao) {
-      const volta = "index.html?carrinho=1";
-      sessionStorage.setItem("depois", volta);
-      location.href = `${rota("entrar/")}?depois=${encodeURIComponent(volta)}`;
-      return;
-    }
+  const acessoPix = ligada && typeof lojaConta.pixAutomaticoDisponivel === "function"
+    ? await lojaConta.pixAutomaticoDisponivel()
+    : { estado: "bloqueado" };
+  const decisaoPix = decidirPixAutomatico(acessoPix);
+  if (decisaoPix === "entrar") {
+    const volta = "index.html?carrinho=1";
+    try { sessionStorage.setItem("depois", volta); } catch { /* o endereço ainda leva ao login */ }
+    location.href = `${rota("entrar/")}?depois=${encodeURIComponent(volta)}`;
+    return;
   }
+  const emailSessao = String(acessoPix?.email || "");
 
   const brutos = Array.isArray(atividade.itens) && atividade.itens.length ? atividade.itens : [atividade];
   const cobranca = brutos.map(itemOficial).filter(Boolean);
@@ -244,19 +254,15 @@ export async function abrirPix(atividade) {
   pedido.reset();
   nomeInput.readOnly = false;
   emailInput.readOnly = false;
-  if (sessao) {
+  if (emailSessao) {
     const perfil = await lojaConta.perfil();
     nomeInput.value = perfil?.nome || "";
-    emailInput.value = sessao.user.email || "";
+    emailInput.value = emailSessao;
     nomeInput.readOnly = true;
     emailInput.readOnly = true;
   }
   const campoDocumento = document.querySelector("#campo-documento");
-  let automaticoNestaConta = window.loja.cobrancaAutomatica === true;
-  if (!automaticoNestaConta && ligada && sessao) {
-    automaticoNestaConta = await lojaConta.pixAutomaticoDisponivel() === true;
-  }
-  if (campoDocumento) campoDocumento.hidden = !automaticoNestaConta;
+  if (campoDocumento) campoDocumento.hidden = decisaoPix !== "pix";
   resultado.hidden = true;
   pixAtual = "";
   pixManual = false;
@@ -278,13 +284,16 @@ export async function abrirPix(atividade) {
     aviso.textContent = MENSAGEM_COMPRA_INDISPONIVEL;
   };
 
-  const emailConfirmado = !ligada || !sessao || Boolean(sessao.user.email_confirmed_at);
-  if (!emailConfirmado) {
+  if (decisaoPix === "confirmar") {
     pedido.hidden = true;
     marcarEstado("problema", "Confirme seu e-mail", rota("ajuda/"));
     aviso.textContent = "Confirme seu e-mail antes de comprar. Verifique a caixa de entrada e também o spam.";
-  } else if (!automaticoNestaConta || total == null) {
-    if (automaticoNestaConta && total == null) {
+  } else if (decisaoPix === "falha") {
+    pedido.hidden = true;
+    marcarEstado("problema", "Não consegui confirmar o Pix", rota("ajuda/"));
+    aviso.textContent = "Não consegui confirmar o acesso ao Pix agora. Atualize a página e tente de novo. Nenhum pagamento foi gerado.";
+  } else if (decisaoPix !== "pix" || total == null) {
+    if (decisaoPix === "pix" && total == null) {
       pedido.hidden = true;
       marcarEstado("problema", "Problema no pagamento", linkAjuda({ motivo: "Não foi possível preparar o Pix desta atividade." }));
       aviso.textContent = "Não foi possível gerar o Pix desta atividade. Fale com a Letícia e atualize a página.";
@@ -298,13 +307,18 @@ export async function abrirPix(atividade) {
 
   pedido.onsubmit = async (evento) => {
     evento.preventDefault();
-    if (!emailConfirmado) {
+    if (decisaoPix === "confirmar") {
       marcarEstado("problema", "Confirme seu e-mail", rota("ajuda/"));
       aviso.textContent = "Confirme seu e-mail antes de comprar. Verifique a caixa de entrada e também o spam.";
       return;
     }
-    if (!automaticoNestaConta) {
-      fecharCompra();
+    if (decisaoPix !== "pix") {
+      if (decisaoPix === "falha") {
+        marcarEstado("problema", "Não consegui confirmar o Pix", rota("ajuda/"));
+        aviso.textContent = "Não consegui confirmar o acesso ao Pix agora. Atualize a página e tente de novo. Nenhum pagamento foi gerado.";
+      } else {
+        fecharCompra();
+      }
       return;
     }
     if (total == null || pedido.dataset.enviando === "1") return;
@@ -313,7 +327,8 @@ export async function abrirPix(atividade) {
     const dados = new FormData(pedido);
     const nome = String(dados.get("nome") || "").trim();
     const email = String(dados.get("email") || "").trim();
-    if (!ligada || !sessao) {
+    const atual = await lojaConta.sessao();
+    if (!ligada || !atual?.access_token || !atual.user?.id) {
       marcarEstado("problema", "Problema no pagamento", linkAjuda({ email, motivo: "Preciso entrar na conta para gerar a cobrança." }));
       aviso.textContent = "Entre na conta para gerar a cobrança.";
       return;

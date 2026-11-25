@@ -809,22 +809,83 @@ async function iniciar() {
       };
     },
     async pixAutomaticoDisponivel() {
-      try {
-        const atual = await sessao();
-        if (!atual || !config) return false;
+      const classificar = (status, corpo) => {
+        if (status === 401) return "entrar";
+        if (status === 403 && /confirme o e-mail/i.test(String(corpo?.mensagem || ""))) return "confirmar";
+        if (status === 200 && corpo?.automatico === true) return "sim";
+        if (status === 200 && corpo?.ok === true) return "nao";
+        return "falha";
+      };
+      const consultar = async (token) => {
         const resposta = await fetch(`${config.url}/functions/v1/criar-cobranca`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${atual.access_token}`,
+            Authorization: `Bearer ${token}`,
             apikey: config.chave,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ consulta: "acesso" }),
         });
         const corpo = await resposta.json().catch(() => ({}));
-        return resposta.ok && corpo.automatico === true;
+        return { status: resposta.status, corpo };
+      };
+      const esperarSessao = () => new Promise((resolve) => {
+        let acabou = false;
+        let ouvinte = null;
+        let pulso = 0;
+        const terminar = (valor) => {
+          if (acabou) return;
+          acabou = true;
+          clearTimeout(timer);
+          clearInterval(pulso);
+          ouvinte?.unsubscribe();
+          resolve(valor);
+        };
+        const timer = setTimeout(() => terminar(null), 4000);
+        pulso = setInterval(async () => {
+          const lida = await sessao().catch(() => null);
+          if (lida?.access_token && lida.user?.id) terminar(lida);
+        }, 250);
+        const inscricao = cliente.auth.onAuthStateChange((evento, sessaoAtual) => {
+          if (!sessaoAtual?.access_token || !sessaoAtual.user?.id) return;
+          if (evento === "INITIAL_SESSION" || evento === "SIGNED_IN" || evento === "TOKEN_REFRESHED" || evento === "USER_UPDATED") {
+            terminar(sessaoAtual);
+          }
+        });
+        ouvinte = inscricao?.data?.subscription || null;
+      });
+      try {
+        if (!config || !cliente) return { estado: "bloqueado", email: "" };
+        let atual = await sessao();
+        if (!atual?.access_token || !atual.user?.id) atual = await esperarSessao();
+        if (!atual?.access_token || !atual.user?.id) return { estado: "entrar", email: "" };
+        try {
+          const conferida = await cliente.auth.getUser();
+          if (conferida?.data?.user?.id) atual = (await sessao()) || atual;
+        } catch { /* a consulta seguinte usa o token já guardado */ }
+        let consulta;
+        try {
+          consulta = await consultar(atual.access_token);
+        } catch {
+          return { estado: "falha", email: atual.user?.email || "" };
+        }
+        if (consulta.status === 401) {
+          const renovada = await cliente.auth.refreshSession().catch(() => null);
+          const token = renovada?.data?.session?.access_token;
+          if (!token) return { estado: "entrar", email: "" };
+          try {
+            consulta = await consultar(token);
+            atual = renovada.data.session;
+          } catch {
+            return { estado: "falha", email: atual.user?.email || "" };
+          }
+        }
+        return {
+          estado: classificar(consulta.status, consulta.corpo),
+          email: atual.user?.email || "",
+        };
       } catch {
-        return false;
+        return { estado: "falha", email: "" };
       }
     },
     async criarCobranca(ids, chave, documento) {

@@ -45,7 +45,8 @@ assert.match(readFileSync(new URL("../js/loja.js", import.meta.url), "utf8"), /c
 assert.match(sessao, /pixAutomaticoDisponivel/);
 const checkout = readFileSync(new URL("../js/checkout.js", import.meta.url), "utf8");
 assert.match(checkout, /pixAutomaticoDisponivel/);
-assert.match(checkout, /cobrancaAutomatica === true/);
+assert.match(checkout, /decidirPixAutomatico/);
+assert.doesNotMatch(checkout, /cobrancaAutomatica === true/);
 assert.match(checkout, /Seu Pix está pronto\. Escaneie o QR Code ou utilize o Pix Copia e Cola\./);
 assert.match(checkout, /Estamos aguardando a confirmação do pagamento\./);
 assert.match(checkout, /Sua compra foi aprovada\. Seu material já está disponível para download\./);

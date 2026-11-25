@@ -10,7 +10,7 @@ const inicio = ler("../js/inicio.js");
 const pagina = ler("../index.html");
 
 assert.match(inicio, /areas\.js\?v=7/);
-assert.match(pagina, /inicio\.js\?v=23/);
+assert.match(pagina, /inicio\.js\?v=24/);
 assert.match(pagina, /styles\.css\?v=98/);
 assert.match(areas, /max-width: 720px/);
 assert.match(areas, /subareas-acordeao/);
