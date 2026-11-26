@@ -12,6 +12,10 @@ assert.equal(areas.includes("Alfabetização"), true);
 assert.equal(areas.includes("Vogais"), false);
 assert.equal(areas.includes("Encontros Vocálicos"), false);
 assert.deepEqual(temasPorArea.Alfabetização.slice(0, 2), ["Vogais", "Encontros Vocálicos"]);
+assert.equal(temasPorArea.Matemática.includes("Geometria"), true);
+assert.equal(temasPorArea.Matemática.includes("Formas Geométricas"), true);
+assert.equal(temasPorArea.Matemática.includes("Adição"), true);
+assert.equal(temasPorArea.Matemática.filter((tema) => tema === "Geometria").length, 1);
 for (const tema of ["Sílabas e Famílias Silábicas", "Leitura de Palavras e Frases", "Escrita de Palavras e Frases"]) {
   assert.equal(temasPorArea.Alfabetização.includes(tema), true);
 }

@@ -35,6 +35,7 @@ export const temasPorArea = {
     "Situações-Problema",
     "Sistema de Numeração Decimal",
     "Composição e Decomposição Numérica",
+    "Geometria",
     "Formas Geométricas",
     "Medidas e Grandezas",
     "Sistema Monetário",

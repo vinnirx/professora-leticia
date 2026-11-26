@@ -4,7 +4,7 @@ import { avisoCatalogo, confirmarFicha, decidirGravacao, fichaInicial, mensagemF
 import { aviso } from "./avisos.js";
 import { formatarTamanho, validarPdf } from "../pdf-troca.js";
 import { dinheiro, linhas } from "../texto.js";
-import { areas, temasPorArea } from "../temas.js";
+import { areas, temasPorArea } from "../temas.js?v=2";
 import { criarTrava } from "../trava.js";
 import { paginaAtividade } from "../rotas.js";
 

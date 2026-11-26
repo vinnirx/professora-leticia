@@ -480,6 +480,6 @@ assert.doesNotMatch(admin, /Confirmar Pix|confirmar_pix/);
 assert.match(admin, /Pedidos ainda não confirmados\. Não entram na receita\./);
 assert.match(admin, /return \["Aguardando", "espera"\]/);
 assert.match(admin, /celula\("Status", selo\(\.\.\.rotuloStatus\(grupo\.status\)\)\)/);
-assert.match(painel, /conta\.js\?v=77/);
+assert.match(painel, /conta\.js\?v=78/);
 
 console.log("ok confirmacao financeira");

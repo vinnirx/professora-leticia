@@ -107,8 +107,8 @@ assert.match(painel, /Consulte os pedidos, acompanhe os pagamentos e verifique a
 assert.doesNotMatch(painel, /Confirmar o Pix libera/);
 assert.doesNotMatch(painel, /Confirmar Pix/);
 assert.match(painel, /painel\.css\?v=29/);
-assert.match(painel, /conta\.js\?v=77/);
-assert.match(conta, /admin\.js\?v=44/);
+assert.match(painel, /conta\.js\?v=78/);
+assert.match(conta, /admin\.js\?v=45/);
 assert.match(admin, /detalhe-pedido\.js\?v=1/);
 
 console.log("ok detalhe do pedido");

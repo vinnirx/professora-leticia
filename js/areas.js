@@ -1,5 +1,5 @@
 import { definirFiltro, filtroAtual, mostrarCatalogo } from "./catalogo.js?v=5";
-import { temasPorArea } from "./temas.js";
+import { temasPorArea } from "./temas.js?v=2";
 
 const LARGURA_ACORDEAO = "(max-width: 720px)";
 

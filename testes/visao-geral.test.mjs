@@ -54,9 +54,9 @@ assert.match(admin, /listarSolicitacoes\(\)/);
 const pagina = readFileSync(new URL("../gerenciar/index.html", import.meta.url), "utf8");
 const conta = readFileSync(new URL("../js/conta.js", import.meta.url), "utf8");
 assert.match(pagina, /painel\.css\?v=29/);
-assert.match(pagina, /conta\.js\?v=77/);
+assert.match(pagina, /conta\.js\?v=78/);
 assert.match(pagina, /id="ver-todos-pedidos"/);
-assert.match(conta, /admin\.js\?v=44/);
+assert.match(conta, /admin\.js\?v=45/);
 assert.match(admin, /from "\.\/visao\.js\?v=1"/);
 
 console.log("ok visao geral");
