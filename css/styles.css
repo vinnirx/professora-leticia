@@ -920,16 +920,23 @@ main {
 @media (min-width: 721px) {
   #inicio.cabecalho {
     align-items: flex-start;
+    min-height: 5.5rem;
   }
 
   #inicio.cabecalho .busca,
   #inicio.cabecalho .menu {
-    margin-top: 0.9rem;
-    transform: translateY(12px);
+    margin-top: 0;
+    align-self: flex-start;
+    transform: translateY(48px);
+  }
+
+  #inicio.cabecalho .busca input {
+    height: 2.25rem;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 
   #inicio.cabecalho .menu {
-    align-self: stretch;
     align-items: center;
   }
 }
