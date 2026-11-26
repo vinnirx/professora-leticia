@@ -11,7 +11,7 @@ for (const html of [inicio, atividades, atividade, entrar]) {
   assert.doesNotMatch(html, />Início</);
   assert.doesNotMatch(html, /icones\/simbolo\.png/);
   assert.match(html, /data-conta/);
-  assert.match(html, /styles\.css\?v=(91|93|94|95|96|97|98)/);
+  assert.match(html, /styles\.css\?v=(91|93|94|95|96|97|98|99|100)/);
 }
 
 assert.match(inicio, /id="abre-carrinho"/);
@@ -21,6 +21,7 @@ const cabeca = inicio.slice(inicio.indexOf("<header"), inicio.indexOf("</header>
 assert.ok(cabeca.indexOf('class="logo"') < cabeca.indexOf('id="busca-atividade"'));
 assert.ok(cabeca.indexOf('id="busca-atividade"') < cabeca.indexOf('class="menu"'));
 assert.match(css, /#inicio\.cabecalho \{[^}]*flex-wrap:\s*nowrap/s);
+assert.match(css, /#inicio\.cabecalho \.busca,\s*#inicio\.cabecalho \.menu \{\s*margin-top:\s*0\.9rem;/s);
 assert.match(css.slice(css.indexOf("@media (max-width: 720px)")), /#inicio\.cabecalho \{[^}]*display:\s*grid/s);
 assert.match(css, /grid-template-areas:\s*"logo acoes"\s*"busca busca"/);
 assert.match(css, /min-height:\s*2\.75rem/);

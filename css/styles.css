@@ -917,6 +917,22 @@ main {
   flex-wrap: nowrap;
 }
 
+@media (min-width: 721px) {
+  #inicio.cabecalho {
+    align-items: flex-start;
+  }
+
+  #inicio.cabecalho .busca,
+  #inicio.cabecalho .menu {
+    margin-top: 0.9rem;
+  }
+
+  #inicio.cabecalho .menu {
+    align-self: stretch;
+    align-items: center;
+  }
+}
+
 #inicio .menu-conta-opcoes {
   position: absolute;
   right: 0;
