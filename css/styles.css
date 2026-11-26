@@ -1209,7 +1209,7 @@ main {
   container-type: inline-size;
   display: flex;
   flex-direction: column;
-  width: min(1920px, 100%);
+  width: min(64rem, calc((100svh - 14.5rem) * 16 / 9), 100%);
   margin: 0 auto;
   min-height: 0;
   overflow: hidden;
@@ -1916,13 +1916,6 @@ main {
     max-width: 100%;
     height: auto;
     margin-left: 0;
-  }
-
-  .hero-acoes {
-    left: 3%;
-    top: 74%;
-    width: 36%;
-    height: 16%;
   }
 }
 
