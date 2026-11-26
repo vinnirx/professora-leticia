@@ -923,11 +923,12 @@ main {
     min-height: 5.5rem;
   }
 
+  /* 57px = base opaca da logo (59,7px) − início do conteúdo (12,8px) + 10px de folga. */
   #inicio.cabecalho .busca,
   #inicio.cabecalho .menu {
-    margin-top: 0;
+    margin-top: 57px;
     align-self: flex-start;
-    transform: translateY(48px);
+    transform: none;
   }
 
   #inicio.cabecalho .busca input {
