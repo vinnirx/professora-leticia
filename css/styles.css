@@ -1289,15 +1289,15 @@ main {
 
 .hero-acoes {
   position: absolute;
-  left: 4.7%;
-  top: 78.4%;
-  width: 26.5%;
-  height: 7.2%;
+  left: 3.9%;
+  top: 78.5%;
+  width: 31.7%;
+  height: 7.6%;
   display: flex;
   flex-wrap: nowrap;
   align-items: stretch;
   justify-content: flex-start;
-  gap: 4.8%;
+  gap: 9.6%;
   margin: 0;
   padding: 0;
   background: transparent;
@@ -1317,7 +1317,7 @@ main {
   font-size: 0.8rem;
 }
 
-.hero-acoes .botao-hero { flex: 1.37 1 auto; }
+.hero-acoes .botao-hero { flex: 1.71 1 auto; }
 
 .hero-acoes .botao:focus-visible {
   outline: 3px solid var(--azul-vivo);
@@ -1918,10 +1918,10 @@ main {
   }
 
   .hero-acoes {
-    left: 4%;
-    top: 76%;
-    width: 30%;
-    height: 18%;
+    left: 3%;
+    top: 74%;
+    width: 36%;
+    height: 16%;
   }
 }
 
