@@ -1370,17 +1370,17 @@ main {
   .hero-acoes {
     top: 63%;
     bottom: auto;
-    left: 2%;
-    max-width: 52%;
-    gap: 0.22rem;
+    left: 0.4rem;
+    max-width: none;
+    gap: 0.16rem;
   }
 
   .hero-acoes .botao,
   .hero-acoes .botao-hero {
     height: 2.75rem;
     min-height: 2.75rem;
-    padding: 0 0.28rem;
-    font-size: clamp(0.6rem, 2.85vw, 0.78rem);
+    padding: 0 0.16rem;
+    font-size: clamp(0.6875rem, 3.35vw, 0.8125rem);
   }
 }
 
@@ -1400,7 +1400,7 @@ main {
   .hero-acoes {
     flex-flow: row nowrap;
     align-items: center;
-    left: 6.2%;
+    left: max(clamp(0.75rem, 2.5vw, 1.5rem), calc((100% - 1120px) / 2));
     top: 63%;
     bottom: auto;
     width: max-content;
@@ -1420,7 +1420,6 @@ main {
 
 @media (min-width: 1025px) {
   .hero-acoes {
-    left: 7%;
     top: 63%;
     bottom: auto;
     max-width: 42%;
@@ -1462,22 +1461,6 @@ main {
 
 .secao-cabeca a { color: #7d8b98; font-weight: 700; text-decoration: none; }
 .secao-cabeca h2 { color: var(--azul-vivo); }
-
-h2#titulo-atividades {
-  margin-left: calc(2vw - max(clamp(0.75rem, 2.5vw, 1.5rem), (100vw - 1120px) / 2));
-}
-
-@media (min-width: 721px) {
-  h2#titulo-atividades {
-    margin-left: calc(6.2vw - max(clamp(0.75rem, 2.5vw, 1.5rem), (100vw - 1120px) / 2));
-  }
-}
-
-@media (min-width: 1025px) {
-  h2#titulo-atividades {
-    margin-left: calc(7vw - max(clamp(0.75rem, 2.5vw, 1.5rem), (100vw - 1120px) / 2));
-  }
-}
 
 .busca {
   display: grid;
