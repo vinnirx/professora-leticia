@@ -1368,7 +1368,7 @@ main {
   }
 
   .hero-acoes {
-    top: 82%;
+    top: 63%;
     bottom: auto;
     left: 2%;
     max-width: 52%;
@@ -1388,7 +1388,7 @@ main {
   .hero { align-items: center; }
 
   .hero-quadro {
-    width: min(100%, calc((100svh - 16.5rem) * 6614 / 3307));
+    width: min(100%, calc((100svh - 15.5rem) * 3834 / 1216));
   }
 
   .hero .hero-banner {
@@ -1401,8 +1401,8 @@ main {
     flex-flow: row nowrap;
     align-items: center;
     left: 6.2%;
-    top: auto;
-    bottom: 0.7rem;
+    top: 63%;
+    bottom: auto;
     width: max-content;
     max-width: 46%;
     gap: 0.6rem;
@@ -1421,7 +1421,8 @@ main {
 @media (min-width: 1025px) {
   .hero-acoes {
     left: 7%;
-    bottom: 1.15rem;
+    top: 63%;
+    bottom: auto;
     max-width: 42%;
   }
 }
