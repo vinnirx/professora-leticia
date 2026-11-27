@@ -1809,16 +1809,28 @@ main {
 .amostra { min-height: 0; padding: 0.7rem; }
 
 .amostra-capa {
+  display: block;
   padding: 0;
   overflow: hidden;
   background: white;
+  aspect-ratio: 4 / 5;
 }
 
 .amostra-capa img {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   object-fit: contain;
+  object-position: center;
+}
+
+.card .comprar,
+.card .adicionar-carrinho {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-width: 2px;
 }
 
 .momentos { gap: 0.35rem; }
@@ -1830,7 +1842,6 @@ main {
 .preco { color: var(--verde-vivo); font-weight: 800; }
 
 .card .comprar { border-style: solid; }
-.card a.comprar { display: block; }
 .oferta h3 a { color: inherit; text-decoration: none; }
 .oferta h3 a:hover { color: var(--azul-vivo); }
 

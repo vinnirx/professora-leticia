@@ -9,9 +9,13 @@ assert.equal(grade.includes("auto-fit"), false);
 const inicioImagem = css.indexOf(".amostra-capa img {");
 const imagem = css.slice(inicioImagem, css.indexOf("}", inicioImagem) + 1);
 assert.match(imagem, /width:\s*100%/);
-assert.match(imagem, /height:\s*auto/);
+assert.match(imagem, /height:\s*100%/);
 assert.match(imagem, /object-fit:\s*contain/);
-assert.equal(/height:\s*\d/.test(imagem), false);
+assert.equal(/height:\s*\d+px/.test(imagem), false);
+const capa = css.slice(css.indexOf(".amostra-capa {"), inicioImagem);
+assert.match(capa, /aspect-ratio:\s*4\s*\/\s*5/);
+assert.match(css, /\.card \.preco \{ margin-top: auto; \}/);
+assert.equal(css.includes("line-clamp"), false);
 
 const card = css.slice(css.lastIndexOf(".card {"), css.indexOf(".oferta {"));
 assert.match(card, /border-radius:\s*1\.2rem/);
