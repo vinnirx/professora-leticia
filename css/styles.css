@@ -1385,12 +1385,14 @@ main {
 }
 
 @media (min-width: 721px) {
-  .hero {
-    align-items: center;
-  }
-
-  .hero-quadro {
-    width: min(100%, calc((100svh - 15rem) * 6614 / 3307));
+  .hero .hero-banner {
+    width: 100%;
+    height: min(
+      calc(100cqi * 3307 / 6614),
+      max(calc(100svh - 14.5rem), calc(100cqi * 3307 / 6614 * 0.9))
+    );
+    object-fit: cover;
+    object-position: center bottom;
   }
 
   .hero-acoes {
