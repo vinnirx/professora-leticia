@@ -11,7 +11,7 @@ for (const html of [inicio, atividades, atividade, entrar]) {
   assert.doesNotMatch(html, />Início</);
   assert.doesNotMatch(html, /icones\/simbolo\.png/);
   assert.match(html, /data-conta/);
-  assert.match(html, /styles\.css\?v=(91|93|94|95|96|97|98|99|100|101|102|103|104|105|106|107|108|109)/);
+  assert.match(html, /styles\.css\?v=(91|93|94|95|96|97|98|99|100|101|102|103|104|105|106|107|108|109|110)/);
 }
 
 assert.match(inicio, /id="abre-carrinho"/);
@@ -43,7 +43,7 @@ assert.deepEqual(nomes, ["Atividades", "Jogos", "Rotina escolar", "Dicas", "Grat
 assert.match(faixa, /abre-historia/);
 assert.match(faixa, /data-area="Matemática"/);
 assert.match(inicio, /class="hero-banner"/);
-assert.match(inicio, /hero-banner\.webp\?v=1/);
+assert.match(inicio, /hero-banner\.webp\?v=2/);
 assert.doesNotMatch(css, /\.hero-banner \{[^}]*width:\s*178%/s);
 assert.match(inicio, /Explorar Materiais/);
 assert.match(css, /\.categorias ul \{[^}]*justify-content:\s*center/s);

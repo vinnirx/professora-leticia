@@ -38,7 +38,7 @@ assert.match(texto, /text-align:\s*center/);
 
 paginas.forEach(([pagina, prefixo]) => {
   const html = readFileSync(new URL(`../${pagina}`, import.meta.url), "utf8");
-  assert.match(html, /styles\.css\?v=(89|90|91|92|93|94|95|96|97|98|99|100|101|102|103|104|105|106|107|108|109)/);
+  assert.match(html, /styles\.css\?v=(89|90|91|92|93|94|95|96|97|98|99|100|101|102|103|104|105|106|107|108|109|110)/);
   assert.equal((html.match(/<footer class="rodape">/g) || []).length, 1);
   links.forEach(([destino, rotulo]) => {
     assert.match(html, new RegExp(`href="${prefixo}${destino}">${rotulo}</a>`));

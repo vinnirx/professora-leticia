@@ -1295,18 +1295,17 @@ main {
 .hero-texto p { max-width: 32rem; margin-bottom: 1rem; font-size: 1.02rem; }
 
 .hero-acoes {
-  position: static;
+  position: absolute;
+  left: 4%;
+  top: 51.5%;
+  width: 46%;
   display: flex;
-  flex-flow: row wrap;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.5rem;
-  width: auto;
-  max-width: none;
-  height: auto;
+  flex-flow: column nowrap;
+  align-items: stretch;
+  gap: 0.4rem;
   margin: 0;
-  padding: 0.65rem 4% 0.85rem;
-  background: #fdf9f8;
+  padding: 0;
+  background: transparent;
   z-index: 1;
 }
 
@@ -1316,19 +1315,18 @@ main {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: auto;
+  width: 100%;
   min-width: 0;
   min-height: 2.75rem;
-  height: auto;
   margin: 0;
-  padding: 0.4rem 1rem;
+  padding: 0.35rem 0.65rem;
   border: 2px solid #ef4454;
   border-radius: 999px;
   background: #ef4454;
   color: #fff;
   box-shadow: none;
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0;
@@ -1353,56 +1351,30 @@ main {
 
 @media (min-width: 721px) {
   .hero-acoes {
-    position: absolute;
-    left: 4%;
-    top: 75.5%;
-    bottom: 3.5%;
-    width: 34%;
-    padding: 0;
-    background: transparent;
-    flex-flow: column nowrap;
-    align-items: stretch;
-    gap: 0.35rem;
+    flex-flow: row nowrap;
+    align-items: center;
+    left: 7%;
+    top: auto;
+    bottom: 7%;
+    width: max-content;
+    max-width: 40%;
+    gap: 0.6rem;
   }
 
   .hero-acoes .botao,
   .hero-acoes .botao-hero {
-    flex: 1 1 auto;
-    width: 100%;
-    min-height: 0;
-    padding: 0 0.7rem;
-    font-size: clamp(0.82rem, 1.15vw, 0.92rem);
+    width: auto;
+    min-height: 2.75rem;
+    padding: 0.45rem 1.05rem;
+    font-size: 0.95rem;
   }
 }
 
 @media (min-width: 1025px) {
   .hero-acoes {
-    left: 25.6%;
-    width: 17%;
-    top: 75.5%;
-    bottom: 4%;
-  }
-}
-
-@media (min-width: 1360px) {
-  .hero-acoes {
-    flex-flow: row nowrap;
-    align-items: center;
-    left: 24.6%;
-    top: auto;
-    bottom: 7.2%;
-    width: max-content;
-    height: auto;
-    gap: 0.55rem;
-  }
-
-  .hero-acoes .botao,
-  .hero-acoes .botao-hero {
-    flex: 0 0 auto;
-    width: auto;
-    min-height: 2.65rem;
-    padding: 0.4rem 0.95rem;
-    font-size: clamp(0.82rem, 0.85vw, 0.95rem);
+    left: 8.2%;
+    bottom: 8%;
+    max-width: 36%;
   }
 }
 
