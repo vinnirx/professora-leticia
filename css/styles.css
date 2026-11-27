@@ -227,7 +227,7 @@ main {
 .entrada-rosto {
   display: grid;
   justify-items: center;
-  gap: 0.45rem;
+  gap: 0.35rem;
   color: var(--tinta);
   text-decoration: none;
   font-family: var(--serif);
@@ -1217,6 +1217,13 @@ main {
   background: #f8f7f5;
 }
 
+.hero-quadro {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
 .hero picture {
   display: block;
   width: 100%;
@@ -1299,9 +1306,9 @@ main {
   left: 4%;
   right: auto;
   top: auto;
-  bottom: 0.4rem;
+  bottom: 0.15rem;
   width: max-content;
-  max-width: 92%;
+  max-width: 48%;
   display: flex;
   flex-flow: row nowrap;
   align-items: center;
@@ -1322,16 +1329,16 @@ main {
   width: auto;
   min-width: 0;
   min-height: 2.75rem;
-  height: 2.875rem;
+  height: 2.75rem;
   margin: 0;
-  padding: 0 0.75rem;
+  padding: 0 0.55rem;
   border: 2px solid #ef4454;
   border-radius: 999px;
   background: #ef4454;
   color: #fff;
   box-shadow: none;
   font-family: inherit;
-  font-size: 0.84rem;
+  font-size: 0.78rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0;
@@ -1357,18 +1364,35 @@ main {
 
 @media (max-width: 720px) {
   .hero {
-    padding-bottom: 3.6rem;
+    padding-bottom: 1rem;
   }
 
-  .hero .hero-banner {
-    width: 100%;
-    height: auto;
-    max-height: none;
-    object-fit: contain;
+  .hero-acoes {
+    top: 82%;
+    bottom: auto;
+    left: 2%;
+    max-width: 52%;
+    gap: 0.22rem;
+  }
+
+  .hero-acoes .botao,
+  .hero-acoes .botao-hero {
+    height: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0 0.28rem;
+    font-size: clamp(0.6rem, 2.85vw, 0.78rem);
   }
 }
 
 @media (min-width: 721px) {
+  .hero {
+    align-items: center;
+  }
+
+  .hero-quadro {
+    width: min(100%, calc((100svh - 15rem) * 6614 / 3307));
+  }
+
   .hero-acoes {
     flex-flow: row nowrap;
     align-items: center;

@@ -11,7 +11,7 @@ const pagina = ler("../index.html");
 
 assert.match(inicio, /areas\.js\?v=8/);
 assert.match(pagina, /inicio\.js\?v=25/);
-assert.match(pagina, /styles\.css\?v=112/);
+assert.match(pagina, /styles\.css\?v=113/);
 assert.match(areas, /max-width: 720px/);
 assert.match(areas, /subareas-acordeao/);
 assert.match(areas, /definirFiltro\(area, atual\.area === area \? atual\.tema : ""\)/);
