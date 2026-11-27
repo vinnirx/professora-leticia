@@ -17,7 +17,7 @@
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=107" />
+    <link rel="stylesheet" href="css/styles.css?v=108" />
     <link rel="stylesheet" href="css/historia.css?v=3" />
   </head>
   <body>
@@ -81,11 +81,16 @@
     </section>
 
     <section class="hero" id="para-quem" aria-labelledby="titulo-entrada">
-      <img
-        class="hero-banner"
-        src="img/hero-banner.jpg?v=8"
-        alt="Professora com estudantes, entre eles uma criança em cadeira de rodas e outra com bengala. Cada estudante aprende de um jeito. Inclusão é abrir possibilidades."
-      />
+      <picture>
+        <source media="(min-width: 1025px)" srcset="img/hero-banner-largo.webp?v=1" type="image/webp" width="1920" height="576" />
+        <img
+          class="hero-banner"
+          src="img/hero-banner.webp?v=1"
+          width="1024"
+          height="576"
+          alt="Professora com estudantes, entre eles uma criança em cadeira de rodas e outra com bengala. Cada estudante aprende de um jeito. Inclusão é abrir possibilidades."
+        />
+      </picture>
       <div class="hero-mensagem">
         <h1 id="titulo-entrada">
           <span class="cor-azul">Cada estudante aprende de um jeito.</span>

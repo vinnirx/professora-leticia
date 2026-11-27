@@ -1209,12 +1209,18 @@ main {
   container-type: inline-size;
   display: flex;
   flex-direction: column;
-  width: min(64rem, calc((100svh - 14.5rem) * 16 / 9), 100%);
+  width: 100%;
   margin: 0 auto;
   min-height: 0;
   overflow: hidden;
   border-radius: 0;
-  background: #fff7f4;
+  background: #fdf9f8;
+}
+
+.hero picture {
+  display: block;
+  width: 100%;
+  line-height: 0;
 }
 
 .hero-banner {
@@ -1290,15 +1296,16 @@ main {
 
 .hero-acoes {
   position: absolute;
-  left: 3.9%;
-  top: 78.5%;
-  width: 31.7%;
-  height: 7.6%;
+  left: 4%;
+  top: 78%;
+  width: max-content;
+  max-width: 92%;
+  height: auto;
   display: flex;
   flex-wrap: nowrap;
-  align-items: stretch;
+  align-items: center;
   justify-content: flex-start;
-  gap: 9.6%;
+  gap: 0.5rem;
   margin: 0;
   padding: 0;
   background: transparent;
@@ -1306,37 +1313,60 @@ main {
 }
 
 .hero-acoes .botao {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   min-width: 0;
-  height: 100%;
+  width: auto;
+  height: auto;
+  min-height: 2.35rem;
   margin: 0;
-  padding: 0;
-  border-color: transparent;
-  background: transparent;
-  color: transparent;
+  padding: 0.4rem 0.95rem;
+  border: 2px solid #ef4454;
+  border-radius: 999px;
+  background: #ef4454;
+  color: #fff;
   box-shadow: none;
-  font-size: 0.8rem;
+  font-size: clamp(0.75rem, 3.1vw, 0.95rem);
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
-.hero-acoes .botao-hero { flex: 1.71 1 auto; }
+.hero-acoes .botao-hero { flex: 0 0 auto; }
+
+.hero-acoes .botao:hover { background: #e43747; }
 
 .hero-acoes .botao:focus-visible {
   outline: 3px solid var(--azul-vivo);
   outline-offset: 2px;
-  color: transparent;
-}
-
-.hero .botao-secundario {
-  background: white;
-  border-style: solid;
-  border-color: #f3c2b6;
-  color: #d87462;
 }
 
 .hero-acoes .botao-secundario {
-  background: transparent;
-  border-color: transparent;
-  color: transparent;
+  background: #fffdfb;
+  border-color: #ef4454;
+  color: #ef4454;
+}
+
+.hero-acoes .botao-secundario:hover { background: #fff1f2; }
+
+@media (min-width: 1025px) {
+  .hero-acoes {
+    left: 25.42%;
+    top: 78.82%;
+    width: 16.88%;
+    height: 7.3%;
+    gap: 9.3%;
+  }
+
+  .hero-acoes .botao {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    padding: 0 0.4rem;
+    font-size: clamp(0.68rem, 0.82vw, 0.95rem);
+    justify-content: center;
+  }
+
+  .hero-acoes .botao-hero { flex: 1.71 1 auto; }
 }
 
 .botao-hero {
