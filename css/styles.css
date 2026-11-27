@@ -1297,12 +1297,16 @@ main {
 .hero-acoes {
   position: absolute;
   left: 4%;
-  top: 51.5%;
-  width: 46%;
+  right: auto;
+  top: auto;
+  bottom: 0.4rem;
+  width: max-content;
+  max-width: 92%;
   display: flex;
-  flex-flow: column nowrap;
-  align-items: stretch;
-  gap: 0.4rem;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.45rem;
   margin: 0;
   padding: 0;
   background: transparent;
@@ -1315,18 +1319,19 @@ main {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 100%;
+  width: auto;
   min-width: 0;
   min-height: 2.75rem;
+  height: 2.875rem;
   margin: 0;
-  padding: 0.35rem 0.65rem;
+  padding: 0 0.75rem;
   border: 2px solid #ef4454;
   border-radius: 999px;
   background: #ef4454;
   color: #fff;
   box-shadow: none;
   font-family: inherit;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0;
@@ -1349,6 +1354,16 @@ main {
 
 .hero-acoes .botao-secundario:hover { background: #fff1f2; }
 
+
+@media (max-width: 720px) {
+  .hero .hero-banner {
+    width: 100%;
+    height: calc(100cqi * 874 / 1799 + 3.7rem);
+    object-fit: cover;
+    object-position: center top;
+  }
+}
+
 @media (min-width: 721px) {
   .hero-acoes {
     flex-flow: row nowrap;
@@ -1364,6 +1379,7 @@ main {
   .hero-acoes .botao,
   .hero-acoes .botao-hero {
     width: auto;
+    height: auto;
     min-height: 2.75rem;
     padding: 0.45rem 1.05rem;
     font-size: 0.95rem;
