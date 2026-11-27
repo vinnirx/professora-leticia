@@ -1214,7 +1214,7 @@ main {
   min-height: 0;
   overflow: hidden;
   border-radius: 0;
-  background: #fdf9f8;
+  background: #f8f7f5;
 }
 
 .hero picture {
@@ -1356,11 +1356,15 @@ main {
 
 
 @media (max-width: 720px) {
+  .hero {
+    padding-bottom: 3.6rem;
+  }
+
   .hero .hero-banner {
     width: 100%;
-    height: calc(100cqi * 874 / 1799 + 3.7rem);
-    object-fit: cover;
-    object-position: center top;
+    height: auto;
+    max-height: none;
+    object-fit: contain;
   }
 }
 
@@ -1368,11 +1372,11 @@ main {
   .hero-acoes {
     flex-flow: row nowrap;
     align-items: center;
-    left: 7%;
+    left: 6.2%;
     top: auto;
-    bottom: 7%;
+    bottom: 0.7rem;
     width: max-content;
-    max-width: 40%;
+    max-width: 46%;
     gap: 0.6rem;
   }
 
@@ -1388,9 +1392,9 @@ main {
 
 @media (min-width: 1025px) {
   .hero-acoes {
-    left: 8.2%;
-    bottom: 8%;
-    max-width: 36%;
+    left: 7%;
+    bottom: 1.15rem;
+    max-width: 42%;
   }
 }
 
